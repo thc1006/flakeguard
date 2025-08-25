@@ -147,7 +147,7 @@ export async function createCheckRun(
         summary: result.output?.summary || output.summary,
         text: result.output?.text || output.text,
       },
-      actions: (result.actions || []).map(action => ({
+      actions: ((result as any).actions || []).map((action: any) => ({
         label: action.label,
         description: action.description,
         identifier: action.identifier as CheckRunAction,
@@ -260,7 +260,7 @@ export async function updateCheckRun(
         summary: result.output?.summary || output.summary,
         text: result.output?.text || output.text,
       },
-      actions: (result.actions || []).map(action => ({
+      actions: ((result as any).actions || []).map((action: any) => ({
         label: action.label,
         description: action.description,
         identifier: action.identifier as CheckRunAction,
@@ -305,7 +305,7 @@ async function executeWithRetry<T>(
   operation: () => Promise<T>,
   config: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
 ): Promise<T> {
-  let lastError: Error;
+  let lastError: Error = new Error('Unknown error');
   
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
     try {

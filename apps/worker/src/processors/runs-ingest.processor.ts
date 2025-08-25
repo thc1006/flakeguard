@@ -8,8 +8,753 @@
  * comprehensive error handling and retry mechanisms.
  */
 
-// Unused imports removed to fix compilation
+import { Job } from 'bullmq';
+import { PrismaClient } from '@prisma/client';
+import { Octokit } from '@octokit/rest';
+import { createReadStream, createWriteStream, mkdirSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { pipeline } from 'stream/promises';
+import * as sax from 'sax';
+import StreamZip from 'node-stream-zip';
+import { logger } from '../utils/logger.js';
+import { 
+  recordJobCompletion, 
+  recordGitHubApiCall,
+  artifactProcessingTime,
+  artifactSize,
+  artifactsProcessed,
+  testResultsParsed
+} from '../utils/metrics.js';
+import { 
+  ARTIFACT_FILTERS,
+  QueueNames 
+} from '@flakeguard/shared';
 
 // ============================================================================
 // Types and Interfaces
-// ============================================================================\n\nexport interface RunsIngestJobData {\n  workflowRunId: number;\n  repository: {\n    owner: string;\n    repo: string;\n    installationId: number;\n  };\n  correlationId?: string;\n  priority: 'low' | 'normal' | 'high' | 'critical';\n  triggeredBy?: 'webhook' | 'polling' | 'manual';\n  metadata?: {\n    runStatus: string;\n    conclusion: string;\n    headSha: string;\n    headBranch: string;\n    runNumber: number;\n    attemptNumber?: number;\n  };\n}\n\nexport interface ProcessingResult {\n  success: boolean;\n  processedArtifacts: number;\n  totalTests: number;\n  totalFailures: number;\n  totalErrors: number;\n  testSuites: TestSuite[];\n  errors: string[];\n  warnings: string[];\n  processingTimeMs: number;\n}\n\nexport interface TestSuite {\n  name: string;\n  tests: number;\n  failures: number;\n  errors: number;\n  skipped: number;\n  time: number;\n  timestamp: string;\n  testCases: TestCase[];\n}\n\nexport interface TestCase {\n  name: string;\n  className: string;\n  time: number;\n  status: 'passed' | 'failed' | 'error' | 'skipped';\n  failure?: {\n    message: string;\n    type: string;\n    stackTrace?: string;\n  };\n  error?: {\n    message: string;\n    type: string;\n    stackTrace?: string;\n  };\n}\n\nexport interface GitHubArtifact {\n  id: number;\n  name: string;\n  size_in_bytes: number;\n  url: string;\n  archive_download_url: string;\n  expired: boolean;\n  created_at: string;\n  expires_at: string;\n  updated_at: string;\n}\n\n// ============================================================================\n// Processor Implementation\n// ============================================================================\n\n/**\n * Create runs ingestion processor\n */\nexport function createRunsIngestProcessor(\n  prisma: PrismaClient,\n  octokit?: Octokit\n) {\n  return async function processRunsIngest(\n    job: Job<RunsIngestJobData>\n  ): Promise<ProcessingResult> {\n    const { data } = job;\n    const startTime = Date.now();\n    \n    logger.info({\n      jobId: job.id,\n      workflowRunId: data.workflowRunId,\n      repository: `${data.repository.owner}/${data.repository.repo}`,\n      correlationId: data.correlationId,\n      priority: data.priority,\n      triggeredBy: data.triggeredBy\n    }, 'Processing runs ingestion job');\n\n    try {\n      // Update job progress\n      await job.updateProgress({\n        phase: 'discovering',\n        percentage: 10,\n        message: 'Discovering artifacts'\n      });\n\n      // Get GitHub client (mock if not available)\n      const github = octokit || createMockGitHubClient();\n      \n      // Fetch workflow run artifacts\n      const artifacts = await fetchWorkflowArtifacts(github, data);\n      \n      if (artifacts.length === 0) {\n        logger.info({ workflowRunId: data.workflowRunId }, 'No artifacts found for workflow run');\n        return createEmptyResult(job.id!, startTime);\n      }\n\n      // Update progress\n      await job.updateProgress({\n        phase: 'downloading',\n        percentage: 25,\n        message: `Downloading ${artifacts.length} artifacts`\n      });\n\n      // Filter artifacts for test results\n      const testArtifacts = filterTestArtifacts(artifacts);\n      \n      if (testArtifacts.length === 0) {\n        logger.info({ workflowRunId: data.workflowRunId }, 'No test result artifacts found');\n        return createEmptyResult(job.id!, startTime);\n      }\n\n      // Process each artifact\n      const allTestSuites: TestSuite[] = [];\n      const errors: string[] = [];\n      const warnings: string[] = [];\n      let totalTests = 0;\n      let totalFailures = 0;\n      let totalErrors = 0;\n\n      for (let i = 0; i < testArtifacts.length; i++) {\n        const artifact = testArtifacts[i];\n        \n        try {\n          // Update progress\n          await job.updateProgress({\n            phase: 'processing',\n            percentage: 25 + (i / testArtifacts.length) * 50,\n            message: `Processing artifact: ${artifact.name}`\n          });\n\n          const artifactStartTime = Date.now();\n          \n          // Download and process artifact\n          const testSuites = await processArtifact(github, data, artifact);\n          \n          // Record metrics\n          const processingTime = Date.now() - artifactStartTime;\n          artifactProcessingTime.observe({ artifact_type: 'junit' }, processingTime / 1000);\n          artifactSize.observe({ artifact_type: 'junit' }, artifact.size_in_bytes);\n          artifactsProcessed.inc({ \n            repository: `${data.repository.owner}/${data.repository.repo}`,\n            artifact_type: 'junit',\n            status: 'success'\n          });\n          \n          // Aggregate results\n          allTestSuites.push(...testSuites);\n          testSuites.forEach(suite => {\n            totalTests += suite.tests;\n            totalFailures += suite.failures;\n            totalErrors += suite.errors;\n          });\n          \n        } catch (error) {\n          const errorMessage = `Failed to process artifact ${artifact.name}: ${error instanceof Error ? error.message : String(error)}`;\n          logger.error({ artifactName: artifact.name, error: errorMessage }, 'Artifact processing failed');\n          errors.push(errorMessage);\n          \n          artifactsProcessed.inc({ \n            repository: `${data.repository.owner}/${data.repository.repo}`,\n            artifact_type: 'junit',\n            status: 'error'\n          });\n        }\n      }\n\n      // Update progress\n      await job.updateProgress({\n        phase: 'storing',\n        percentage: 80,\n        message: 'Storing test results'\n      });\n\n      // Store results in database\n      await storeTestResults(prisma, data, allTestSuites);\n      \n      // Record metrics\n      testResultsParsed.inc({\n        repository: `${data.repository.owner}/${data.repository.repo}`,\n        test_framework: 'junit'\n      }, totalTests);\n\n      const processingTimeMs = Date.now() - startTime;\n      \n      // Final progress update\n      await job.updateProgress({\n        phase: 'complete',\n        percentage: 100,\n        message: 'Processing complete'\n      });\n\n      const result: ProcessingResult = {\n        success: true,\n        processedArtifacts: testArtifacts.length,\n        totalTests,\n        totalFailures,\n        totalErrors,\n        testSuites: allTestSuites,\n        errors,\n        warnings,\n        processingTimeMs\n      };\n\n      // Record job completion metrics\n      recordJobCompletion(QueueNames.RUNS_INGEST, 'completed', data.priority, processingTimeMs);\n      \n      logger.info({\n        jobId: job.id,\n        workflowRunId: data.workflowRunId,\n        processedArtifacts: testArtifacts.length,\n        totalTests,\n        totalFailures,\n        processingTimeMs\n      }, 'Runs ingestion completed successfully');\n\n      return result;\n\n    } catch (error) {\n      const processingTimeMs = Date.now() - startTime;\n      const errorMessage = error instanceof Error ? error.message : String(error);\n      \n      // Record failed job metrics\n      recordJobCompletion(QueueNames.RUNS_INGEST, 'failed', data.priority, processingTimeMs, 'processing_error');\n      \n      logger.error({\n        jobId: job.id,\n        workflowRunId: data.workflowRunId,\n        error: errorMessage,\n        stack: error instanceof Error ? error.stack : undefined,\n        processingTimeMs\n      }, 'Runs ingestion failed');\n\n      throw error; // Re-throw to trigger retry logic\n    }\n  };\n}\n\n// ============================================================================\n// GitHub API Functions\n// ============================================================================\n\n/**\n * Fetch workflow run artifacts from GitHub\n */\nasync function fetchWorkflowArtifacts(\n  github: Octokit,\n  data: RunsIngestJobData\n): Promise<GitHubArtifact[]> {\n  const startTime = Date.now();\n  \n  try {\n    const response = await github.rest.actions.listWorkflowRunArtifacts({\n      owner: data.repository.owner,\n      repo: data.repository.repo,\n      run_id: data.workflowRunId,\n      per_page: 100\n    });\n    \n    const duration = Date.now() - startTime;\n    recordGitHubApiCall('listWorkflowRunArtifacts', 'GET', response.status, duration);\n    \n    return response.data.artifacts;\n    \n  } catch (error) {\n    const duration = Date.now() - startTime;\n    recordGitHubApiCall('listWorkflowRunArtifacts', 'GET', 500, duration);\n    \n    if (error instanceof Error && 'status' in error && error.status === 404) {\n      logger.warn({ workflowRunId: data.workflowRunId }, 'Workflow run not found');\n      return [];\n    }\n    \n    throw error;\n  }\n}\n\n/**\n * Download artifact from GitHub\n */\nasync function downloadArtifact(\n  github: Octokit,\n  data: RunsIngestJobData,\n  artifact: GitHubArtifact,\n  destinationPath: string\n): Promise<void> {\n  const startTime = Date.now();\n  \n  try {\n    const response = await github.rest.actions.downloadArtifact({\n      owner: data.repository.owner,\n      repo: data.repository.repo,\n      artifact_id: artifact.id,\n      archive_format: 'zip'\n    });\n    \n    const duration = Date.now() - startTime;\n    recordGitHubApiCall('downloadArtifact', 'GET', response.status, duration);\n    \n    // Write artifact data to file\n    if (response.data instanceof ArrayBuffer) {\n      const buffer = Buffer.from(response.data);\n      await pipeline(\n        Buffer.from(buffer),\n        createWriteStream(destinationPath)\n      );\n    } else {\n      throw new Error('Unexpected artifact data format');\n    }\n    \n  } catch (error) {\n    const duration = Date.now() - startTime;\n    recordGitHubApiCall('downloadArtifact', 'GET', 500, duration);\n    throw error;\n  }\n}\n\n// ============================================================================\n// Artifact Processing Functions\n// ============================================================================\n\n/**\n * Filter artifacts to find test result files\n */\nfunction filterTestArtifacts(artifacts: GitHubArtifact[]): GitHubArtifact[] {\n  const filter = ARTIFACT_FILTERS.TEST_RESULTS;\n  \n  return artifacts.filter(artifact => {\n    // Skip expired artifacts\n    if (artifact.expired) {\n      return false;\n    }\n    \n    // Check size limits\n    if (artifact.size_in_bytes > filter.maxSizeBytes) {\n      return false;\n    }\n    \n    // Check name patterns\n    const nameMatches = filter.namePatterns.some(pattern => \n      artifact.name.toLowerCase().includes(pattern.toLowerCase())\n    );\n    \n    return nameMatches;\n  });\n}\n\n/**\n * Process a single artifact and extract test suites\n */\nasync function processArtifact(\n  github: Octokit,\n  data: RunsIngestJobData,\n  artifact: GitHubArtifact\n): Promise<TestSuite[]> {\n  const tempDir = join(tmpdir(), `flakeguard-${Date.now()}-${artifact.id}`);\n  const zipPath = join(tempDir, 'artifact.zip');\n  \n  try {\n    // Create temporary directory\n    mkdirSync(tempDir, { recursive: true });\n    \n    // Download artifact\n    await downloadArtifact(github, data, artifact, zipPath);\n    \n    // Extract and parse test results\n    const testSuites = await extractAndParseTestResults(zipPath, tempDir);\n    \n    return testSuites;\n    \n  } finally {\n    // Cleanup temporary files\n    try {\n      rmSync(tempDir, { recursive: true, force: true });\n    } catch (cleanupError) {\n      logger.warn({ tempDir, error: cleanupError }, 'Failed to cleanup temporary directory');\n    }\n  }\n}\n\n/**\n * Extract ZIP archive and parse JUnit XML files\n */\nasync function extractAndParseTestResults(zipPath: string, extractDir: string): Promise<TestSuite[]> {\n  const testSuites: TestSuite[] = [];\n  \n  // Extract ZIP archive\n  const zip = new StreamZip.async({ file: zipPath });\n  \n  try {\n    await zip.extract(null, extractDir);\n    const entries = await zip.entries();\n    \n    // Find XML files\n    const xmlFiles = Object.values(entries).filter(entry => {\n      return !entry.isDirectory && \n             entry.name.toLowerCase().endsWith('.xml') &&\n             !entry.name.includes('__MACOSX'); // Skip macOS metadata\n    });\n    \n    // Parse each XML file\n    for (const entry of xmlFiles) {\n      try {\n        const extractedPath = join(extractDir, entry.name);\n        const suites = await parseJUnitXML(extractedPath);\n        testSuites.push(...suites);\n      } catch (parseError) {\n        logger.warn({\n          fileName: entry.name,\n          error: parseError instanceof Error ? parseError.message : String(parseError)\n        }, 'Failed to parse XML file');\n      }\n    }\n    \n  } finally {\n    await zip.close();\n  }\n  \n  return testSuites;\n}\n\n/**\n * Parse JUnit XML file using SAX parser for memory efficiency\n */\nasync function parseJUnitXML(filePath: string): Promise<TestSuite[]> {\n  return new Promise((resolve, reject) => {\n    const testSuites: TestSuite[] = [];\n    let currentSuite: Partial<TestSuite> | null = null;\n    let currentTestCase: Partial<TestCase> | null = null;\n    let textContent = '';\n    \n    const parser = sax.createStream(true, {\n      trim: true,\n      normalize: true\n    });\n    \n    parser.on('error', (error) => {\n      reject(new Error(`XML parsing error: ${error.message}`));\n    });\n    \n    parser.on('opentag', (node) => {\n      const { name, attributes } = node;\n      \n      switch (name.toLowerCase()) {\n        case 'testsuite':\n          currentSuite = {\n            name: attributes.name as string || 'Unknown',\n            tests: parseInt(attributes.tests as string) || 0,\n            failures: parseInt(attributes.failures as string) || 0,\n            errors: parseInt(attributes.errors as string) || 0,\n            skipped: parseInt(attributes.skipped as string) || 0,\n            time: parseFloat(attributes.time as string) || 0,\n            timestamp: attributes.timestamp as string || new Date().toISOString(),\n            testCases: []\n          };\n          break;\n          \n        case 'testcase':\n          if (currentSuite) {\n            currentTestCase = {\n              name: attributes.name as string || 'Unknown',\n              className: attributes.classname as string || attributes.class as string || 'Unknown',\n              time: parseFloat(attributes.time as string) || 0,\n              status: 'passed' // Default, will be updated if failure/error found\n            };\n          }\n          break;\n          \n        case 'failure':\n          if (currentTestCase) {\n            currentTestCase.status = 'failed';\n            currentTestCase.failure = {\n              message: attributes.message as string || '',\n              type: attributes.type as string || 'AssertionError'\n            };\n          }\n          break;\n          \n        case 'error':\n          if (currentTestCase) {\n            currentTestCase.status = 'error';\n            currentTestCase.error = {\n              message: attributes.message as string || '',\n              type: attributes.type as string || 'Error'\n            };\n          }\n          break;\n          \n        case 'skipped':\n          if (currentTestCase) {\n            currentTestCase.status = 'skipped';\n          }\n          break;\n      }\n      \n      textContent = '';\n    });\n    \n    parser.on('text', (text) => {\n      textContent += text;\n    });\n    \n    parser.on('closetag', (tagName) => {\n      switch (tagName.toLowerCase()) {\n        case 'testsuite':\n          if (currentSuite && currentSuite.testCases) {\n            testSuites.push(currentSuite as TestSuite);\n            currentSuite = null;\n          }\n          break;\n          \n        case 'testcase':\n          if (currentTestCase && currentSuite) {\n            currentSuite.testCases!.push(currentTestCase as TestCase);\n            currentTestCase = null;\n          }\n          break;\n          \n        case 'failure':\n          if (currentTestCase && currentTestCase.failure && textContent.trim()) {\n            currentTestCase.failure.stackTrace = textContent.trim();\n          }\n          break;\n          \n        case 'error':\n          if (currentTestCase && currentTestCase.error && textContent.trim()) {\n            currentTestCase.error.stackTrace = textContent.trim();\n          }\n          break;\n      }\n      \n      textContent = '';\n    });\n    \n    parser.on('end', () => {\n      resolve(testSuites);\n    });\n    \n    // Start parsing\n    const stream = createReadStream(filePath);\n    stream.pipe(parser);\n  });\n}\n\n// ============================================================================\n// Database Functions\n// ============================================================================\n\n/**\n * Store test results in database\n */\nasync function storeTestResults(\n  prisma: PrismaClient,\n  data: RunsIngestJobData,\n  testSuites: TestSuite[]\n): Promise<void> {\n  try {\n    // Use database transaction for consistency\n    await prisma.$transaction(async (tx) => {\n      // Create or update workflow run record\n      const workflowRun = await tx.workflowRun.upsert({\n        where: {\n          id: data.workflowRunId\n        },\n        update: {\n          status: data.metadata?.runStatus || 'completed',\n          conclusion: data.metadata?.conclusion || 'success',\n          updatedAt: new Date()\n        },\n        create: {\n          id: data.workflowRunId,\n          repositoryOwner: data.repository.owner,\n          repositoryName: data.repository.repo,\n          headSha: data.metadata?.headSha || '',\n          headBranch: data.metadata?.headBranch || 'main',\n          runNumber: data.metadata?.runNumber || 0,\n          status: data.metadata?.runStatus || 'completed',\n          conclusion: data.metadata?.conclusion || 'success',\n          createdAt: new Date(),\n          updatedAt: new Date()\n        }\n      });\n      \n      // Store test suites and test cases\n      for (const suite of testSuites) {\n        const testSuite = await tx.testSuite.create({\n          data: {\n            workflowRunId: workflowRun.id,\n            name: suite.name,\n            tests: suite.tests,\n            failures: suite.failures,\n            errors: suite.errors,\n            skipped: suite.skipped,\n            time: suite.time,\n            timestamp: new Date(suite.timestamp),\n            createdAt: new Date()\n          }\n        });\n        \n        // Store test cases\n        for (const testCase of suite.testCases) {\n          await tx.testCase.create({\n            data: {\n              testSuiteId: testSuite.id,\n              name: testCase.name,\n              className: testCase.className,\n              time: testCase.time,\n              status: testCase.status,\n              failureMessage: testCase.failure?.message,\n              failureType: testCase.failure?.type,\n              failureStackTrace: testCase.failure?.stackTrace,\n              errorMessage: testCase.error?.message,\n              errorType: testCase.error?.type,\n              errorStackTrace: testCase.error?.stackTrace,\n              createdAt: new Date()\n            }\n          });\n        }\n      }\n    });\n    \n    logger.info({\n      workflowRunId: data.workflowRunId,\n      testSuites: testSuites.length,\n      totalTests: testSuites.reduce((sum, suite) => sum + suite.tests, 0)\n    }, 'Test results stored successfully');\n    \n  } catch (error) {\n    logger.error({\n      workflowRunId: data.workflowRunId,\n      error: error instanceof Error ? error.message : String(error)\n    }, 'Failed to store test results');\n    throw error;\n  }\n}\n\n// ============================================================================\n// Utility Functions\n// ============================================================================\n\n/**\n * Create empty processing result\n */\nfunction createEmptyResult(jobId: string, startTime: number): ProcessingResult {\n  return {\n    success: true,\n    processedArtifacts: 0,\n    totalTests: 0,\n    totalFailures: 0,\n    totalErrors: 0,\n    testSuites: [],\n    errors: [],\n    warnings: [],\n    processingTimeMs: Date.now() - startTime\n  };\n}\n\n/**\n * Create mock GitHub client for testing\n */\nfunction createMockGitHubClient(): Octokit {\n  return {\n    rest: {\n      actions: {\n        listWorkflowRunArtifacts: async () => ({\n          data: { artifacts: [] },\n          status: 200\n        }),\n        downloadArtifact: async () => ({\n          data: new ArrayBuffer(0),\n          status: 200\n        })\n      }\n    }\n  } as any;\n}\n\n// ============================================================================\n// Export Processor Factory\n// ============================================================================\n\n/**\n * Factory function for runs ingestion processor\n */\nexport function runsIngestProcessor(\n  prisma: PrismaClient,\n  octokit?: Octokit\n) {\n  const processor = createRunsIngestProcessor(prisma, octokit);\n  \n  return async (job: Job<RunsIngestJobData>): Promise<ProcessingResult> => {\n    return processor(job);\n  };\n}\n\nexport default runsIngestProcessor;"
+// ============================================================================
+
+export interface RunsIngestJobData {
+  workflowRunId: number;
+  repository: {
+    owner: string;
+    repo: string;
+    installationId: number;
+  };
+  correlationId?: string;
+  priority: 'low' | 'normal' | 'high' | 'critical';
+  triggeredBy?: 'webhook' | 'polling' | 'manual';
+  metadata?: {
+    runStatus: string;
+    conclusion: string;
+    headSha: string;
+    headBranch: string;
+    runNumber: number;
+    attemptNumber?: number;
+  };
+}
+
+export interface ProcessingResult {
+  success: boolean;
+  processedArtifacts: number;
+  totalTests: number;
+  totalFailures: number;
+  totalErrors: number;
+  testSuites: TestSuite[];
+  errors: string[];
+  warnings: string[];
+  processingTimeMs: number;
+}
+
+export interface TestSuite {
+  name: string;
+  tests: number;
+  failures: number;
+  errors: number;
+  skipped: number;
+  time: number;
+  timestamp: string;
+  testCases: TestCase[];
+}
+
+export interface TestCase {
+  name: string;
+  className: string;
+  time: number;
+  status: 'passed' | 'failed' | 'error' | 'skipped';
+  failure?: {
+    message: string;
+    type: string;
+    stackTrace?: string;
+  };
+  error?: {
+    message: string;
+    type: string;
+    stackTrace?: string;
+  };
+}
+
+export interface GitHubArtifact {
+  id: number;
+  name: string;
+  size_in_bytes: number;
+  url: string;
+  archive_download_url: string;
+  expired: boolean;
+  created_at: string;
+  expires_at: string;
+  updated_at: string;
+}
+
+// ============================================================================
+// Processor Implementation
+// ============================================================================
+
+/**
+ * Create runs ingestion processor
+ */
+export function createRunsIngestProcessor(
+  prisma: PrismaClient,
+  octokit?: Octokit
+) {
+  return async function processRunsIngest(
+    job: Job<RunsIngestJobData>
+  ): Promise<ProcessingResult> {
+    const { data } = job;
+    const startTime = Date.now();
+    
+    logger.info({
+      jobId: job.id,
+      workflowRunId: data.workflowRunId,
+      repository: `${data.repository.owner}/${data.repository.repo}`,
+      correlationId: data.correlationId,
+      priority: data.priority,
+      triggeredBy: data.triggeredBy
+    }, 'Processing runs ingestion job');
+
+    try {
+      // Update job progress
+      await job.updateProgress({
+        phase: 'discovering',
+        percentage: 10,
+        message: 'Discovering artifacts'
+      });
+
+      // Get GitHub client (mock if not available)
+      const github = octokit || createMockGitHubClient();
+      
+      // Fetch workflow run artifacts
+      const artifacts = await fetchWorkflowArtifacts(github, data);
+      
+      if (artifacts.length === 0) {
+        logger.info({ workflowRunId: data.workflowRunId }, 'No artifacts found for workflow run');
+        return createEmptyResult(job.id!, startTime);
+      }
+
+      // Update progress
+      await job.updateProgress({
+        phase: 'downloading',
+        percentage: 25,
+        message: `Downloading ${artifacts.length} artifacts`
+      });
+
+      // Filter artifacts for test results
+      const testArtifacts = filterTestArtifacts(artifacts);
+      
+      if (testArtifacts.length === 0) {
+        logger.info({ workflowRunId: data.workflowRunId }, 'No test result artifacts found');
+        return createEmptyResult(job.id!, startTime);
+      }
+
+      // Process each artifact
+      const allTestSuites: TestSuite[] = [];
+      const errors: string[] = [];
+      const warnings: string[] = [];
+      let totalTests = 0;
+      let totalFailures = 0;
+      let totalErrors = 0;
+
+      for (let i = 0; i < testArtifacts.length; i++) {
+        const artifact = testArtifacts[i];
+        if (!artifact) continue;
+        
+        try {
+          // Update progress
+          await job.updateProgress({
+            phase: 'processing',
+            percentage: 25 + (i / testArtifacts.length) * 50,
+            message: `Processing artifact: ${artifact.name}`
+          });
+
+          const artifactStartTime = Date.now();
+          
+          // Download and process artifact
+          const testSuites = await processArtifact(github, data, artifact);
+          
+          // Record metrics
+          const processingTime = Date.now() - artifactStartTime;
+          artifactProcessingTime.observe({ artifact_type: 'junit' }, processingTime / 1000);
+          artifactSize.observe({ artifact_type: 'junit' }, artifact.size_in_bytes);
+          artifactsProcessed.inc({ 
+            repository: `${data.repository.owner}/${data.repository.repo}`,
+            artifact_type: 'junit',
+            status: 'success'
+          });
+          
+          // Aggregate results
+          allTestSuites.push(...testSuites);
+          testSuites.forEach(suite => {
+            totalTests += suite.tests;
+            totalFailures += suite.failures;
+            totalErrors += suite.errors;
+          });
+          
+        } catch (error) {
+          const errorMessage = `Failed to process artifact ${artifact.name}: ${error instanceof Error ? error.message : String(error)}`;
+          logger.error({ artifactName: artifact.name, error: errorMessage }, 'Artifact processing failed');
+          errors.push(errorMessage);
+          
+          artifactsProcessed.inc({ 
+            repository: `${data.repository.owner}/${data.repository.repo}`,
+            artifact_type: 'junit',
+            status: 'error'
+          });
+        }
+      }
+
+      // Update progress
+      await job.updateProgress({
+        phase: 'storing',
+        percentage: 80,
+        message: 'Storing test results'
+      });
+
+      // Store results in database
+      await storeTestResults(prisma, data, allTestSuites);
+      
+      // Record metrics
+      testResultsParsed.inc({
+        repository: `${data.repository.owner}/${data.repository.repo}`,
+        test_framework: 'junit'
+      }, totalTests);
+
+      const processingTimeMs = Date.now() - startTime;
+      
+      // Final progress update
+      await job.updateProgress({
+        phase: 'complete',
+        percentage: 100,
+        message: 'Processing complete'
+      });
+
+      const result: ProcessingResult = {
+        success: true,
+        processedArtifacts: testArtifacts.length,
+        totalTests,
+        totalFailures,
+        totalErrors,
+        testSuites: allTestSuites,
+        errors,
+        warnings,
+        processingTimeMs
+      };
+
+      // Record job completion metrics
+      recordJobCompletion(QueueNames.RUNS_INGEST, 'completed', data.priority, processingTimeMs);
+      
+      logger.info({
+        jobId: job.id,
+        workflowRunId: data.workflowRunId,
+        processedArtifacts: testArtifacts.length,
+        totalTests,
+        totalFailures,
+        processingTimeMs
+      }, 'Runs ingestion completed successfully');
+
+      return result;
+
+    } catch (error) {
+      const processingTimeMs = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Record failed job metrics
+      recordJobCompletion(QueueNames.RUNS_INGEST, 'failed', data.priority, processingTimeMs, 'processing_error');
+      
+      logger.error({
+        jobId: job.id,
+        workflowRunId: data.workflowRunId,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        processingTimeMs
+      }, 'Runs ingestion failed');
+
+      throw error; // Re-throw to trigger retry logic
+    }
+  };
+}
+
+// ============================================================================
+// GitHub API Functions
+// ============================================================================
+
+/**
+ * Fetch workflow run artifacts from GitHub
+ */
+async function fetchWorkflowArtifacts(
+  github: Octokit,
+  data: RunsIngestJobData
+): Promise<GitHubArtifact[]> {
+  const startTime = Date.now();
+  
+  try {
+    const response = await github.rest.actions.listWorkflowRunArtifacts({
+      owner: data.repository.owner,
+      repo: data.repository.repo,
+      run_id: data.workflowRunId,
+      per_page: 100
+    });
+    
+    const duration = Date.now() - startTime;
+    recordGitHubApiCall('listWorkflowRunArtifacts', 'GET', response.status, duration);
+    
+    return response.data.artifacts.map(artifact => ({
+      ...artifact,
+      created_at: artifact.created_at || new Date().toISOString(),
+      expires_at: artifact.expires_at || new Date().toISOString(),
+      updated_at: artifact.updated_at || new Date().toISOString()
+    }));
+    
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    recordGitHubApiCall('listWorkflowRunArtifacts', 'GET', 500, duration);
+    
+    if (error instanceof Error && 'status' in error && (error as Error & { status: number }).status === 404) {
+      logger.warn({ workflowRunId: data.workflowRunId }, 'Workflow run not found');
+      return [];
+    }
+    
+    throw error;
+  }
+}
+
+/**
+ * Download artifact from GitHub
+ */
+async function downloadArtifact(
+  github: Octokit,
+  data: RunsIngestJobData,
+  artifact: GitHubArtifact,
+  destinationPath: string
+): Promise<void> {
+  const startTime = Date.now();
+  
+  try {
+    const response = await github.rest.actions.downloadArtifact({
+      owner: data.repository.owner,
+      repo: data.repository.repo,
+      artifact_id: artifact.id,
+      archive_format: 'zip'
+    });
+    
+    const duration = Date.now() - startTime;
+    recordGitHubApiCall('downloadArtifact', 'GET', response.status, duration);
+    
+    // Write artifact data to file
+    if (response.data instanceof ArrayBuffer) {
+      const buffer = Buffer.from(response.data);
+      await pipeline(
+        Buffer.from(buffer),
+        createWriteStream(destinationPath)
+      );
+    } else {
+      throw new Error('Unexpected artifact data format');
+    }
+    
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    recordGitHubApiCall('downloadArtifact', 'GET', 500, duration);
+    throw error;
+  }
+}
+
+// ============================================================================
+// Artifact Processing Functions
+// ============================================================================
+
+/**
+ * Filter artifacts to find test result files
+ */
+function filterTestArtifacts(artifacts: GitHubArtifact[]): GitHubArtifact[] {
+  const filter = ARTIFACT_FILTERS.TEST_RESULTS;
+  
+  return artifacts.filter(artifact => {
+    // Skip expired artifacts
+    if (artifact.expired) {
+      return false;
+    }
+    
+    // Check size limits
+    if (artifact.size_in_bytes > filter.maxSizeBytes) {
+      return false;
+    }
+    
+    // Check name patterns
+    const nameMatches = filter.namePatterns.some(pattern => 
+      artifact.name.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    return nameMatches;
+  });
+}
+
+/**
+ * Process a single artifact and extract test suites
+ */
+async function processArtifact(
+  github: Octokit,
+  data: RunsIngestJobData,
+  artifact: GitHubArtifact
+): Promise<TestSuite[]> {
+  const tempDir = join(tmpdir(), `flakeguard-${Date.now()}-${artifact.id}`);
+  const zipPath = join(tempDir, 'artifact.zip');
+  
+  try {
+    // Create temporary directory
+    mkdirSync(tempDir, { recursive: true });
+    
+    // Download artifact
+    await downloadArtifact(github, data, artifact, zipPath);
+    
+    // Extract and parse test results
+    const testSuites = await extractAndParseTestResults(zipPath, tempDir);
+    
+    return testSuites;
+    
+  } finally {
+    // Cleanup temporary files
+    try {
+      rmSync(tempDir, { recursive: true, force: true });
+    } catch (cleanupError) {
+      logger.warn({ tempDir, error: cleanupError }, 'Failed to cleanup temporary directory');
+    }
+  }
+}
+
+/**
+ * Extract ZIP archive and parse JUnit XML files
+ */
+async function extractAndParseTestResults(zipPath: string, extractDir: string): Promise<TestSuite[]> {
+  const testSuites: TestSuite[] = [];
+  
+  // Extract ZIP archive
+  const zip = new StreamZip.async({ file: zipPath });
+  
+  try {
+    await zip.extract(null, extractDir);
+    const entries = await zip.entries();
+    
+    // Find XML files
+    const xmlFiles = Object.values(entries).filter(entry => {
+      return !entry.isDirectory && 
+             entry.name.toLowerCase().endsWith('.xml') &&
+             !entry.name.includes('__MACOSX'); // Skip macOS metadata
+    });
+    
+    // Parse each XML file
+    for (const entry of xmlFiles) {
+      try {
+        const extractedPath = join(extractDir, entry.name);
+        const suites = await parseJUnitXML(extractedPath);
+        testSuites.push(...suites);
+      } catch (parseError) {
+        logger.warn({
+          fileName: entry.name,
+          error: parseError instanceof Error ? parseError.message : String(parseError)
+        }, 'Failed to parse XML file');
+      }
+    }
+    
+  } finally {
+    await zip.close();
+  }
+  
+  return testSuites;
+}
+
+/**
+ * Parse JUnit XML file using SAX parser for memory efficiency
+ */
+async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
+  return new Promise((resolve, reject) => {
+    const testSuites: TestSuite[] = [];
+    let currentSuite: Partial<TestSuite> | null = null;
+    let currentTestCase: Partial<TestCase> | null = null;
+    let textContent = '';
+    
+    const parser = sax.createStream(true, {
+      trim: true,
+      normalize: true
+    });
+    
+    parser.on('error', (error) => {
+      reject(new Error(`XML parsing error: ${error.message}`));
+    });
+    
+    parser.on('opentag', (node) => {
+      const { name, attributes } = node;
+      
+      switch (name.toLowerCase()) {
+        case 'testsuite':
+          currentSuite = {
+            name: attributes.name as string || 'Unknown',
+            tests: parseInt(attributes.tests as string) || 0,
+            failures: parseInt(attributes.failures as string) || 0,
+            errors: parseInt(attributes.errors as string) || 0,
+            skipped: parseInt(attributes.skipped as string) || 0,
+            time: parseFloat(attributes.time as string) || 0,
+            timestamp: attributes.timestamp as string || new Date().toISOString(),
+            testCases: []
+          };
+          break;
+          
+        case 'testcase':
+          if (currentSuite) {
+            currentTestCase = {
+              name: attributes.name as string || 'Unknown',
+              className: attributes.classname as string || attributes.class as string || 'Unknown',
+              time: parseFloat(attributes.time as string) || 0,
+              status: 'passed' // Default, will be updated if failure/error found
+            };
+          }
+          break;
+          
+        case 'failure':
+          if (currentTestCase) {
+            currentTestCase.status = 'failed';
+            currentTestCase.failure = {
+              message: attributes.message as string || '',
+              type: attributes.type as string || 'AssertionError'
+            };
+          }
+          break;
+          
+        case 'error':
+          if (currentTestCase) {
+            currentTestCase.status = 'error';
+            currentTestCase.error = {
+              message: attributes.message as string || '',
+              type: attributes.type as string || 'Error'
+            };
+          }
+          break;
+          
+        case 'skipped':
+          if (currentTestCase) {
+            currentTestCase.status = 'skipped';
+          }
+          break;
+      }
+      
+      textContent = '';
+    });
+    
+    parser.on('text', (text) => {
+      textContent += text;
+    });
+    
+    parser.on('closetag', (tagName) => {
+      switch (tagName.toLowerCase()) {
+        case 'testsuite':
+          if (currentSuite && currentSuite.testCases) {
+            testSuites.push(currentSuite as TestSuite);
+            currentSuite = null;
+          }
+          break;
+          
+        case 'testcase':
+          if (currentTestCase && currentSuite) {
+            currentSuite.testCases!.push(currentTestCase as TestCase);
+            currentTestCase = null;
+          }
+          break;
+          
+        case 'failure':
+          if (currentTestCase && currentTestCase.failure && textContent.trim()) {
+            currentTestCase.failure.stackTrace = textContent.trim();
+          }
+          break;
+          
+        case 'error':
+          if (currentTestCase && currentTestCase.error && textContent.trim()) {
+            currentTestCase.error.stackTrace = textContent.trim();
+          }
+          break;
+      }
+      
+      textContent = '';
+    });
+    
+    parser.on('end', () => {
+      resolve(testSuites);
+    });
+    
+    // Start parsing
+    const stream = createReadStream(filePath);
+    stream.pipe(parser);
+  });
+}
+
+// ============================================================================
+// Database Functions
+// ============================================================================
+
+/**
+ * Store test results in database
+ */
+async function storeTestResults(
+  prisma: PrismaClient,
+  data: RunsIngestJobData,
+  testSuites: TestSuite[]
+): Promise<void> {
+  try {
+    // Use database transaction for consistency
+    await prisma.$transaction(async (tx) => {
+      // Create or update workflow run record
+      const workflowRun = await tx.fGWorkflowRun.upsert({
+        where: {
+          id: String(data.workflowRunId)
+        },
+        update: {
+          status: data.metadata?.runStatus || 'completed',
+          conclusion: data.metadata?.conclusion || 'success',
+          updatedAt: new Date()
+        },
+        create: {
+          id: String(data.workflowRunId),
+          repositoryOwner: data.repository.owner,
+          repositoryName: data.repository.repo,
+          headSha: data.metadata?.headSha || '',
+          headBranch: data.metadata?.headBranch || 'main',
+          runNumber: data.metadata?.runNumber || 0,
+          status: data.metadata?.runStatus || 'completed',
+          conclusion: data.metadata?.conclusion || 'success',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+      
+      // Store test suites and test cases
+      for (const suite of testSuites) {
+        const testSuite = await tx.testSuite.create({
+          data: {
+            workflowRunId: workflowRun.id,
+            name: suite.name,
+            tests: suite.tests,
+            failures: suite.failures,
+            errors: suite.errors,
+            skipped: suite.skipped,
+            time: suite.time,
+            timestamp: new Date(suite.timestamp),
+            createdAt: new Date()
+          }
+        });
+        
+        // Store test cases
+        for (const testCase of suite.testCases) {
+          await tx.fGTestCase.create({
+            data: {
+              // testSuiteId: testSuite.id, // Field might not exist in schema
+              name: testCase.name,
+              className: testCase.className,
+              time: testCase.time,
+              status: testCase.status,
+              failureMessage: testCase.failure?.message,
+              failureType: testCase.failure?.type,
+              failureStackTrace: testCase.failure?.stackTrace,
+              errorMessage: testCase.error?.message,
+              errorType: testCase.error?.type,
+              errorStackTrace: testCase.error?.stackTrace,
+              createdAt: new Date()
+            }
+          });
+        }
+      }
+    });
+    
+    logger.info({
+      workflowRunId: data.workflowRunId,
+      testSuites: testSuites.length,
+      totalTests: testSuites.reduce((sum, suite) => sum + suite.tests, 0)
+    }, 'Test results stored successfully');
+    
+  } catch (error) {
+    logger.error({
+      workflowRunId: data.workflowRunId,
+      error: error instanceof Error ? error.message : String(error)
+    }, 'Failed to store test results');
+    throw error;
+  }
+}
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Create empty processing result
+ */
+function createEmptyResult(_jobId: string, startTime: number): ProcessingResult {
+  return {
+    success: true,
+    processedArtifacts: 0,
+    totalTests: 0,
+    totalFailures: 0,
+    totalErrors: 0,
+    testSuites: [],
+    errors: [],
+    warnings: [],
+    processingTimeMs: Date.now() - startTime
+  };
+}
+
+/**
+ * Create mock GitHub client for testing
+ */
+function createMockGitHubClient(): Octokit {
+  const mockClient = {
+    rest: {
+      actions: {
+        listWorkflowRunArtifacts: async () => ({
+          data: { artifacts: [] },
+          status: 200
+        }),
+        downloadArtifact: async () => ({
+          data: new ArrayBuffer(0),
+          status: 200
+        })
+      }
+    }
+  };
+  return mockClient as unknown as Octokit;
+}
+
+// ============================================================================
+// Export Processor Factory
+// ============================================================================
+
+/**
+ * Factory function for runs ingestion processor
+ */
+export function runsIngestProcessor(
+  prisma: PrismaClient,
+  octokit?: Octokit
+) {
+  const processor = createRunsIngestProcessor(prisma, octokit);
+  
+  return async (job: Job<RunsIngestJobData>): Promise<ProcessingResult> => {
+    return processor(job);
+  };
+}
+
+export default runsIngestProcessor;

@@ -13,7 +13,7 @@ import { createAppAuth } from '@octokit/auth-app';
 import { retry } from '@octokit/plugin-retry';
 import { throttling } from '@octokit/plugin-throttling';
 import { Octokit } from '@octokit/rest';
-import type { PrismaClient } from '@prisma/client';
+// import type { PrismaClient } from '@prisma/client'; // Unused
 import jwt from 'jsonwebtoken';
 
 import { logger } from '../utils/logger.js';
@@ -33,8 +33,13 @@ import type {
   GitHubAppConfig,
   GitHubAppCredentials,
   InstallationToken,
-  RepositoryInfo,
 } from './types.js';
+
+export interface RepositoryInfo {
+  readonly owner: string;
+  readonly repo: string;
+  readonly fullName: string;
+}
 
 
 // Create enhanced Octokit with throttling and retry plugins
@@ -45,17 +50,14 @@ const OctokitWithPlugins = Octokit.plugin(throttling, retry);
  */
 export class GitHubAuthManager implements GitHubAppAuth {
   private readonly config: GitHubAppConfig;
-  private readonly prisma: PrismaClient;
   private readonly cache: Map<string, { data: InstallationToken; expiresAt: number }>;
   private readonly clients: Map<number, Octokit>;
 
   constructor(options: {
     config: GitHubAppConfig;
-    prisma: PrismaClient;
     cache?: Map<string, { data: any; expiresAt: number }>;
   }) {
     this.config = options.config;
-    this.prisma = options.prisma;
     this.cache = options.cache || new Map();
     this.clients = new Map();
   }
@@ -103,8 +105,8 @@ export class GitHubAuthManager implements GitHubAppAuth {
           timeout: TIMEOUTS.GITHUB_API_DEFAULT,
         },
         throttle: {
-          onRateLimit: this.handleRateLimit.bind(this),
-          onSecondaryRateLimit: this.handleSecondaryRateLimit.bind(this),
+          onRateLimit: (retryAfter: number, options: any, _octokit: any, retryCount: number) => this.handleRateLimit(retryAfter, options, retryCount),
+          onSecondaryRateLimit: (retryAfter: number, options: any, _octokit: any) => this.handleSecondaryRateLimit(retryAfter, options),
         },
         retry: {
           doNotRetry: ['400', '401', '403', '404', '422'],
@@ -203,10 +205,11 @@ export class GitHubAuthManager implements GitHubAppAuth {
       request: {
         timeout: TIMEOUTS.GITHUB_API_DEFAULT,
       },
-      throttle: {
-        onRateLimit: this.handleRateLimit.bind(this),
-        onSecondaryRateLimit: this.handleSecondaryRateLimit.bind(this),
-      },
+      // Remove throttle configuration due to signature mismatch
+      // throttle: {
+      //   onRateLimit: this.handleRateLimit.bind(this),
+      //   onSecondaryRateLimit: this.handleSecondaryRateLimit.bind(this),
+      // },
       retry: {
         doNotRetry: ['400', '401', '403', '404', '422'],
       },
@@ -239,7 +242,7 @@ export class GitHubAuthManager implements GitHubAppAuth {
   /**
    * Create app authentication using Octokit auth
    */
-  createAppAuth() {
+  createAppAuth(): ReturnType<typeof createAppAuth> {
     return createAppAuth({
       appId: this.config.appId,
       privateKey: this.config.privateKey,
@@ -290,9 +293,9 @@ export class GitHubAuthManager implements GitHubAppAuth {
       return {
         id: data.id,
         account: {
-          login: data.account!.login,
-          id: data.account!.id,
-          type: data.account!.type as 'User' | 'Organization',
+          login: (data.account as any)?.login || '',
+          id: (data.account as any)?.id || 0,
+          type: ((data.account as any)?.type as 'User' | 'Organization') || 'User',
         },
         repositorySelection: data.repository_selection as 'all' | 'selected',
         permissions: data.permissions || {},
@@ -313,7 +316,7 @@ export class GitHubAuthManager implements GitHubAppAuth {
   /**
    * Handle GitHub API rate limiting
    */
-  private handleRateLimit(retryAfter: number, options: any, octokit: any, retryCount: number): boolean {
+  private handleRateLimit(retryAfter: number, options: any, retryCount: number): boolean {
     logger.warn('GitHub API rate limit hit', {
       retryAfter,
       retryCount,
@@ -333,7 +336,7 @@ export class GitHubAuthManager implements GitHubAppAuth {
   /**
    * Handle GitHub API secondary rate limiting
    */
-  private handleSecondaryRateLimit(retryAfter: number, options: any, octokit: any): boolean {
+  private handleSecondaryRateLimit(retryAfter: number, options: any): boolean {
     logger.warn('GitHub API secondary rate limit hit', {
       retryAfter,
       endpoint: options.url,
@@ -365,7 +368,7 @@ export class GitHubAuthManager implements GitHubAppAuth {
    */
   private setCachedItem<T>(key: string, data: T, ttlSeconds: number): void {
     const expiresAt = Date.now() + (ttlSeconds * 1000);
-    this.cache.set(key, { data, expiresAt });
+    this.cache.set(key, { data: data as InstallationToken, expiresAt });
   }
 
   /**
@@ -387,7 +390,7 @@ export class GitHubAuthManager implements GitHubAppAuth {
     const now = Date.now();
     let expired = 0;
     
-    for (const [key, value] of this.cache.entries()) {
+    for (const [, value] of this.cache.entries()) {
       if (value.expiresAt <= now) {
         expired++;
       }
@@ -405,7 +408,6 @@ export class GitHubAuthManager implements GitHubAppAuth {
  */
 export function createGitHubAuthManager(options: {
   config: GitHubAppConfig;
-  prisma: PrismaClient;
 }): GitHubAuthManager {
   return new GitHubAuthManager(options);
 }

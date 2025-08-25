@@ -223,8 +223,8 @@ export class PollingManager {
  */
 export function createPollingProcessor(
   prisma: PrismaClient,
-  runsIngestQueue: Queue,
-  runsAnalyzeQueue: Queue,
+  _runsIngestQueue: Queue,
+  _runsAnalyzeQueue: Queue,
   octokit?: Octokit
 ) {
   return async function processPolling(
@@ -380,12 +380,12 @@ export function createPollingProcessor(
 async function discoverActiveRepositories(
   prisma: PrismaClient,
   forceFullScan = false
-): Promise<Array<{ owner: string; repo: string; installationId: number; lastPolledAt?: string; active: boolean }>> {
+): Promise<Array<{ owner: string; repo: string; installationId: number; lastPolledAt?: string; isActive: boolean }>> {
   try {
     // Get repositories from database (would be enhanced with GitHub App installations)
     const repositories = await prisma.repository.findMany({
       where: {
-        active: true,
+        isActive: true,
         ...(forceFullScan ? {} : {
           OR: [
             { lastPolledAt: null },
@@ -402,7 +402,7 @@ async function discoverActiveRepositories(
         name: true,
         installationId: true,
         lastPolledAt: true,
-        active: true
+        isActive: true
       },
       orderBy: {
         lastPolledAt: 'asc' // Poll oldest first
@@ -413,9 +413,9 @@ async function discoverActiveRepositories(
     return repositories.map(repo => ({
       owner: repo.owner,
       repo: repo.name,
-      installationId: repo.installationId || 0,
+      installationId: parseInt(repo.installationId) || 0,
       lastPolledAt: repo.lastPolledAt?.toISOString(),
-      active: repo.active
+      isActive: repo.isActive
     }));
     
   } catch (error) {
@@ -554,7 +554,21 @@ async function pollRepository(
           const alreadyProcessed = await checkRunAlreadyProcessed(repo, run.id);
           
           if (!alreadyProcessed) {
-            await enqueueIngestionJob(repo, run, jobData.correlationId);
+            const workflowRunSummary: WorkflowRunSummary = {
+              id: run.id,
+              run_number: run.run_number,
+              status: run.status || 'unknown',
+              conclusion: run.conclusion,
+              head_sha: run.head_sha,
+              head_branch: run.head_branch || 'main',
+              created_at: run.created_at,
+              updated_at: run.updated_at,
+              repository: {
+                owner: { login: repo.owner },
+                name: repo.repo
+              }
+            };
+            await enqueueIngestionJob(repo, workflowRunSummary, jobData.correlationId);
             newRunsQueued++;
           }
           
@@ -737,9 +751,9 @@ async function updateRepositoryPollingStatus(
           updatedAt: new Date()
         },
         create: {
-          owner,
-          name: repo,
-          active: true,
+          owner: owner!,
+          name: repo!,
+          isActive: true,
           lastPolledAt: new Date(),
           lastRunDate: result.lastRunDate ? new Date(result.lastRunDate) : undefined,
           createdAt: new Date(),
@@ -789,7 +803,7 @@ function createEmptyPollingResult(startTime: number): PollingResult {
  * Create mock GitHub client for testing
  */
 function createMockGitHubClient(): Octokit {
-  return {
+  const mockOctokit = {
     rest: {
       actions: {
         listWorkflowRunsForRepo: async () => ({
@@ -802,7 +816,8 @@ function createMockGitHubClient(): Octokit {
         })
       }
     }
-  } as Partial<Octokit> as Octokit;
+  };
+  return mockOctokit as unknown as Octokit;
 }
 
 // ============================================================================

@@ -569,5 +569,5 @@ export interface SystemHealth {
     }>;
     readonly timestamp: string;
 }
-export type { WebhookEventMap, CheckRunAction, FlakeGuardCheckRun, TestArtifact, ApiResponse, PaginatedResponse, RepositoryInfo, CreateCheckRunParams, UpdateCheckRunParams, } from './types.js';
+export type { WebhookEventMap, CheckRunAction, FlakeGuardCheckRun, TestArtifact, ApiResponse, PaginatedResponse, CreateCheckRunParams, UpdateCheckRunParams, } from './types.js';
 //# sourceMappingURL=api-spec.d.ts.map

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-redundant-type-constituents */
 
-import Redis, { Cluster, type ClusterOptions, type RedisOptions } from 'ioredis';
+import { Redis, Cluster, type ClusterOptions, type RedisOptions } from 'ioredis';
 
 import { config } from '../config/index.js';
 
@@ -20,8 +20,8 @@ function createRedisConnection(): Redis | Cluster {
     commandTimeout: 5000,
     // Connection pool settings
     keepAlive: 30000,
-    // Memory optimization
-    maxMemoryPolicy: 'allkeys-lru',
+    // Memory optimization - not a valid Redis client option, this is a server setting
+    // maxMemoryPolicy: 'allkeys-lru',
   };
 
   if (config.redisClusterEnabled && config.redisClusterNodes) {
@@ -102,12 +102,20 @@ if (connection instanceof Cluster) {
 export async function closeRedisConnection(): Promise<void> {
   try {
     logger.info('Closing Redis connection');
-    await (connection as Redis).quit();
+    if (connection instanceof Cluster) {
+      await connection.quit();
+    } else {
+      await (connection as Redis).quit();
+    }
     logger.info('Redis connection closed successfully');
   } catch (error) {
     logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Error closing Redis connection');
     // Force disconnect if graceful close fails
-    (connection as Redis).disconnect();
+    if (connection instanceof Cluster) {
+      connection.disconnect();
+    } else {
+      (connection as Redis).disconnect();
+    }
   }
 }
 
@@ -120,7 +128,7 @@ export function getRedisHealth(): {
   nodes: number;
 } {
   return {
-    status: (connection as Redis).status,
+    status: connection instanceof Cluster ? 'cluster' : (connection as Redis).status,
     cluster: connection instanceof Cluster,
     nodes: connection instanceof Cluster ? connection.nodes().length : 1,
   };

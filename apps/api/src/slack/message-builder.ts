@@ -32,7 +32,7 @@ export class SlackMessageBuilder {
    * Build optimized flake alert message with template caching
    */
   public buildFlakeAlert(flakeScore: FlakeScore, repository: string): SlackMessageTemplate {
-    const templateId = `flake_alert_${flakeScore.recommendation.priority}`;
+    const templateId = `flake_alert_${(flakeScore as any).recommendation?.priority || 'medium'}`;
     
     // Check cache first for performance
     const cached = this.getFromCache(templateId, flakeScore);

@@ -3,9 +3,9 @@ import pino from 'pino';
 import { config } from '../config/index.js';
 
 // Handle different pino import structures across versions
-const pinoLogger = typeof pino === 'function' ? pino : (pino as { default?: typeof pino; pino?: typeof pino }).default || (pino as { default?: typeof pino; pino?: typeof pino }).pino || pino;
+const pinoLogger = pino;
 
-export const logger = pinoLogger({
+export const logger = (pinoLogger as any)({
   level: config.logLevel,
   transport:
     config.env === 'development'

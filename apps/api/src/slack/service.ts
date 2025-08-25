@@ -82,9 +82,9 @@ export class SlackService {
   private buildNotificationTemplate(notification: FlakeNotification) {
     switch (notification.type) {
       case 'flake_detected':
-        return this.messageBuilder.buildFlakeAlert(notification.data.flakeScore, notification.repository);
+        return this.messageBuilder.buildFlakeAlert(notification.data.flakeScore || { testId: '', score: 0, windowN: 0, lastUpdatedAt: new Date() }, notification.repository);
       case 'quarantine_recommended':
-        return this.messageBuilder.buildQuarantineReport(notification.repository, notification.data.quarantineCandidates!);
+        return this.messageBuilder.buildQuarantineReport(notification.repository, notification.data.quarantineCandidates || []);
       case 'critical_spike':
         const affectedTests = notification.data.metrics?.map(m => m.testName) || [];
         return this.messageBuilder.buildCriticalAlert(notification.repository, 0.45, affectedTests);

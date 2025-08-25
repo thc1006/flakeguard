@@ -11,7 +11,7 @@
  */
 
 import { METRICS_CONFIG } from '@flakeguard/shared';
-import { register, collectDefaultMetrics, Counter, Histogram, Gauge, Summary } from 'prom-client';
+import { register, collectDefaultMetrics, Counter, Histogram, Gauge } from 'prom-client';
 
 import { logger } from './logger.js';
 

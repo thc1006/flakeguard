@@ -12,7 +12,8 @@
  */
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import type { z } from 'zod';
+// import type { z } from 'zod'; // Unused import
+// Unused types are commented out to avoid TS errors
 
 import type {
   WebhookEventMap,
@@ -21,7 +22,7 @@ import type {
   TestArtifact,
   ApiResponse,
   PaginatedResponse,
-  RepositoryInfo,
+  // RepositoryInfo, // Unused
   CreateCheckRunParams,
   UpdateCheckRunParams,
 } from './types.js';
@@ -781,7 +782,7 @@ export type {
   TestArtifact,
   ApiResponse,
   PaginatedResponse,
-  RepositoryInfo,
+  // RepositoryInfo, // Unused
   CreateCheckRunParams,
   UpdateCheckRunParams,
 } from './types.js';

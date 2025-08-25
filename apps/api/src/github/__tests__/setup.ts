@@ -50,10 +50,10 @@ const WebSocketMock = vi.fn().mockImplementation(() => ({
 }));
 
 // Add static constants required by WebSocket interface
-WebSocketMock.CONNECTING = 0;
-WebSocketMock.OPEN = 1;
-WebSocketMock.CLOSING = 2;
-WebSocketMock.CLOSED = 3;
+(WebSocketMock as any).CONNECTING = 0;
+(WebSocketMock as any).OPEN = 1;
+(WebSocketMock as any).CLOSING = 2;
+(WebSocketMock as any).CLOSED = 3;
 
 global.WebSocket = WebSocketMock as any;
 
@@ -92,6 +92,7 @@ beforeAll(async () => {
       
       console.log('Test database container started:', testDatabaseContainer.getConnectionUri());
     } catch (error) {
+      console.warn('Could not start test database container, using mock database:', error);
       console.warn('Could not start test database container, using mock database:', error);
     }
   }

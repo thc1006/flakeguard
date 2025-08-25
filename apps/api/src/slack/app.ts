@@ -77,7 +77,7 @@ interface GlobalFlakyTest {
  * Provides slash commands and interactive elements for managing flaky tests
  */
 export class FlakeGuardSlackApp {
-  private app: App;
+  private app: InstanceType<typeof App>;
   private dependencies: FlakeGuardDependencies;
   private rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 

@@ -9,8 +9,8 @@
  * - Provides snapshot-testable output format consistency
  */
 
-import type { Octokit } from '@octokit/rest';
-import type { PrismaClient } from '@prisma/client';
+// import type { Octokit } from '@octokit/rest'; // Unused
+// import type { PrismaClient } from '@prisma/client'; // Unused
 
 import { logger } from '../utils/logger.js';
 
@@ -25,7 +25,7 @@ import type {
   CheckRunAction,
   CheckRunStatus,
   CheckRunConclusion,
-  TestResult,
+  // TestResult, // Unused
   ApiResponse,
 } from './types.js';
 
@@ -246,7 +246,7 @@ export async function createOrUpdateCheckRun(
         summary: data.output?.summary || '',
         text: data.output?.text || undefined,
       },
-      actions: data.actions?.map(action => ({
+      actions: (data as any).actions?.map((action: any) => ({
         label: action.label,
         description: action.description,
         identifier: action.identifier as CheckRunAction,
@@ -347,7 +347,7 @@ export async function updateExistingCheckRun(
         summary: data.output?.summary || '',
         text: data.output?.text || undefined,
       },
-      actions: data.actions?.map(action => ({
+      actions: (data as any).actions?.map((action: any) => ({
         label: action.label,
         description: action.description,
         identifier: action.identifier as CheckRunAction,
@@ -427,7 +427,7 @@ export async function createFlakeGuardCheckRun(
  * Convert test results from database into TestCandidate format
  */
 export function convertToTestCandidates(
-  prisma: PrismaClient,
+  // prisma: PrismaClient, // Unused
   flakeDetections: Array<{
     testName: string;
     confidence: number;

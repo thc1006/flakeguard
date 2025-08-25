@@ -261,7 +261,7 @@ async function loadTestExecutionHistories(
   
   try {
     // Query test cases with their execution history
-    const testCasesWithHistory = await prisma.testCase.findMany({
+    const testCasesWithHistory = await prisma.fGTestCase.findMany({
       where: {
         testSuite: {
           workflowRun: {
@@ -543,7 +543,7 @@ function detectFlakinessPattern(executions: TestExecution[]): 'intermittent' | '
 function determineSeverity(
   flakinessScore: number,
   recentFailures: number,
-  totalRuns: number
+  _totalRuns: number
 ): 'low' | 'medium' | 'high' | 'critical' {
   if (flakinessScore >= 0.7 || recentFailures >= 5) {
     return 'critical';
@@ -603,7 +603,7 @@ async function storeAnalysisResults(
     await prisma.$transaction(async (tx) => {
       // Store or update flaky test records
       for (const flakyTest of flakyTests) {
-        await tx.flakyTest.upsert({
+        await tx.fGFlakyTest.upsert({
           where: {
             repositoryOwner_repositoryName_className_testName: {
               repositoryOwner: data.repository.owner,
@@ -648,7 +648,7 @@ async function storeAnalysisResults(
       }
       
       // Create analysis record
-      await tx.flakinessAnalysis.create({
+      await tx.fGFlakinessAnalysis.create({
         data: {
           workflowRunId: data.workflowRunId,
           repositoryOwner: data.repository.owner,

@@ -19,7 +19,7 @@ import {
 } from './constants.js';
 import type {
   CheckRunAction,
-  RepositoryInfo,
+  // RepositoryInfo, // Unused
 } from './types.js';
 
 // =============================================================================
@@ -239,6 +239,7 @@ export function selectTopActions(
   // Count tests by severity
   const criticalTests = tests.filter(t => calculateSeverity(t.flakeScore) === 'critical');
   const warningTests = tests.filter(t => calculateSeverity(t.flakeScore) === 'warning');
+  void warningTests; // Avoid unused variable warning
   const recentFailures = tests.filter(t => {
     if (!t.lastFailedRun) return false;
     const lastFailed = new Date(t.lastFailedRun);
@@ -330,7 +331,7 @@ function getSeverityEmoji(severity: SeverityLevel): string {
  */
 export function convertFlakeScoresToTests(
   flakeScores: readonly FlakeScore[],
-  repository: Repository
+  _repository: Repository
 ): TestWithLocation[] {
   return flakeScores.map(score => {
     // Calculate rerun pass rate based on features
@@ -430,7 +431,7 @@ function extractFileLocation(testFullName: string): { file?: string; line?: numb
   const fileLineMatch = testFullName.match(/^([^\s]+\.(test|spec|tests)\.[jt]sx?):(\d+)/);
   if (fileLineMatch) {
     return {
-      file: fileLineMatch[1],
+      file: fileLineMatch[1]!,
       line: parseInt(fileLineMatch[3], 10),
     };
   }
@@ -439,7 +440,7 @@ function extractFileLocation(testFullName: string): { file?: string; line?: numb
   const fileMatch = testFullName.match(/^([^\s]+\.(test|spec|tests)\.[jt]sx?)/);
   if (fileMatch) {
     return {
-      file: fileMatch[1],
+      file: fileMatch[1]!,
       line: undefined,
     };
   }
@@ -448,7 +449,7 @@ function extractFileLocation(testFullName: string): { file?: string; line?: numb
   const pathMatch = testFullName.match(/(src|test|tests|spec|__tests__)\/.+\.(test|spec|tests)\.[jt]sx?/);
   if (pathMatch) {
     return {
-      file: pathMatch[0],
+      file: pathMatch[0]!,
       line: undefined,
     };
   }

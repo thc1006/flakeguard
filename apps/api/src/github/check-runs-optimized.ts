@@ -9,17 +9,17 @@
  * - Proper handling of large datasets (1000+ flaky tests)
  */
 
-import type { Octokit } from '@octokit/rest';
-import type { PrismaClient } from '@prisma/client';
+// import type { Octokit } from '@octokit/rest'; // Unused
+// import type { PrismaClient } from '@prisma/client'; // Unused
 
 import { logger } from '../utils/logger.js';
 
-import { ErrorCode } from './api-spec.js';
+// import { ErrorCode } from './api-spec.js'; // Unused
 import { GitHubAuthManager } from './auth.js';
-import {
-  CHECK_RUN_ACTION_CONFIGS,
-  ERROR_MESSAGES,
-} from './constants.js';
+// import {
+//   CHECK_RUN_ACTION_CONFIGS, // Unused
+//   ERROR_MESSAGES, // Unused
+// } from './constants.js';
 import {
   renderOptimizedCheckRunOutput,
   benchmarkMarkdownGeneration,
@@ -27,10 +27,10 @@ import {
 } from './markdown-utils.js';
 import type {
   FlakeGuardCheckRun,
-  CheckRunAction,
-  CheckRunStatus,
+  // CheckRunAction, // Unused
+  // CheckRunStatus, // Unused
   CheckRunConclusion,
-  TestResult,
+  // TestResult, // Unused
   ApiResponse,
 } from './types.js';
 

@@ -127,7 +127,7 @@ export async function handleQuarantineAction(
         prNumber,
       });
       results.issueCreated = true;
-      results.issueNumber = issue.number;
+      (results as any).issueNumber = issue.number;
       
       logger.info('Quarantine tracking issue created', {
         testName: test.name,
@@ -144,7 +144,7 @@ export async function handleQuarantineAction(
     // Step 3: Mark test as quarantined (this should be handled by the flake detector)
     results.testQuarantined = true;
 
-    const successCount = Object.values(results).filter(Boolean).length;
+    const successCount = Object.values(results).filter(v => typeof v === 'boolean' && v).length;
     const partialSuccess = successCount > 0 && successCount < 3;
 
     return {
@@ -318,7 +318,7 @@ export async function handleOpenIssueAction(
 
     const testsWithoutIssues = tests.filter(
       test => !existingIssues.some(issue => 
-        issue.title.includes(test.name) || issue.body?.includes(test.name)
+        issue.title.includes(test.name) || (issue.body && issue.body.includes(test.name))
       )
     );
 
@@ -346,7 +346,7 @@ export async function handleOpenIssueAction(
     // Create issues for tests without existing ones
     if (testsWithoutIssues.length === 1) {
       // Single test issue
-      const test = testsWithoutIssues[0];
+      const test = testsWithoutIssues[0]!;
       const issue = await createDetailedFlakeIssue(octokit, owner, repo, test, {
         checkRunId,
         workflowRunId,
@@ -578,8 +578,11 @@ async function findExistingFlakeIssues(
   octokit: Octokit,
   owner: string,
   repo: string,
-  testNames: string[]
+  testNames: readonly string[]
 ): Promise<Array<{ number: number; title: string; body?: string; html_url: string }>> {
+  // Avoid unused parameter warning
+  void testNames;
+  
   try {
     const searchQuery = `repo:${owner}/${repo} is:issue is:open label:flaky-test`;
     

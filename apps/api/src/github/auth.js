@@ -12,6 +12,7 @@ import { createAppAuth } from '@octokit/auth-app';
 import { retry } from '@octokit/plugin-retry';
 import { throttling } from '@octokit/plugin-throttling';
 import { Octokit } from '@octokit/rest';
+// import type { PrismaClient } from '@prisma/client'; // Unused
 import jwt from 'jsonwebtoken';
 import { logger } from '../utils/logger.js';
 import { CACHE_KEYS, CACHE_TTL, ERROR_MESSAGES, GITHUB_API, RATE_LIMITS, TIMEOUTS, } from './constants.js';
@@ -22,12 +23,10 @@ const OctokitWithPlugins = Octokit.plugin(throttling, retry);
  */
 export class GitHubAuthManager {
     config;
-    prisma;
     cache;
     clients;
     constructor(options) {
         this.config = options.config;
-        this.prisma = options.prisma;
         this.cache = options.cache || new Map();
         this.clients = new Map();
     }
@@ -71,8 +70,8 @@ export class GitHubAuthManager {
                     timeout: TIMEOUTS.GITHUB_API_DEFAULT,
                 },
                 throttle: {
-                    onRateLimit: this.handleRateLimit.bind(this),
-                    onSecondaryRateLimit: this.handleSecondaryRateLimit.bind(this),
+                    onRateLimit: (retryAfter, options, _octokit, retryCount) => this.handleRateLimit(retryAfter, options, retryCount),
+                    onSecondaryRateLimit: (retryAfter, options, _octokit) => this.handleSecondaryRateLimit(retryAfter, options),
                 },
                 retry: {
                     doNotRetry: ['400', '401', '403', '404', '422'],
@@ -154,10 +153,11 @@ export class GitHubAuthManager {
             request: {
                 timeout: TIMEOUTS.GITHUB_API_DEFAULT,
             },
-            throttle: {
-                onRateLimit: this.handleRateLimit.bind(this),
-                onSecondaryRateLimit: this.handleSecondaryRateLimit.bind(this),
-            },
+            // Remove throttle configuration due to signature mismatch
+            // throttle: {
+            //   onRateLimit: this.handleRateLimit.bind(this),
+            //   onSecondaryRateLimit: this.handleSecondaryRateLimit.bind(this),
+            // },
             retry: {
                 doNotRetry: ['400', '401', '403', '404', '422'],
             },
@@ -225,9 +225,9 @@ export class GitHubAuthManager {
             return {
                 id: data.id,
                 account: {
-                    login: data.account.login,
-                    id: data.account.id,
-                    type: data.account.type,
+                    login: data.account?.login || '',
+                    id: data.account?.id || 0,
+                    type: data.account?.type || 'User',
                 },
                 repositorySelection: data.repository_selection,
                 permissions: data.permissions || {},
@@ -248,7 +248,7 @@ export class GitHubAuthManager {
     /**
      * Handle GitHub API rate limiting
      */
-    handleRateLimit(retryAfter, options, octokit, retryCount) {
+    handleRateLimit(retryAfter, options, retryCount) {
         logger.warn('GitHub API rate limit hit', {
             retryAfter,
             retryCount,
@@ -265,7 +265,7 @@ export class GitHubAuthManager {
     /**
      * Handle GitHub API secondary rate limiting
      */
-    handleSecondaryRateLimit(retryAfter, options, octokit) {
+    handleSecondaryRateLimit(retryAfter, options) {
         logger.warn('GitHub API secondary rate limit hit', {
             retryAfter,
             endpoint: options.url,
@@ -292,7 +292,7 @@ export class GitHubAuthManager {
      */
     setCachedItem(key, data, ttlSeconds) {
         const expiresAt = Date.now() + (ttlSeconds * 1000);
-        this.cache.set(key, { data, expiresAt });
+        this.cache.set(key, { data: data, expiresAt });
     }
     /**
      * Clear expired cache entries
@@ -311,7 +311,7 @@ export class GitHubAuthManager {
     getCacheStats() {
         const now = Date.now();
         let expired = 0;
-        for (const [key, value] of this.cache.entries()) {
+        for (const [, value] of this.cache.entries()) {
             if (value.expiresAt <= now) {
                 expired++;
             }

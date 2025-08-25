@@ -753,7 +753,7 @@ export function generateTestResults(count: number, options: {
     commonError = 'Test failure',
   } = options;
 
-  return Array.from({ length: count }, (_, i) => {
+  return Array.from({ length: count }, (_, ) => {
     const shouldFail = Math.random() < failureRate;
     
     return createMockTestResult({

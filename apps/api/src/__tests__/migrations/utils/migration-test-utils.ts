@@ -120,7 +120,7 @@ export async function getSchemaInfo(prisma: PrismaClient): Promise<{
     ORDER BY table_name
   `;
   
-  const tables = tablesResult.map(row => row.table_name);
+  const tables = tablesResult.map(row => row.table_name!);
 
   // Get enums
   const enumsResult = await prisma.$queryRaw<Array<{ enum_name: string }>>`
@@ -131,7 +131,7 @@ export async function getSchemaInfo(prisma: PrismaClient): Promise<{
     ORDER BY t.typname
   `;
   
-  const enums = enumsResult.map(row => row.enum_name);
+  const enums = enumsResult.map(row => row.enum_name!);
 
   // Get indexes by table
   const indexesResult = await prisma.$queryRaw<Array<{ 
@@ -151,10 +151,10 @@ export async function getSchemaInfo(prisma: PrismaClient): Promise<{
 
   const indexes: Record<string, string[]> = {};
   indexesResult.forEach(row => {
-    if (!indexes[row.table_name]) {
-      indexes[row.table_name] = [];
+    if (!indexes[row.table_name!]) {
+      indexes[row.table_name!] = [];
     }
-    indexes[row.table_name].push(row.index_name);
+    indexes[row.table_name!]!.push(row.index_name!);
   });
 
   return { tables, enums, indexes };
@@ -311,9 +311,9 @@ export async function testTenantIsolation(prisma: PrismaClient): Promise<boolean
 
     const isolationCorrect = 
       org1Repos.length === 1 &&
-      org1Repos[0].id === repo1.id &&
+      org1Repos[0]!.id === repo1.id &&
       org2Repos.length === 1 &&
-      org2Repos[0].id === repo2.id;
+      org2Repos[0]!.id === repo2.id;
 
     // Cleanup
     await prisma.fGRepository.deleteMany({ where: { orgId: org1.id } });

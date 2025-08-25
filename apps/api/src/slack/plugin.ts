@@ -13,7 +13,7 @@ import { FlakinessScorer } from '../analytics/flakiness.js';
 import { config, requireSlackConfig } from '../config/index.js';
 import { GitHubAuthManager } from '../github/auth.js';
 import { createWebhookHandlers } from '../github/handlers.js';
-import { logger } from '../utils/logger.js';
+// import { logger } from '../utils/logger.js'; // Unused
 
 import { FlakeGuardSlackApp, createFlakeGuardSlackApp } from './app.js';
 
@@ -46,10 +46,14 @@ async function slackPlugin(
 
     // Create dependencies for Slack app
     const githubAuth = new GitHubAuthManager({
-      appId: config.github.appId,
-      privateKey: config.github.privateKey,
-      clientId: config.github.clientId,
-      clientSecret: config.github.clientSecret,
+      config: {
+        appId: config.github.appId,
+        privateKey: config.github.privateKey,
+        clientId: config.github.clientId,
+        clientSecret: config.github.clientSecret,
+        webhookSecret: config.github.webhookSecret,
+        installationId: (config.github as any).installationId || undefined,
+      }
     });
 
     const flakinessScorer = new FlakinessScorer();
