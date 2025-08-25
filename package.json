@@ -58,7 +58,21 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@flakeguard/cli",
-      "@flakeguard/shared"
+      "@flakeguard/shared",
+      "@prisma/client",
+      "@prisma/engines",
+      "core-js",
+      "core-js-pure",
+      "cpu-features",
+      "esbuild",
+      "msgpackr-extract",
+      "msw",
+      "prisma",
+      "protobufjs",
+      "sharp",
+      "snyk",
+      "ssh2",
+      "unrs-resolver"
     ],
     "overrides": {
       "next@>=13.4.0 <14.1.1": ">=14.1.1",
