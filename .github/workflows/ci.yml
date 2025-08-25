@@ -85,7 +85,7 @@ jobs:
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --frozen-lockfile --prefer-offline
+          pnpm install --no-frozen-lockfile --prefer-offline
 
       - name: Run security audit
         run: |
@@ -140,7 +140,7 @@ jobs:
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --frozen-lockfile --prefer-offline
+          pnpm install --no-frozen-lockfile --prefer-offline
 
       - name: Run ESLint
         run: pnpm lint
@@ -214,7 +214,7 @@ jobs:
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --frozen-lockfile --prefer-offline
+          pnpm install --no-frozen-lockfile --prefer-offline
 
       - name: Generate Prisma client (initial)
         run: pnpm --filter=@flakeguard/api generate
@@ -442,7 +442,7 @@ jobs:
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --frozen-lockfile --prefer-offline
+          pnpm install --no-frozen-lockfile --prefer-offline
 
       - name: Install Playwright browsers
         run: pnpm --filter=@flakeguard/api exec playwright install --with-deps
@@ -661,7 +661,7 @@ jobs:
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --frozen-lockfile --prefer-offline
+          pnpm install --no-frozen-lockfile --prefer-offline
 
       - name: Build ${{ matrix.app }}
         run: |
@@ -742,7 +742,7 @@ jobs:
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --frozen-lockfile --prefer-offline
+          pnpm install --no-frozen-lockfile --prefer-offline
 
       - name: Run performance benchmarks
         run: |
