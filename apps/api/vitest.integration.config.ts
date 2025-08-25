@@ -4,8 +4,9 @@
  * Integration tests with external dependencies (databases, APIs, etc.)
  */
 
-import { defineConfig } from 'vitest/config';
 import path from 'path';
+
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {

@@ -4,8 +4,9 @@
  * End-to-end tests with full Docker Compose environment
  */
 
-import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
+
+import { defineConfig, devices } from '@playwright/test';
 
 /**
  * See https://playwright.dev/docs/test-configuration.

@@ -582,7 +582,7 @@ export class ArtifactHandler {
     if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
       if (error.message.includes('HTTP')) {
         const statusMatch = error.message.match(/HTTP (\d+)/);
-        if (statusMatch && statusMatch[1]) {
+        if (statusMatch?.[1]) {
           const status = parseInt(statusMatch[1], 10);
           return status >= 500 || status === 429; // Server errors or rate limiting
         }

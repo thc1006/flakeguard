@@ -5,7 +5,7 @@ import type { Logger } from 'pino';
 
 import { config } from '../config/index.js';
 
-export const logger: Logger = pino({
+export const logger: Logger = pino.default({
   level: config.logLevel,
   transport:
     config.env === 'development'

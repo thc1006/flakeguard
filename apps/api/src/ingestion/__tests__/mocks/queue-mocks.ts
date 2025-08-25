@@ -287,10 +287,10 @@ export class MockQueue {
   }
 
   private getJobStatus(job: MockJob): string {
-    if (job.finishedOn && job.returnvalue) return 'completed';
-    if (job.finishedOn && job.failedReason) return 'failed';
-    if (job.processedOn && !job.finishedOn) return 'active';
-    if (job.opts.delay && job.opts.delay > 0) return 'delayed';
+    if (job.finishedOn && job.returnvalue) {return 'completed';}
+    if (job.finishedOn && job.failedReason) {return 'failed';}
+    if (job.processedOn && !job.finishedOn) {return 'active';}
+    if (job.opts.delay && job.opts.delay > 0) {return 'delayed';}
     return 'waiting';
   }
 }

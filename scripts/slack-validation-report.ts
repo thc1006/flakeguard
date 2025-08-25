@@ -407,7 +407,7 @@ class SlackValidationReport {
     // Category breakdown
     console.log('\nBy Category:');
     const byCategory = this.checks.reduce((acc, check) => {
-      if (!acc[check.category]) acc[check.category] = { PASS: 0, FAIL: 0, WARN: 0, INFO: 0 };
+      if (!acc[check.category]) {acc[check.category] = { PASS: 0, FAIL: 0, WARN: 0, INFO: 0 };}
       acc[check.category][check.status]++;
       return acc;
     }, {} as Record<string, Record<string, number>>);

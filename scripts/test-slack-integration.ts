@@ -9,8 +9,9 @@
  * Usage: pnpm tsx scripts/test-slack-integration.ts [--verbose]
  */
 
-import { PrismaClient } from '@prisma/client';
 import { createHash } from 'crypto';
+
+import { PrismaClient } from '@prisma/client';
 
 // Mock dependencies for testing
 const mockPrisma = {
@@ -496,8 +497,8 @@ class SlackIntegrationTester {
 
       // Get health emoji
       const getHealthEmoji = (score: number) => {
-        if (score >= 90) return '🟢';
-        if (score >= 70) return '🟡';
+        if (score >= 90) {return '🟢';}
+        if (score >= 70) {return '🟡';}
         return '🔴';
       };
 

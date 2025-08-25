@@ -803,8 +803,8 @@ export class GitHubHelpers {
   }
 
   private getConfidenceLabel(confidence: number): string {
-    if (confidence >= 0.8) return 'High';
-    if (confidence >= 0.5) return 'Medium';
+    if (confidence >= 0.8) {return 'High';}
+    if (confidence >= 0.5) {return 'Medium';}
     return 'Low';
   }
 
@@ -829,12 +829,12 @@ export class GitHubHelpers {
 
   private mapGitHubErrorCode(error: unknown): ErrorCode {
     const status = error && typeof error === 'object' && 'status' in error ? (error as { status: unknown }).status : undefined;
-    if (status === 401) return ErrorCode.UNAUTHORIZED;
-    if (status === 403) return ErrorCode.FORBIDDEN;
-    if (status === 404) return ErrorCode.RESOURCE_NOT_FOUND;
-    if (status === 422) return ErrorCode.VALIDATION_ERROR;
-    if (status === 429) return ErrorCode.GITHUB_RATE_LIMITED;
-    if (typeof status === 'number' && status >= 500) return ErrorCode.GITHUB_SERVICE_UNAVAILABLE;
+    if (status === 401) {return ErrorCode.UNAUTHORIZED;}
+    if (status === 403) {return ErrorCode.FORBIDDEN;}
+    if (status === 404) {return ErrorCode.RESOURCE_NOT_FOUND;}
+    if (status === 422) {return ErrorCode.VALIDATION_ERROR;}
+    if (status === 429) {return ErrorCode.GITHUB_RATE_LIMITED;}
+    if (typeof status === 'number' && status >= 500) {return ErrorCode.GITHUB_SERVICE_UNAVAILABLE;}
     
     return ErrorCode.GITHUB_API_ERROR;
   }

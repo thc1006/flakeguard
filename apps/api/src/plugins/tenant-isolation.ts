@@ -348,7 +348,7 @@ async function tenantIsolationPlugin(
 
   // Organization usage tracking
   fastify.addHook('onResponse', async (request, reply) => {
-    if (!request.tenant || request.method === 'GET') return;
+    if (!request.tenant || request.method === 'GET') {return;}
 
     try {
       // Track API usage metrics

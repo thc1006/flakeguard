@@ -28,7 +28,7 @@ function createRedisConnection(): Redis | Cluster {
     // Redis Cluster configuration
     const clusterNodes = config.redisClusterNodes.split(',').map(node => {
       const [host, port] = node.trim().split(':');
-      return { host, port: parseInt(port, 10) || 6379 };
+      return { host: host || 'localhost', port: parseInt(port, 10) || 6379 };
     });
 
     const clusterOptions: ClusterOptions = {
@@ -105,7 +105,7 @@ export async function closeRedisConnection(): Promise<void> {
     if (connection instanceof Cluster) {
       await connection.quit();
     } else {
-      await (connection as Redis).quit();
+      await (connection).quit();
     }
     logger.info('Redis connection closed successfully');
   } catch (error) {
@@ -114,7 +114,7 @@ export async function closeRedisConnection(): Promise<void> {
     if (connection instanceof Cluster) {
       connection.disconnect();
     } else {
-      (connection as Redis).disconnect();
+      (connection).disconnect();
     }
   }
 }
@@ -128,7 +128,7 @@ export function getRedisHealth(): {
   nodes: number;
 } {
   return {
-    status: connection instanceof Cluster ? 'cluster' : (connection as Redis).status,
+    status: connection instanceof Cluster ? 'cluster' : (connection).status,
     cluster: connection instanceof Cluster,
     nodes: connection instanceof Cluster ? connection.nodes().length : 1,
   };

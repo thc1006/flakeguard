@@ -46,9 +46,9 @@ function isValidObject(value: unknown): value is Record<string, unknown> {
  * Type guard to check if a value is sanitizable
  */
 function isSanitizableData(value: unknown): value is SanitizableData {
-  if (value === null || value === undefined) return true;
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
-  if (Array.isArray(value)) return value.every(isSanitizableData);
+  if (value === null || value === undefined) {return true;}
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {return true;}
+  if (Array.isArray(value)) {return value.every(isSanitizableData);}
   if (isValidObject(value)) {
     return Object.values(value).every(isSanitizableData);
   }

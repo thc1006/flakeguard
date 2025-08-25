@@ -398,7 +398,7 @@ async function testErrorRecovery() {
       timeout: 10000
     });
     
-    const hasDbCheck = response.data && response.data.checks && response.data.checks.database;
+    const hasDbCheck = response.data?.checks?.database;
     const dbHealthy = hasDbCheck && response.data.checks.database.status === 'healthy';
     
     testResults.addResult('errorRecovery', 'database-connection', {

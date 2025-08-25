@@ -85,9 +85,9 @@ class ApiClient {
     search?: string;
   }) {
     const searchParams = new URLSearchParams();
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
-    if (params?.offset) searchParams.append('offset', params.offset.toString());
-    if (params?.search) searchParams.append('search', params.search);
+    if (params?.limit) {searchParams.append('limit', params.limit.toString());}
+    if (params?.offset) {searchParams.append('offset', params.offset.toString());}
+    if (params?.search) {searchParams.append('search', params.search);}
     
     const query = searchParams.toString();
     return this.get<PaginatedResponse<Repository>>(`/api/repositories${query ? `?${query}` : ''}`);
@@ -103,8 +103,8 @@ class ApiClient {
     includeAnnotations?: boolean;
   }) {
     const searchParams = new URLSearchParams();
-    if (params?.lookbackDays) searchParams.append('lookbackDays', params.lookbackDays.toString());
-    if (params?.includeAnnotations !== undefined) searchParams.append('includeAnnotations', params.includeAnnotations.toString());
+    if (params?.lookbackDays) {searchParams.append('lookbackDays', params.lookbackDays.toString());}
+    if (params?.includeAnnotations !== undefined) {searchParams.append('includeAnnotations', params.includeAnnotations.toString());}
     
     const query = searchParams.toString();
     return this.get<QuarantinePlanResponse>(`/v1/quarantine/plan/${repositoryId}${query ? `?${query}` : ''}`);
@@ -118,10 +118,10 @@ class ApiClient {
     status?: string;
   }) {
     const searchParams = new URLSearchParams();
-    if (params?.limit) searchParams.append('limit', params.limit.toString());
-    if (params?.offset) searchParams.append('offset', params.offset.toString());
-    if (params?.type) searchParams.append('type', params.type);
-    if (params?.status) searchParams.append('status', params.status);
+    if (params?.limit) {searchParams.append('limit', params.limit.toString());}
+    if (params?.offset) {searchParams.append('offset', params.offset.toString());}
+    if (params?.type) {searchParams.append('type', params.type);}
+    if (params?.status) {searchParams.append('status', params.status);}
     
     const query = searchParams.toString();
     return this.get<PaginatedResponse<Task>>(`/api/tasks${query ? `?${query}` : ''}`);

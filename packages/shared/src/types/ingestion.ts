@@ -373,7 +373,7 @@ export function isIngestionPhase(value: unknown): value is IngestionPhase {
  * Validate repository info
  */
 export function isValidRepositoryInfo(value: unknown): value is IngestionRepositoryInfo {
-  if (typeof value !== 'object' || value === null) return false;
+  if (typeof value !== 'object' || value === null) {return false;}
   
   const repo = value as Record<string, unknown>;
   return typeof repo.owner === 'string' &&
@@ -388,7 +388,7 @@ export function isValidRepositoryInfo(value: unknown): value is IngestionReposit
  * Validate artifact filter criteria
  */
 export function isValidArtifactFilter(value: unknown): value is ArtifactFilterCriteria {
-  if (typeof value !== 'object' || value === null) return true; // Optional
+  if (typeof value !== 'object' || value === null) {return true;} // Optional
   
   const filter = value as Record<string, unknown>;
   

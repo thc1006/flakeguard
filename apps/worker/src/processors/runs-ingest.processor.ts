@@ -177,7 +177,7 @@ export function createRunsIngestProcessor(
 
       for (let i = 0; i < testArtifacts.length; i++) {
         const artifact = testArtifacts[i];
-        if (!artifact) continue;
+        if (!artifact) {continue;}
         
         try {
           // Update progress
@@ -566,7 +566,7 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
     parser.on('closetag', (tagName) => {
       switch (tagName.toLowerCase()) {
         case 'testsuite':
-          if (currentSuite && currentSuite.testCases) {
+          if (currentSuite?.testCases) {
             testSuites.push(currentSuite as TestSuite);
             currentSuite = null;
           }
@@ -580,13 +580,13 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
           break;
           
         case 'failure':
-          if (currentTestCase && currentTestCase.failure && textContent.trim()) {
+          if (currentTestCase?.failure && textContent.trim()) {
             currentTestCase.failure.stackTrace = textContent.trim();
           }
           break;
           
         case 'error':
-          if (currentTestCase && currentTestCase.error && textContent.trim()) {
+          if (currentTestCase?.error && textContent.trim()) {
             currentTestCase.error.stackTrace = textContent.trim();
           }
           break;
@@ -632,8 +632,9 @@ async function storeTestResults(
         },
         create: {
           id: String(data.workflowRunId),
-          repositoryOwner: data.repository.owner,
-          repositoryName: data.repository.repo,
+          repository: `${data.repository.owner}/${data.repository.repo}`,
+          installationId: String(data.repository.installationId),
+          orgId: data.repository.owner,
           headSha: data.metadata?.headSha || '',
           headBranch: data.metadata?.headBranch || 'main',
           runNumber: data.metadata?.runNumber || 0,
@@ -646,7 +647,7 @@ async function storeTestResults(
       
       // Store test suites and test cases
       for (const suite of testSuites) {
-        const testSuite = await tx.testSuite.create({
+        const _testSuite = await tx.fGWorkflowRun.create({
           data: {
             workflowRunId: workflowRun.id,
             name: suite.name,
@@ -655,7 +656,7 @@ async function storeTestResults(
             errors: suite.errors,
             skipped: suite.skipped,
             time: suite.time,
-            timestamp: new Date(suite.timestamp),
+            runStartedAt: new Date(suite.timestamp),
             createdAt: new Date()
           }
         });
@@ -667,14 +668,11 @@ async function storeTestResults(
               // testSuiteId: testSuite.id, // Field might not exist in schema
               name: testCase.name,
               className: testCase.className,
-              time: testCase.time,
+              repoId: `${data.repository.owner}/${data.repository.repo}`,
+              suite: suite.name,
               status: testCase.status,
-              failureMessage: testCase.failure?.message,
-              failureType: testCase.failure?.type,
-              failureStackTrace: testCase.failure?.stackTrace,
-              errorMessage: testCase.error?.message,
-              errorType: testCase.error?.type,
-              errorStackTrace: testCase.error?.stackTrace,
+              file: null,
+              ownerTeam: null,
               createdAt: new Date()
             }
           });

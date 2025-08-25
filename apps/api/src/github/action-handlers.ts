@@ -750,12 +750,12 @@ ${test.failurePattern ? `- **Pattern:** ${test.failurePattern}` : ''}
  * Map action errors to internal error codes
  */
 function mapActionErrorCode(error: any): string {
-  if (error.status === 401) return ErrorCode.UNAUTHORIZED;
-  if (error.status === 403) return ErrorCode.FORBIDDEN;
-  if (error.status === 404) return ErrorCode.RESOURCE_NOT_FOUND;
-  if (error.status === 422) return ErrorCode.VALIDATION_ERROR;
-  if (error.status === 429) return ErrorCode.GITHUB_RATE_LIMITED;
-  if (error.status >= 500) return ErrorCode.GITHUB_SERVICE_UNAVAILABLE;
+  if (error.status === 401) {return ErrorCode.UNAUTHORIZED;}
+  if (error.status === 403) {return ErrorCode.FORBIDDEN;}
+  if (error.status === 404) {return ErrorCode.RESOURCE_NOT_FOUND;}
+  if (error.status === 422) {return ErrorCode.VALIDATION_ERROR;}
+  if (error.status === 429) {return ErrorCode.GITHUB_RATE_LIMITED;}
+  if (error.status >= 500) {return ErrorCode.GITHUB_SERVICE_UNAVAILABLE;}
   
   return ErrorCode.GITHUB_API_ERROR;
 }

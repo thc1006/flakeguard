@@ -344,8 +344,8 @@ async function githubAppPlugin(fastify: FastifyInstance, options: GitHubAppPlugi
         },
       };
 
-      if (status) where.status = status;
-      if (conclusion) where.conclusion = conclusion;
+      if (status) {where.status = status;}
+      if (conclusion) {where.conclusion = conclusion;}
 
       const [checkRuns, totalCount] = await Promise.all([
         prisma.checkRun.findMany({

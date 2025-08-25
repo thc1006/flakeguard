@@ -95,10 +95,10 @@ export interface RepositoryContext {
 // ============================================================================
 
 export class PollingManager {
-  private prisma: PrismaClient;
-  private octokit?: Octokit;
-  private runsIngestQueue: Queue;
-  private runsAnalyzeQueue: Queue;
+  private _prisma: PrismaClient;
+  private _octokit?: Octokit;
+  private _runsIngestQueue: Queue;
+  private _runsAnalyzeQueue: Queue;
   private cronJobs: Map<string, CronJob> = new Map();
   private rateLimitBackoff = 0;
   private lastRateLimitReset = 0;
@@ -109,10 +109,10 @@ export class PollingManager {
     runsAnalyzeQueue: Queue,
     octokit?: Octokit
   ) {
-    this.prisma = prisma;
-    this.octokit = octokit;
-    this.runsIngestQueue = runsIngestQueue;
-    this.runsAnalyzeQueue = runsAnalyzeQueue;
+    this._prisma = prisma;
+    this._octokit = octokit;
+    this._runsIngestQueue = runsIngestQueue;
+    this._runsAnalyzeQueue = runsAnalyzeQueue;
   }
 
   /**

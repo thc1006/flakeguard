@@ -6,6 +6,7 @@
  */
 
 import { createHash } from 'crypto';
+
 import { PrismaClient } from '@prisma/client';
 
 // Configuration from environment variables
@@ -374,7 +375,7 @@ async function seedData() {
 
     const clusterData = [];
     for (const clusterStat of clusterStats) {
-      if (!clusterStat.failureMsgSignature) continue;
+      if (!clusterStat.failureMsgSignature) {continue;}
       
       // Get representative example for this cluster
       const example = await prisma.fGOccurrence.findFirst({

@@ -498,14 +498,14 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
     return {
       getInt: (key: string, defaultValue: number = 0): number => {
         const value = attributes[key];
-        if (!value) return defaultValue;
+        if (!value) {return defaultValue;}
         const parsed = parseInt(value, 10);
         return isNaN(parsed) || parsed < 0 ? defaultValue : parsed;
       },
 
       getFloat: (key: string, defaultValue: number = 0): number => {
         const value = attributes[key];
-        if (!value) return defaultValue;
+        if (!value) {return defaultValue;}
         const parsed = parseFloat(value);
         return isNaN(parsed) || parsed < 0 ? defaultValue : parsed;
       },
@@ -517,13 +517,13 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
 
       getBoolean: (key: string, defaultValue: boolean = false): boolean => {
         const value = attributes[key]?.toLowerCase();
-        if (!value) return defaultValue;
+        if (!value) {return defaultValue;}
         return value === 'true' || value === '1' || value === 'yes';
       },
 
       getTimestamp: (key: string): string | undefined => {
         const value = attributes[key];
-        if (!value) return undefined;
+        if (!value) {return undefined;}
         
         // Validate ISO timestamp format
         const timestampRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})?$/;
@@ -1000,7 +1000,7 @@ export async function detectJUnitFormat(
     let hasAnalyzed = false;
 
     const analyzeContent = () => {
-      if (hasAnalyzed) return;
+      if (hasAnalyzed) {return;}
       hasAnalyzed = true;
 
       const contentResult = analyzeXMLContent(contentBuffer);
@@ -1307,10 +1307,10 @@ function createFormatSpecificMetadata<T extends JUnitFormat>(
  * Extract property value from test suites properties
  */
 function extractPropertyFromSuites(testSuites: TestSuites, propertyName: string): string | undefined {
-  if (!testSuites.suites) return undefined;
+  if (!testSuites.suites) {return undefined;}
   
   for (const suite of testSuites.suites) {
-    if (suite.properties && suite.properties[propertyName]) {
+    if (suite.properties?.[propertyName]) {
       return String(suite.properties[propertyName]);
     }
   }
@@ -1323,10 +1323,10 @@ function extractPropertyFromSuites(testSuites: TestSuites, propertyName: string)
 function extractFixturesFromSuites(testSuites: TestSuites): string[] {
   const fixtures: string[] = [];
   
-  if (!testSuites.suites) return fixtures;
+  if (!testSuites.suites) {return fixtures;}
   
   for (const suite of testSuites.suites) {
-    if (!suite.testCases) continue;
+    if (!suite.testCases) {continue;}
     
     for (const testCase of suite.testCases) {
       if (testCase.properties) {

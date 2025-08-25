@@ -523,7 +523,7 @@ export class FlakeGuardSlackApp {
     let quarantinedTests = 0;
 
     for (const [testFullName, runs] of testGroups) {
-      if (runs.length < 3) continue; // Need minimum runs for meaningful analysis
+      if (runs.length < 3) {continue;} // Need minimum runs for meaningful analysis
 
       try {
         const flakeScore = this.dependencies.flakinessScorer.computeFlakeScore(runs);
@@ -1106,7 +1106,7 @@ export class FlakeGuardSlackApp {
    * Calculate repository health score
    */
   private calculateHealthScore(summary: RepositoryFlakeSummary): number {
-    if (summary.totalTests === 0) return 100;
+    if (summary.totalTests === 0) {return 100;}
     
     const flakyPercent = (summary.flakyTests / summary.totalTests) * 100;
     return Math.max(0, Math.round(100 - flakyPercent));
@@ -1118,8 +1118,8 @@ export class FlakeGuardSlackApp {
   private getHealthEmoji(summary: RepositoryFlakeSummary): string {
     const healthScore = this.calculateHealthScore(summary);
     
-    if (healthScore >= 90) return '🟢';
-    if (healthScore >= 70) return '🟡';
+    if (healthScore >= 90) {return '🟢';}
+    if (healthScore >= 70) {return '🟡';}
     return '🔴';
   }
 

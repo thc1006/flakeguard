@@ -93,7 +93,7 @@ export interface RecomputeSummary {
 /**
  * Create tests recompute processor
  */
-export function createTestsRecomputeProcessor(prisma: PrismaClient) {
+export function createTestsRecomputeProcessor(_prisma: PrismaClient) {
   return async function processTestsRecompute(
     job: Job<TestsRecomputeJobData>
   ): Promise<RecomputeResult> {

@@ -102,7 +102,7 @@ export class SlackService {
     if (notification.routing.teams) {
       for (const team of notification.routing.teams) {
         const teamChannel = this.config.channels.team[team];
-        if (teamChannel) channels.push(teamChannel);
+        if (teamChannel) {channels.push(teamChannel);}
       }
     }
 
@@ -176,7 +176,7 @@ export class SlackService {
 
   private getOptimalClient(): WebClient {
     const poolClients = Array.from(this.connectionPool.values());
-    if (poolClients.length === 0) return this.client;
+    if (poolClients.length === 0) {return this.client;}
     
     const index = this.metrics.messagesDelivered % poolClients.length;
     return poolClients[index] || this.client;
@@ -184,7 +184,7 @@ export class SlackService {
 
   private startQueueProcessor(): void {
     setInterval(async () => {
-      if (this.processing || this.sendQueue.length === 0) return;
+      if (this.processing || this.sendQueue.length === 0) {return;}
       
       this.processing = true;
       const batch = this.sendQueue.splice(0, this.config.performance.maxConcurrentMessages);

@@ -438,7 +438,7 @@ export class PolicyEngine {
    * Check if test path matches any exclusion patterns
    */
   private isPathExcluded(testPath: string | undefined, excludePaths: string[]): boolean {
-    if (!testPath) return false;
+    if (!testPath) {return false;}
     
     return excludePaths.some(pattern => 
       minimatch(testPath, pattern, { matchBase: true, dot: true })

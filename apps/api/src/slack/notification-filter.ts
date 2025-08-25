@@ -84,7 +84,7 @@ export class NotificationFilterService {
       const matches = filter.testNameFilters.some(pattern => 
         testName.includes(pattern.toLowerCase())
       );
-      if (!matches) return false;
+      if (!matches) {return false;}
     }
 
     if (notification.data.flakeScore && filter.excludePatterns.length > 0) {
@@ -96,7 +96,7 @@ export class NotificationFilterService {
         testFullName.includes(pattern.toLowerCase())
       );
       
-      if (shouldExclude) return false;
+      if (shouldExclude) {return false;}
     }
 
     if (notification.data.flakeScore && notification.data.flakeScore.score < filter.minScore) {

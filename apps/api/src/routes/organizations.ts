@@ -256,7 +256,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
       const offset = (page - 1) * limit;
 
       const where: any = { orgId, status: 'active' };
-      if (role) where.role = role;
+      if (role) {where.role = role;}
 
       const [members, total] = await Promise.all([
         fastify.prisma.organizationUser.findMany({
@@ -533,7 +533,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
       const offset = (page - 1) * limit;
 
       const where: any = { orgId };
-      if (active !== undefined) where.isActive = active;
+      if (active !== undefined) {where.isActive = active;}
       if (search) {
         where.OR = [
           { name: { contains: search, mode: 'insensitive' } },
@@ -735,9 +735,9 @@ export async function organizationRoutes(fastify: FastifyInstance) {
       const offset = (page - 1) * limit;
 
       const where: any = { orgId };
-      if (action) where.action = { contains: action, mode: 'insensitive' };
-      if (resource) where.resource = resource;
-      if (userId) where.userId = userId;
+      if (action) {where.action = { contains: action, mode: 'insensitive' };}
+      if (resource) {where.resource = resource;}
+      if (userId) {where.userId = userId;}
 
       const [logs, total] = await Promise.all([
         fastify.prisma.auditLog.findMany({

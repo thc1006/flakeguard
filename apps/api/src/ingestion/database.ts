@@ -622,7 +622,7 @@ export class TestIngestionRepository {
    * Extract file path from class name (heuristic)
    */
   private extractFileFromClassName(className: string): string | undefined {
-    if (!className) return undefined;
+    if (!className) {return undefined;}
     
     // Convert Java-style class names to file paths
     if (className.includes('.')) {

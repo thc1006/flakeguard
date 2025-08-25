@@ -302,7 +302,7 @@ export class FlakinessScorer {
 
     for (let i = sortedRuns.length - 1; i >= 0; i--) {
       const run = sortedRuns[i];
-      if (!run) continue;
+      if (!run) {continue;}
       const isFailed = run.status === 'failed' || run.status === 'error';
       
       if (isFailed) {
@@ -371,7 +371,7 @@ export class FlakinessScorer {
       const current = sortedRuns[i];
       const previous = sortedRuns[i - 1];
       
-      if (!current || !previous) continue;
+      if (!current || !previous) {continue;}
       
       const gap = current.createdAt.getTime() - previous.createdAt.getTime();
       
@@ -429,7 +429,7 @@ export class FlakinessScorer {
    * Calculate statistical variance
    */
   private calculateVariance(values: number[]): number {
-    if (values.length === 0) return 0;
+    if (values.length === 0) {return 0;}
     
     const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
     const squaredDiffs = values.map(val => Math.pow(val - mean, 2));
@@ -671,7 +671,7 @@ export class FlakinessScorer {
     const messageGroups = new Map<string, TestRun[]>();
     
     for (const run of runs) {
-      if (!run.message) continue;
+      if (!run.message) {continue;}
       
       const normalized = this.normalizeMessage(run.message);
       if (!messageGroups.has(normalized)) {

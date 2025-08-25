@@ -14,7 +14,7 @@ export class TranscriptLogger {
   }
 
   async init(): Promise<void> {
-    if (!this.isEnabled || !this.filePath) return;
+    if (!this.isEnabled || !this.filePath) {return;}
     
     // Ensure directory exists
     const dir = path.dirname(this.filePath);
@@ -59,7 +59,7 @@ export class TranscriptLogger {
   }
 
   private async writeHeader(): Promise<void> {
-    if (!this.filePath) return;
+    if (!this.filePath) {return;}
     
     const header = [
       '# FlakeGuard Setup Wizard Transcript',
@@ -77,7 +77,7 @@ export class TranscriptLogger {
   }
 
   private async writeEntry(entry: TranscriptEntry): Promise<void> {
-    if (!this.filePath) return;
+    if (!this.filePath) {return;}
     
     const timestamp = new Date(entry.timestamp).toLocaleString();
     const levelIcon = this.getLevelIcon(entry.level);
@@ -166,7 +166,7 @@ export class TranscriptLogger {
   }
 
   async getTranscriptContent(): Promise<string | null> {
-    if (!this.filePath) return null;
+    if (!this.filePath) {return null;}
     
     try {
       return await fs.readFile(this.filePath, 'utf8');
@@ -201,7 +201,7 @@ export class TranscriptLogger {
   }
 
   async close(): Promise<void> {
-    if (!this.isEnabled || !this.filePath) return;
+    if (!this.isEnabled || !this.filePath) {return;}
     
     const summary = await this.exportSummary();
     

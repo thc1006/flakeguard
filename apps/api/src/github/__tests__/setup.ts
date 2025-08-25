@@ -197,7 +197,7 @@ const slowTestThreshold = 5000; // 5 seconds
 const originalIt = global.it;
 
 global.it = function(name: string, fn?: any, timeout?: number) {
-  if (!fn) return originalIt(name);
+  if (!fn) {return originalIt(name);}
   
   return originalIt(name, async () => {
     const start = Date.now();

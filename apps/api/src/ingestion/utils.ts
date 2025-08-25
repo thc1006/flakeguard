@@ -132,20 +132,20 @@ export const createXMLFileFilter = (options?: {
     const { name, isFile, isDirectory } = entry;
     
     // Skip directories
-    if (isDirectory) return false;
+    if (isDirectory) {return false;}
     
     // Check depth
     const depth = name.split('/').length - 1;
-    if (depth > maxDepth) return false;
+    if (depth > maxDepth) {return false;}
     
     // Check excluded directories
-    if (excludeDirs.some(dir => name.includes(dir))) return false;
+    if (excludeDirs.some(dir => name.includes(dir))) {return false;}
     
     // Check if it's an XML file
-    if (!name.toLowerCase().endsWith('.xml')) return false;
+    if (!name.toLowerCase().endsWith('.xml')) {return false;}
     
     // Optionally require 'test' in the path
-    if (requireTestInPath && !/test/i.test(name)) return false;
+    if (requireTestInPath && !/test/i.test(name)) {return false;}
     
     return isFile;
   };
@@ -457,7 +457,7 @@ export const detectFormatFromPath = (filePath: string): JUnitFormat => {
   const normalized = filePath.toLowerCase();
   
   for (const [format, indicators] of Object.entries(FORMAT_INDICATORS)) {
-    if (format === 'generic') continue; // Skip generic for path-based detection
+    if (format === 'generic') {continue;} // Skip generic for path-based detection
     
     if (indicators.some(indicator => normalized.includes(indicator.toLowerCase()))) {
       return format as JUnitFormat;

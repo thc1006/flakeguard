@@ -23,6 +23,9 @@
     "@typescript-eslint/no-non-null-assertion": "warn",
     "@typescript-eslint/no-floating-promises": "error",
     "@typescript-eslint/no-misused-promises": "error",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
+    "@typescript-eslint/prefer-optional-chain": "error",
+    "@typescript-eslint/no-unnecessary-type-assertion": "error",
     "import/order": [
       "error",
       {
@@ -33,23 +36,74 @@
     ],
     "import/no-unresolved": "off",
     "import/named": "off",
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-console": "error",
     "prefer-const": "error",
-    "no-var": "error"
+    "no-var": "error",
+    "eqeqeq": ["error", "always"],
+    "curly": ["error", "all"]
   },
+  "overrides": [
+    {
+      "files": [
+        "**/cli/**/*.{js,ts}",
+        "**/bin/**/*.{js,ts}",
+        "**/scripts/**/*.{js,ts}",
+        "**/seed.ts",
+        "**/seed.js",
+        "**/migrate.{ts,js}",
+        "**/*benchmark*.{ts,js}",
+        "**/performance/**/*.{ts,js}",
+        "**/test-*.{ts,js}",
+        "**/run-*.{ts,js}"
+      ],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/*.test.{ts,js}", "**/*.spec.{ts,js}"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-non-null-assertion": "off",
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/*.config.{ts,js}", "**/vitest.*.{ts,js}", "**/playwright.*.{ts,js}"],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      "files": ["apps/worker/**/*.{ts,js}"],
+      "rules": {
+        "no-console": ["warn", { "allow": ["log", "warn", "error", "info"] }]
+      }
+    },
+    {
+      "files": ["apps/api/src/slack/**/*.{ts,js}"],
+      "rules": {
+        "no-console": ["warn", { "allow": ["log", "warn", "error", "info"] }]
+      }
+    },
+    {
+      "files": ["docker/**/*.{js,ts}"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ],
   "ignorePatterns": [
     "node_modules",
     "dist",
     "build",
     ".turbo",
-    "*.js",
-    "*.mjs",
-    "*.cjs",
     "coverage",
-    "*.config.js",
-    "*.config.ts",
-    "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.d.ts",
+    "apps/docs/.docusaurus/**",
+    "apps/docs/build/**",
+    "**/__generated__/**",
+    "**/generated/**"
   ],
   "env": {
     "node": true,

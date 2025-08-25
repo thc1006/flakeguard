@@ -279,7 +279,7 @@ export class HealthCheckManager {
       version: '1.0.0',
       environment: config.env,
       checks,
-      metrics: metrics || undefined
+      metrics: metrics as { activeJobs: number; completedJobs: number; failedJobs: number; queueSizes: Record<string, number>; } | undefined
     };
   }
 
@@ -289,7 +289,7 @@ export class HealthCheckManager {
   private async checkDatabaseHealth(): Promise<ComponentHealth> {
     const cacheKey = 'database';
     const cached = this.getCachedHealth(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
     
     const startTime = Date.now();
     
@@ -331,7 +331,7 @@ export class HealthCheckManager {
   private async checkRedisHealth(): Promise<ComponentHealth> {
     const cacheKey = 'redis';
     const cached = this.getCachedHealth(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
     
     const startTime = Date.now();
     
@@ -375,7 +375,7 @@ export class HealthCheckManager {
   private async checkQueuesHealth(): Promise<ComponentHealth> {
     const cacheKey = 'queues';
     const cached = this.getCachedHealth(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
     
     const startTime = Date.now();
     
@@ -484,7 +484,7 @@ export class HealthCheckManager {
   private checkGitHubHealth(): ComponentHealth {
     const cacheKey = 'github';
     const cached = this.getCachedHealth(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
     
     try {
       // Simple GitHub API health check

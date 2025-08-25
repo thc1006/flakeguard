@@ -206,8 +206,8 @@ export async function adminRoutes(fastify: FastifyInstance) {
       const offset = (page - 1) * limit;
 
       const where: any = {};
-      if (status) where.status = status;
-      if (plan) where.plan = plan;
+      if (status) {where.status = status;}
+      if (plan) {where.plan = plan;}
       if (search) {
         where.OR = [
           { name: { contains: search, mode: 'insensitive' } },

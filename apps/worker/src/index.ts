@@ -350,7 +350,7 @@ function setupEventHandlers(workers: Worker[]): void {
 async function updateQueueMetricsForQueue(queueName: string): Promise<void> {
   try {
     const queue = queues.find(q => q.name === queueName);
-    if (!queue) return;
+    if (!queue) {return;}
     
     const [waiting, active, completed, failed, delayed] = await Promise.all([
       queue.getWaiting(),
@@ -517,7 +517,7 @@ async function performShutdown(): Promise<void> {
   if (pollingManager) {
     shutdownSteps.push({
       name: 'polling manager',
-      fn: async () => { if (pollingManager) await pollingManager.shutdown(); }
+      fn: async () => { if (pollingManager) {await pollingManager.shutdown();} }
     });
   }
   
@@ -561,7 +561,7 @@ async function performShutdown(): Promise<void> {
   if (healthManager) {
     shutdownSteps.push({
       name: 'health check server',
-      fn: async () => { if (healthManager) await healthManager.stop(); }
+      fn: async () => { if (healthManager) {await healthManager.stop();} }
     });
   }
   

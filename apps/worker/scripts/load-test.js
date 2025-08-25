@@ -7,10 +7,10 @@
  * queue throughput, and system stability under load.
  */
 
-import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
 import { faker } from '@faker-js/faker';
+import { Queue } from 'bullmq';
 import { program } from 'commander';
+import IORedis from 'ioredis';
 import pino from 'pino';
 
 // ============================================================================
@@ -228,7 +228,7 @@ class LoadTestRunner {
 
     // Group jobs by type and enqueue
     const jobsByType = jobs.reduce((acc, job) => {
-      if (!acc[job.type]) acc[job.type] = [];
+      if (!acc[job.type]) {acc[job.type] = [];}
       acc[job.type].push(job);
       return acc;
     }, {});

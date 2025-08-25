@@ -573,8 +573,8 @@ describe('FlakeGuard Slack App Integration', () => {
 
       // Verify health emoji
       const getHealthEmoji = (score: number) => {
-        if (score >= 90) return '🟢';
-        if (score >= 70) return '🟡';
+        if (score >= 90) {return '🟢';}
+        if (score >= 70) {return '🟡';}
         return '🔴';
       };
       expect(getHealthEmoji(healthScore)).toBe('🔴'); // 60% is red

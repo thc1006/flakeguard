@@ -708,7 +708,7 @@ export class MockDatabaseState {
     // Repository mocks
     this.mockPrisma.repository.findMany.mockImplementation(async () => this.repositories);
     this.mockPrisma.repository.findFirst.mockImplementation(async (args) => {
-      if (!args?.where) return this.repositories[0] || null;
+      if (!args?.where) {return this.repositories[0] || null;}
       // Simple matching for common queries
       if ('id' in args.where) {
         return this.repositories.find(r => r.id === args.where.id) || null;

@@ -582,12 +582,12 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
   private getEnabledFeatures(): string[] {
     const features: string[] = [];
     
-    if (this.config.rateLimit.enabled) features.push('rate-limiting');
-    if (this.config.circuitBreaker.enabled) features.push('circuit-breaker');
-    if (this.config.retry.enabled) features.push('retry-logic');
-    if (this.config.requestQueue.enabled) features.push('request-queue');
-    if (this.config.security.auditLogging) features.push('audit-logging');
-    if (this.config.artifactDownload.enabled) features.push('artifact-download');
+    if (this.config.rateLimit.enabled) {features.push('rate-limiting');}
+    if (this.config.circuitBreaker.enabled) {features.push('circuit-breaker');}
+    if (this.config.retry.enabled) {features.push('retry-logic');}
+    if (this.config.requestQueue.enabled) {features.push('request-queue');}
+    if (this.config.security.auditLogging) {features.push('audit-logging');}
+    if (this.config.artifactDownload.enabled) {features.push('artifact-download');}
     
     return features;
   }

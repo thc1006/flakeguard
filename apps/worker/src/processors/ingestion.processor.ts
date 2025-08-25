@@ -16,18 +16,16 @@
 
 import { 
   IngestionQueueJobData, 
-  JobExecutionResult,
-  JobProgressInfo
-} from '@flakeguard/shared';
-import { PrismaClient } from '@prisma/client';
-import { Job } from 'bullmq';
-
-import { 
+  JobExecutionResult
+, 
   createGitHubApiWrapper,
   OctokitHelpers,
   createOctokitHelpers,
   ArtifactHandler 
 } from '@flakeguard/shared';
+import { PrismaClient } from '@prisma/client';
+import { Job } from 'bullmq';
+
 import { logger } from '../utils/logger.js';
 
 // ============================================================================
@@ -46,20 +44,23 @@ export interface IngestionJobProcessor {
  * Create ingestion job processor with proper dependencies
  */
 export function createIngestionProcessor(
-  prisma: PrismaClient
+  _prisma: PrismaClient
 ): IngestionJobProcessor {
   
   // Create GitHub API wrapper from shared package
-  const githubWrapper = createGitHubApiWrapper({
+  const _githubWrapper = createGitHubApiWrapper({
     installationId: process.env.GITHUB_APP_INSTALLATION_ID ? parseInt(process.env.GITHUB_APP_INSTALLATION_ID, 10) : undefined,
-    // Add other config as needed
+    appId: process.env.GITHUB_APP_ID || '',
+    privateKey: process.env.GITHUB_APP_PRIVATE_KEY || ''
   });
   
-  const octokitHelpers = createOctokitHelpers({
-    // Add config as needed
-  });
+  const _octokitHelpers = createOctokitHelpers();
   
-  const artifactHandler = new ArtifactHandler();
+  const _artifactHandler = new ArtifactHandler(
+    _githubWrapper.getOctokit(),
+    { downloadDir: './temp', maxRetries: 3 },
+    () => {}
+  );
 
   return async function processIngestionJob(
     job: Job<IngestionQueueJobData>

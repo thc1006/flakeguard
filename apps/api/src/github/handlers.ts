@@ -10,10 +10,10 @@
  * - Comprehensive error handling and logging
  */
 
+import { JobPriorities } from '@flakeguard/shared';
 import type { PrismaClient } from '@prisma/client';
 import type { Queue } from 'bullmq';
 
-import { JobPriorities } from '@flakeguard/shared';
 
 import { 
   createGitHubArtifactsIntegration,
@@ -24,6 +24,7 @@ import {
 import { JUnitIngestionService } from '../ingestion/junit.js';
 import { generateCorrelationId } from '../ingestion/utils.js';
 import { logger } from '../utils/logger.js';
+
 import { GitHubAuthManager } from './auth.js';
 import {
   CHECK_RUN_ACTION_CONFIGS,
@@ -824,7 +825,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     const { check_run, repository } = payload;
     
     const repoRecord = await this.getRepositoryRecord(repository);
-    if (!repoRecord) return;
+    if (!repoRecord) {return;}
 
     const flakeDetection = await this.prisma.flakeDetection.findFirst({
       where: {
@@ -852,7 +853,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     const { check_run, repository } = payload;
     
     const repoRecord = await this.getRepositoryRecord(repository);
-    if (!repoRecord) return;
+    if (!repoRecord) {return;}
 
     const flakeDetection = await this.prisma.flakeDetection.findFirst({
       where: {
@@ -2069,7 +2070,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     
     try {
       const repoRecord = await this.getRepositoryRecord(repository);
-      if (!repoRecord) return;
+      if (!repoRecord) {return;}
 
       // Get flake summary for this repository
       const flakeSummary = await this.flakeDetector.getRepositoryFlakeSummary(repoRecord.id);

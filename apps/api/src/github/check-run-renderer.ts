@@ -196,7 +196,7 @@ export function renderCheckRunOutput(
  * @returns Formatted and escaped test name
  */
 export function formatTestName(name: string): string {
-  if (!name) return 'Unknown Test';
+  if (!name) {return 'Unknown Test';}
   
   let formatted = name.length > 50 ? `${name.substring(0, 47)}...` : name;
   
@@ -241,7 +241,7 @@ export function selectTopActions(
   const warningTests = tests.filter(t => calculateSeverity(t.flakeScore) === 'warning');
   void warningTests; // Avoid unused variable warning
   const recentFailures = tests.filter(t => {
-    if (!t.lastFailedRun) return false;
+    if (!t.lastFailedRun) {return false;}
     const lastFailed = new Date(t.lastFailedRun);
     const daysSince = (Date.now() - lastFailed.getTime()) / (1000 * 60 * 60 * 24);
     return daysSince <= 7; // Failed in last 7 days
@@ -294,8 +294,8 @@ export function selectTopActions(
  * @returns Severity level classification
  */
 export function calculateSeverity(score: number): SeverityLevel {
-  if (score >= 0.8) return 'critical';
-  if (score >= 0.5) return 'warning';
+  if (score >= 0.8) {return 'critical';}
+  if (score >= 0.5) {return 'warning';}
   return 'stable';
 }
 
@@ -396,7 +396,7 @@ export function convertStabilityMetricsToTests(
  * Calculate confidence score from stability metrics
  */
 function calculateConfidenceFromMetrics(metric: TestStabilityMetrics): number {
-  if (metric.totalRuns < 5) return 0.1; // Low confidence with few runs
+  if (metric.totalRuns < 5) {return 0.1;} // Low confidence with few runs
   
   const failureRate = metric.failedRuns / metric.totalRuns;
   const hasRecentFailures = metric.lastFailure && 
@@ -405,16 +405,16 @@ function calculateConfidenceFromMetrics(metric: TestStabilityMetrics): number {
   let confidence = failureRate;
   
   // Boost confidence for recent failures
-  if (hasRecentFailures) confidence *= 1.3;
+  if (hasRecentFailures) {confidence *= 1.3;}
   
   // Boost confidence for intermittent patterns
   if (metric.rerunAttempts > 0) {
     const rerunSuccessRate = metric.rerunSuccesses / metric.rerunAttempts;
-    if (rerunSuccessRate > 0.3) confidence *= 1.2; // Sometimes passes on rerun
+    if (rerunSuccessRate > 0.3) {confidence *= 1.2;} // Sometimes passes on rerun
   }
   
   // Factor in failure clustering
-  if (metric.failureClusters.length > 1) confidence *= 1.1;
+  if (metric.failureClusters.length > 1) {confidence *= 1.1;}
   
   return Math.min(1.0, confidence);
 }
@@ -449,7 +449,7 @@ function extractFileLocation(testFullName: string): { file?: string; line?: numb
   const pathMatch = testFullName.match(/(src|test|tests|spec|__tests__)\/.+\.(test|spec|tests)\.[jt]sx?/);
   if (pathMatch) {
     return {
-      file: pathMatch[0]!,
+      file: pathMatch[0],
       line: undefined,
     };
   }

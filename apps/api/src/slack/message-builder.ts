@@ -270,7 +270,7 @@ export class SlackMessageBuilder {
     const blocks = [];
 
     for (const [priority, tests] of Object.entries(groups)) {
-      if (tests.length === 0) continue;
+      if (tests.length === 0) {continue;}
 
       const emoji = this.getPriorityEmoji(priority as any);
       blocks.push({
@@ -286,7 +286,7 @@ export class SlackMessageBuilder {
   }
 
   private createTopIssuesBlocks(issues: QualitySummaryData['topIssues']): any[] {
-    if (issues.length === 0) return [];
+    if (issues.length === 0) {return [];}
 
     return [
       {
@@ -473,7 +473,7 @@ export class SlackMessageBuilder {
   private groupByPriority(candidates: QuarantineCandidate[]): Record<string, QuarantineCandidate[]> {
     return candidates.reduce((acc, candidate) => {
       const priority = candidate.flakeScore.recommendation.priority;
-      if (!acc[priority]) acc[priority] = [];
+      if (!acc[priority]) {acc[priority] = [];}
       acc[priority].push(candidate);
       return acc;
     }, {} as Record<string, QuarantineCandidate[]>);
@@ -485,7 +485,7 @@ export class SlackMessageBuilder {
 
   private getFromCache(templateId: string, data: any): SlackMessageTemplate | null {
     const cached = this.templateCache.get(templateId);
-    if (!cached) return null;
+    if (!cached) {return null;}
 
     const age = Date.now() - cached.metadata!.lastUsed.getTime();
     if (age > this.config.performance.cacheTimeoutMs) {

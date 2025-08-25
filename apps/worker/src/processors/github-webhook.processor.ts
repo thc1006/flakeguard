@@ -79,7 +79,7 @@ export function createGitHubWebhookProcessor(prisma: PrismaClient) {
   return async function processGitHubWebhook(
     job: Job<GitHubEventJob>
   ): Promise<ProcessingResult> {
-    const { data } = job as { data: Record<string, unknown> };
+    const { data } = job as unknown as { data: GitHubEventJob };
     const startTime = Date.now();
 
     logger.info({
@@ -138,7 +138,7 @@ export function createGitHubWebhookProcessor(prisma: PrismaClient) {
       // Filter for test result artifacts
       const testArtifacts = artifacts.filter(artifact => {
         // Skip expired artifacts
-        if (artifact.expired) return false;
+        if (artifact.expired) {return false;}
         
         // Look for common test result patterns
         const name = artifact.name.toLowerCase();
@@ -189,23 +189,23 @@ export function createGitHubWebhookProcessor(prisma: PrismaClient) {
           // Download and process artifact (simplified for MVP)
           const testSuites = await processTestArtifact(
             { owner, repo, installationId },
-            artifact
+            artifact!
           );
 
           allTestSuites.push(...testSuites);
 
           logger.info({
-            artifactId: artifact.id,
-            artifactName: artifact.name,
+            artifactId: artifact!.id,
+            artifactName: artifact!.name,
             testSuites: testSuites.length,
             totalTests: testSuites.reduce((sum, suite) => sum + suite.tests, 0),
           }, 'Artifact processed successfully');
 
         } catch (error) {
-          const errorMessage = `Failed to process artifact ${artifact.name}: ${
+          const errorMessage = `Failed to process artifact ${artifact!.name}: ${
             error instanceof Error ? error.message : String(error)
           }`;
-          logger.error({ artifactId: artifact.id, error }, errorMessage);
+          logger.error({ artifactId: artifact!.id, error }, errorMessage);
           errors.push(errorMessage);
         }
       }
@@ -222,11 +222,11 @@ export function createGitHubWebhookProcessor(prisma: PrismaClient) {
         workflowRunId,
         repositoryId,
         repositoryFullName,
-        headSha: data.payload.workflow_run?.head_sha || '',
-        headBranch: data.payload.workflow_run?.head_branch || 'main',
-        runNumber: data.payload.workflow_run?.run_number || 0,
-        conclusion: data.payload.workflow_run?.conclusion || 'unknown',
-        runUrl: data.payload.workflow_run?.html_url || '',
+        headSha: (data.payload as any)?.workflow_run?.head_sha || '',
+        headBranch: (data.payload as any)?.workflow_run?.head_branch || 'main',
+        runNumber: (data.payload as any)?.workflow_run?.run_number || 0,
+        conclusion: (data.payload as any)?.workflow_run?.conclusion || 'unknown',
+        runUrl: (data.payload as any)?.workflow_run?.html_url || '',
       }, allTestSuites);
 
       const totalTests = allTestSuites.reduce((sum, suite) => sum + suite.tests, 0);
@@ -279,7 +279,7 @@ export function createGitHubWebhookProcessor(prisma: PrismaClient) {
  * Process a single test artifact
  */
 async function processTestArtifact(
-  repo: { owner: string; repo: string; installationId: number },
+  _repo: { owner: string; repo: string; installationId: number },
   artifact: { id: number; name: string; expired: boolean }
 ): Promise<TestSuite[]> {
   const tempDir = join(tmpdir(), `flakeguard-${Date.now()}-${artifact.id}`);
@@ -396,13 +396,13 @@ async function storeTestResults(
   await prisma.$transaction(async (tx) => {
     // Create or update WorkflowRun record
     const workflowRun = await tx.workflowRun.upsert({
-      where: { id: workflowRunId },
+      where: { id: String(workflowRunId) },
       update: {
         conclusion,
         updatedAt: new Date(),
       },
       create: {
-        id: workflowRunId,
+        id: String(workflowRunId),
         repoId: runInfo.repositoryId || 0, // Will need to be properly mapped
         runId: workflowRunId,
         status: 'completed',
@@ -424,10 +424,10 @@ async function storeTestResults(
         };
 
         // Upsert TestCase record
-        const testCaseRecord = await tx.testCase.upsert({
+        const testCaseRecord = await tx.fGTestCase.upsert({
           where: {
             repoId_suite_className_name: {
-              repoId: workflowRun.repoId,
+              repoId: workflowRun.repository || '',
               suite: testIdentifier.suite,
               className: testIdentifier.className,
               name: testIdentifier.name,
@@ -438,7 +438,7 @@ async function storeTestResults(
             ownerTeam: null, // Could be extracted from file path
           },
           create: {
-            repoId: workflowRun.repoId,
+            repoId: workflowRun.repository || '',
             suite: testIdentifier.suite,
             className: testIdentifier.className,
             name: testIdentifier.name,
@@ -448,7 +448,7 @@ async function storeTestResults(
         });
 
         // Create Occurrence record
-        await tx.occurrence.create({
+        await tx.fGOccurrence.create({
           data: {
             testId: testCaseRecord.id,
             runId: workflowRun.id,
@@ -482,7 +482,7 @@ export function githubWebhookProcessor(prisma: PrismaClient) {
 /**
  * Simple JUnit XML parser (placeholder)
  */
-async function parseJUnitXMLFile(filePath: string): Promise<TestSuite[]> {
+async function parseJUnitXMLFile(_filePath: string): Promise<TestSuite[]> {
   // This is a simplified parser - in production would use the shared parser
   return [];
 }

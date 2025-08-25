@@ -143,8 +143,8 @@ async function metricsPlugin(
  * Get error type from HTTP status code
  */
 function getErrorType(statusCode: number): string {
-  if (statusCode >= 500) return 'server_error';
-  if (statusCode >= 400) return 'client_error';
+  if (statusCode >= 500) {return 'server_error';}
+  if (statusCode >= 400) {return 'client_error';}
   return 'unknown';
 }
 
@@ -152,11 +152,11 @@ function getErrorType(statusCode: number): string {
  * Get error type from exception
  */
 function getErrorTypeFromException(error: Error): string {
-  if (error.name === 'ValidationError') return 'validation_error';
-  if (error.name === 'UnauthorizedError') return 'auth_error';
-  if (error.name === 'TimeoutError') return 'timeout_error';
-  if (error.message.includes('database')) return 'database_error';
-  if (error.message.includes('network')) return 'network_error';
+  if (error.name === 'ValidationError') {return 'validation_error';}
+  if (error.name === 'UnauthorizedError') {return 'auth_error';}
+  if (error.name === 'TimeoutError') {return 'timeout_error';}
+  if (error.message.includes('database')) {return 'database_error';}
+  if (error.message.includes('network')) {return 'network_error';}
   return 'application_error';
 }
 
