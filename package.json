@@ -56,6 +56,10 @@
     "flakeguard-init": "packages/cli/src/bin/cli.js"
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@flakeguard/cli",
+      "@flakeguard/shared"
+    ],
     "overrides": {
       "next@>=13.4.0 <14.1.1": ">=14.1.1",
       "next@>=14.0.0 <14.2.10": ">=14.2.10",

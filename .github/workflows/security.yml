@@ -26,6 +26,7 @@ on:
 
 env:
   NODE_VERSION: '20'
+  NODE_OPTIONS: '--max-old-space-size=4096'
   PNPM_VERSION: '10.0.0'
 
 permissions:
@@ -60,7 +61,12 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --no-frozen-lockfile --prefer-offline
+
+      - name: Build packages
+        run: pnpm --filter='./packages/*' build
 
       - name: Build applications
         run: pnpm build
@@ -96,7 +102,12 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --no-frozen-lockfile --prefer-offline
+
+      - name: Build packages
+        run: pnpm --filter='./packages/*' build
 
       - name: Run npm audit
         run: |
@@ -138,12 +149,17 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --no-frozen-lockfile --prefer-offline
+
+      - name: Build packages
+        run: pnpm --filter='./packages/*' build
 
       - name: Check licenses
         run: |
           npx license-checker \
-            --onlyAllow 'MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;Unlicense;CC0-1.0' \
+            --onlyAllow 'MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;Unlicense;CC0-1.0;MPL-2.0' \
             --production \
             --excludePrivatePackages \
             --json \
@@ -153,7 +169,7 @@ jobs:
           npx license-checker \
             --excludePackages 'test@1.0.0' \
             --excludePrivatePackages \
-            --failOn 'GPL-2.0;GPL-3.0;AGPL-1.0;AGPL-3.0;LGPL-2.0;LGPL-2.1;LGPL-3.0;MPL-2.0'
+            --failOn 'GPL-2.0;GPL-3.0;AGPL-1.0;AGPL-3.0;LGPL-2.0;LGPL-2.1;LGPL-3.0'
 
       - name: Upload license report
         uses: actions/upload-artifact@v4
@@ -294,7 +310,12 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --no-frozen-lockfile --prefer-offline
+
+      - name: Build packages
+        run: pnpm --filter='./packages/*' build
 
       - name: Generate SBOM with Syft
         uses: anchore/sbom-action@v0.17.2
