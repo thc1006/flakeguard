@@ -4,7 +4,8 @@
 import { QueueNames } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
 
-import { OptimizedWorkerManager } from '../../api/src/performance/worker-optimizations.js';
+// Removed: import { OptimizedWorkerManager } from '../../api/src/performance/worker-optimizations.js';
+// TODO: Move OptimizedWorkerManager to shared package or implement locally
 
 import { config } from './config/index.js';
 import { emailProcessor } from './processors/email.processor.js';
@@ -27,7 +28,7 @@ const prisma = new PrismaClient({
   },
 });
 
-const workerManager = new OptimizedWorkerManager();
+// const workerManager = new OptimizedWorkerManager(); // TODO: Implement or move to shared
 
 async function start() {
   try {

@@ -10,7 +10,7 @@ export const testConfig = {
   databaseUrl: 'postgresql://test:test@localhost:5432/flakeguard_test',
   redisUrl: 'redis://localhost:6379',
   jwtSecret: 'test-jwt-secret-32-chars-minimum-length-for-security',
-  apiKey: 'test-api-key-16-chars-minimum',
+  apiKey: 'FAKE_API_KEY_FOR_TESTS_ONLY_123',
   rateLimitMax: 100,
   rateLimitWindow: 60000,
   logLevel: 'error' as const,
@@ -29,7 +29,7 @@ export const testConfig = {
   
   github: {
     appId: 12345,
-    privateKey: '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA4f5wg5l2hKsTeNem/V41fGnJm6gOdrj8ym3rFkEjWT2JjSBP\n-----END RSA PRIVATE KEY-----',
+    privateKey: '-----BEGIN FAKE PRIVATE KEY FOR TESTS ONLY-----\nTHIS_IS_A_FAKE_KEY_FOR_TESTING_PURPOSES_ONLY\nDO_NOT_USE_IN_PRODUCTION_ENVIRONMENTS\n-----END FAKE PRIVATE KEY FOR TESTS ONLY-----',
     webhookSecret: 'test-webhook-secret',
     clientId: 'test-github-client-id',
     clientSecret: 'test-github-client-secret',

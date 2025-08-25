@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
-import pino, { type Logger } from 'pino';
+import pino from 'pino';
+import type { Logger } from 'pino';
 
 import { config } from '../config/index.js';
 

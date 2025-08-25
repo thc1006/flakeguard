@@ -35,6 +35,9 @@ paths = [
   '''docker-compose\.test\.yml''',
   '''.*\.test\.yml''',
   '''scripts/test-.*\.ps1''',
+  '''apps/api/src/config/test-config\.ts''',
+  '''apps/api/vitest\.unit\.config\.ts''',
+  '''apps/api/vitest\.integration\.config\.ts''',
   '''\.env\.example''',
   '''\.env\..*\.example''',
   '''example\.env''',
@@ -63,6 +66,16 @@ regexes = [
   '''FAKE_[A-Z_]+''',
   '''TEST_[A-Z_]+''',
   '''EXAMPLE_[A-Z_]+''',
+  
+  # Specific fake test patterns for FlakeGuard
+  '''FAKE_PRIVATE_KEY_FOR_TESTS_ONLY''',
+  '''FAKE_API_KEY_FOR_TESTS_ONLY_123''',
+  '''FAKE_TOKEN_FOR_TESTS_ONLY''',
+  
+  # Fake private key patterns
+  '''-----BEGIN FAKE PRIVATE KEY FOR TESTS ONLY-----.*-----END FAKE PRIVATE KEY FOR TESTS ONLY-----''',
+  '''THIS_IS_A_FAKE_KEY_FOR_TESTING_PURPOSES_ONLY''',
+  '''DO_NOT_USE_IN_PRODUCTION_ENVIRONMENTS''',
   
   # API documentation examples
   '''fg_EXAMPLE_[A-Za-z0-9_]+''',

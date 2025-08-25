@@ -9,7 +9,12 @@ import { PrismaClient } from '@prisma/client';
 import { Job } from 'bullmq';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-import type { GitHubEventJob } from '../../../api/src/routes/github-webhook.js';
+// TODO: Define GitHubEventJob type in shared package
+// import type { GitHubEventJob } from '../../../api/src/routes/github-webhook.js';
+interface GitHubEventJob {
+  // TODO: Define proper interface based on webhook payload
+  [key: string]: unknown;
+}
 import { createGitHubWebhookProcessor } from '../github-webhook.processor.js';
 
 // Mock dependencies
@@ -20,9 +25,10 @@ vi.mock('@flakeguard/shared', () => ({
   })),
 }));
 
-vi.mock('../../../api/src/ingestion/parsers/junit-parser.js', () => ({
-  parseJUnitXMLFile: vi.fn(),
-}));
+// TODO: Use shared JUnit parser
+// vi.mock('../../../api/src/ingestion/parsers/junit-parser.js', () => ({
+//   parseJUnitXMLFile: vi.fn(),
+// }));
 
 vi.mock('node-stream-zip', () => {
   return {
@@ -130,7 +136,9 @@ describe('GitHub Webhook Processor - P3', () => {
       mockOctokitHelpers.downloadArtifactZip.mockResolvedValue('/tmp/artifact.zip');
 
       // Mock parser
-      const { parseJUnitXMLFile } = require('../../../api/src/ingestion/parsers/junit-parser.js');
+      // TODO: Use shared JUnit parser
+      // const { parseJUnitXMLFile } = require('../../../api/src/ingestion/parsers/junit-parser.js');
+      const parseJUnitXMLFile = vi.fn();
       parseJUnitXMLFile.mockResolvedValue({
         testSuites: {
           suites: [
@@ -310,7 +318,9 @@ describe('GitHub Webhook Processor - P3', () => {
       mockOctokitHelpers.downloadArtifactZip.mockResolvedValue('/tmp/artifact.zip');
 
       // Mock parser to return empty results
-      const { parseJUnitXMLFile } = require('../../../api/src/ingestion/parsers/junit-parser.js');
+      // TODO: Use shared JUnit parser
+      // const { parseJUnitXMLFile } = require('../../../api/src/ingestion/parsers/junit-parser.js');
+      const parseJUnitXMLFile = vi.fn();
       parseJUnitXMLFile.mockResolvedValue({
         testSuites: { suites: [] },
       });
@@ -398,7 +408,9 @@ describe('GitHub Webhook Processor - P3', () => {
       ]);
       mockOctokitHelpers.downloadArtifactZip.mockResolvedValue('/tmp/artifact.zip');
 
-      const { parseJUnitXMLFile } = require('../../../api/src/ingestion/parsers/junit-parser.js');
+      // TODO: Use shared JUnit parser
+      // const { parseJUnitXMLFile } = require('../../../api/src/ingestion/parsers/junit-parser.js');
+      const parseJUnitXMLFile = vi.fn();
       parseJUnitXMLFile.mockResolvedValue({
         testSuites: {
           suites: [

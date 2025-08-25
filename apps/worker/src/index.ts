@@ -117,8 +117,8 @@ function setupQueues(): {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const defaultWorkerOptions: import('bullmq').WorkerOptions = {
     connection,
-    removeOnComplete: WORKER_CONFIG.REMOVE_ON_COMPLETE,
-    removeOnFail: WORKER_CONFIG.REMOVE_ON_FAIL,
+    removeOnComplete: { count: WORKER_CONFIG.REMOVE_ON_COMPLETE },
+    removeOnFail: { count: WORKER_CONFIG.REMOVE_ON_FAIL },
     stalledJobTimeout: WORKER_CONFIG.STALLED_JOB_TIMEOUT_MS,
     maxStalledCount: 3,
   };
