@@ -6,14 +6,14 @@
 
 import { PrismaClient } from '@prisma/client';
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import Redis from 'ioredis';
+// import Redis from 'ioredis'; // Skip ioredis for now until added to dependencies
 import { GenericContainer, StartedTestContainer } from 'testcontainers';
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 
 let postgresContainer: StartedPostgreSqlContainer;
 let redisContainer: StartedTestContainer;
 let prisma: PrismaClient;
-let redis: Redis;
+// let redis: Redis; // Skip Redis for now
 
 // Global setup - start containers
 beforeAll(async () => {
@@ -51,11 +51,11 @@ beforeAll(async () => {
     },
   });
 
-  // Initialize Redis connection
-  redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-    retryDelayOnFailover: 100,
-    maxRetriesPerRequest: 3,
-  });
+  // Initialize Redis connection (skip for now)
+  // redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+  //   retryDelayOnFailover: 100,
+  //   maxRetriesPerRequest: 3,
+  // });
 
   // Run database migrations
   const { execSync } = await import('child_process');
@@ -80,10 +80,10 @@ afterAll(async () => {
     await prisma.$disconnect();
   }
   
-  // Close Redis connection
-  if (redis) {
-    redis.disconnect();
-  }
+  // Close Redis connection (skip for now)
+  // if (redis) {
+  //   redis.disconnect();
+  // }
   
   // Stop containers if they were started
   if (process.env.USE_TEST_CONTAINERS === 'true') {
@@ -102,17 +102,17 @@ beforeEach(async () => {
   // Clean database state
   if (prisma) {
     await prisma.$transaction([
-      prisma.testCase.deleteMany(),
-      prisma.testRun.deleteMany(),
-      prisma.repository.deleteMany(),
+      prisma.fGTestCase.deleteMany(),
+      prisma.fGWorkflowRun.deleteMany(),
+      prisma.fGRepository.deleteMany(),
       // Add other models as needed
     ]);
   }
   
-  // Clean Redis state
-  if (redis) {
-    await redis.flushdb();
-  }
+  // Clean Redis state (skip for now)
+  // if (redis) {
+  //   await redis.flushdb();
+  // }
 });
 
 afterEach(async () => {
@@ -139,7 +139,7 @@ export const testDb = {
   },
 
   async seedTestRun(repositoryId: string, data: any = {}) {
-    return prisma.testRun.create({
+    return prisma.fGWorkflowRun.create({
       data: {
         repositoryId,
         workflowRunId: 12345,
@@ -154,7 +154,7 @@ export const testDb = {
   },
 
   async seedTestCase(testRunId: string, data: any = {}) {
-    return prisma.testCase.create({
+    return prisma.fGTestCase.create({
       data: {
         testRunId,
         name: 'should pass',
@@ -170,24 +170,29 @@ export const testDb = {
 
 export const testRedis = {
   get client() {
-    return redis;
+    // return redis; // Skip for now
+    throw new Error('Redis not configured');
   },
   
   async set(key: string, value: any, ttl?: number) {
     const serialized = JSON.stringify(value);
     if (ttl) {
-      return redis.setex(key, ttl, serialized);
+      // return redis.setex(key, ttl, serialized);
+      throw new Error('Redis not configured');
     }
-    return redis.set(key, serialized);
+    // return redis.set(key, serialized);
+    throw new Error('Redis not configured');
   },
   
   async get(key: string) {
-    const value = await redis.get(key);
-    return value ? JSON.parse(value) : null;
+    // const value = await redis.get(key);
+    // return value ? JSON.parse(value) : null;
+    throw new Error('Redis not configured');
   },
   
   async flushAll() {
-    return redis.flushdb();
+    // return redis.flushdb();
+    throw new Error('Redis not configured');
   },
 };
 

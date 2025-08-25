@@ -35,7 +35,7 @@ async function globalTeardown() {
     try {
       console.log('🗑️ Removing test volumes...');
       execSync('docker volume rm $(docker volume ls -q | grep flakeguard.*test)', {
-        shell: true,
+        shell: '/bin/bash',
         stdio: 'pipe',
         timeout: 10000,
       });

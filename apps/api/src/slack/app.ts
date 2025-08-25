@@ -569,7 +569,7 @@ export class FlakeGuardSlackApp {
     // Get flake detections from database (most recent first)
     const flakeDetections = await this.dependencies.prisma.flakeDetection.findMany({
       where: {
-        lastUpdatedAt: {
+        updatedAt: {
           gte: cutoffDate
         },
         confidence: {
@@ -585,7 +585,7 @@ export class FlakeGuardSlackApp {
       },
       orderBy: [
         { confidence: 'desc' },
-        { lastUpdatedAt: 'desc' }
+        { updatedAt: 'desc' }
       ],
       take: limit * 2 // Get more to dedupe and filter
     });
@@ -593,10 +593,10 @@ export class FlakeGuardSlackApp {
     const globalFlaky: GlobalFlakyTest[] = flakeDetections
       .map(detection => ({
         testName: detection.testName,
-        repositoryName: detection.repository.fullName,
+        repositoryName: detection.repository?.fullName || 'Unknown Repository',
         flakeScore: detection.confidence,
         failureRate: detection.failureRate || 0,
-        lastFailure: detection.lastUpdatedAt,
+        lastFailure: detection.updatedAt,
         confidence: detection.confidence,
       }))
       .slice(0, limit);
@@ -642,7 +642,7 @@ export class FlakeGuardSlackApp {
     if (summary.topFlaky.length > 0) {
       blocks.push({
         type: 'divider'
-      });
+      } as any);
 
       blocks.push({
         type: 'section',
@@ -793,7 +793,7 @@ export class FlakeGuardSlackApp {
           text: `📊 Analyzed tests from the last 30 days • Use \`/flakeguard status <owner/repo>\` for repository-specific actions`
         }
       ]
-    });
+    } as any);
 
     return blocks;
   }
@@ -869,7 +869,7 @@ export class FlakeGuardSlackApp {
           repositoryId: repository.id
         },
         orderBy: {
-          lastUpdatedAt: 'desc'
+          updatedAt: 'desc'
         }
       });
 

@@ -313,7 +313,7 @@ export class SecurityManager {
     }
 
     if (obj === null || obj === undefined) {
-      return obj;
+      return obj as SanitizableData;
     }
 
     if (typeof obj === 'string') {

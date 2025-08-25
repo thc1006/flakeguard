@@ -8,11 +8,12 @@ import { execSync, spawn, type ChildProcess } from 'child_process';
 import { existsSync } from 'fs';
 import path from 'path';
 
-import { chromium, type FullConfig } from '@playwright/test';
+// import { chromium, type FullConfig } from '@playwright/test';
+import { type FullConfig } from '@playwright/test';
 
 let dockerProcess: ChildProcess | null = null;
 
-async function globalSetup(config: FullConfig) {
+async function globalSetup(_config: FullConfig) {
   console.log('🚀 Starting E2E test environment...');
 
   const projectRoot = path.resolve(__dirname, '../../../../..');
@@ -172,7 +173,8 @@ async function verifyServices() {
   }
 }
 
-// Setup browser state for authenticated tests
+// Setup browser state for authenticated tests (unused for now)
+/*
 async function setupAuthenticatedState() {
   // Create a browser instance to set up authentication
   const browser = await chromium.launch();
@@ -208,6 +210,7 @@ async function setupAuthenticatedState() {
     await browser.close();
   }
 }
+*/
 
 // Global setup function
 export default globalSetup;

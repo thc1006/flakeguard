@@ -138,7 +138,7 @@ export class FlakinessScorer {
       
       for (let i = 1; i < sortedRuns.length; i++) {
         totalRetries++;
-        if (sortedRuns[i].status === 'passed') {
+        if (sortedRuns[i]?.status === 'passed') {
           successfulRetries++;
         }
       }
@@ -161,12 +161,22 @@ export class FlakinessScorer {
     const sortedRuns = [...runs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
     const clusters = this.identifyFailureClusters(sortedRuns);
     
+    if (clusters.length === 0) {
+      return 0;
+    }
+    
     // More clusters with smaller sizes indicate higher intermittency
     const avgClusterSize = clusters.reduce((sum, cluster) => sum + cluster.runs.length, 0) / clusters.length;
     const clusterDensityVariance = this.calculateVariance(clusters.map(c => c.density));
     
+    // Protect against NaN from variance calculation or zero denominators
+    if (isNaN(clusterDensityVariance) || avgClusterSize === 0 || failedRuns.length === 0) {
+      return 0;
+    }
+    
     // Normalize to 0-1 scale where higher values indicate more intermittent behavior
-    return Math.min(1, (clusters.length * clusterDensityVariance) / (avgClusterSize * failedRuns.length));
+    const score = (clusters.length * clusterDensityVariance) / (avgClusterSize * failedRuns.length);
+    return Math.min(1, isNaN(score) ? 0 : score);
   }
 
   /**
@@ -348,7 +358,12 @@ export class FlakinessScorer {
     // Define cluster threshold as 2 hours
     const clusterThreshold = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
     
-    let currentCluster: TestRun[] = [sortedRuns[0]];
+    const firstRun = sortedRuns[0];
+    if (!firstRun) {
+      return [];
+    }
+    
+    let currentCluster: TestRun[] = [firstRun];
     
     for (let i = 1; i < sortedRuns.length; i++) {
       const current = sortedRuns[i];
@@ -443,28 +458,41 @@ export class FlakinessScorer {
     const failRatioWeight = 0.10;
     const consecutiveFailurePenalty = 0.10;
 
+    // Sanitize inputs to prevent NaN propagation
+    const safeIntermittencyScore = isNaN(intermittencyScore) ? 0 : intermittencyScore;
+    const safeRerunPassRate = isNaN(rerunPassRate) ? 0 : rerunPassRate;
+    const safeFailureClustering = isNaN(failureClustering) ? 0 : failureClustering;
+    const safeMessageVariance = isNaN(messageSignatureVariance) ? 0 : messageSignatureVariance;
+    const safeFailRatio = isNaN(failSuccessRatio) ? 0 : failSuccessRatio;
+
     // Base score from weighted features
     let score = 
-      (intermittencyScore * intermittencyWeight) +
-      (rerunPassRate * rerunWeight) +
-      (failureClustering * clusteringWeight) +
-      (messageSignatureVariance * messageVarianceWeight) +
-      (failSuccessRatio * failRatioWeight);
+      (safeIntermittencyScore * intermittencyWeight) +
+      (safeRerunPassRate * rerunWeight) +
+      (safeFailureClustering * clusteringWeight) +
+      (safeMessageVariance * messageVarianceWeight) +
+      (safeFailRatio * failRatioWeight);
 
     // Apply consecutive failure penalty (reduces flakiness score for always-failing tests)
-    if (maxConsecutiveFailures >= totalRuns * 0.8) {
+    if (totalRuns > 0 && maxConsecutiveFailures >= totalRuns * 0.8) {
       // If test fails consistently, it's likely broken, not flaky
-      score *= (1 - consecutiveFailurePenalty * (maxConsecutiveFailures / totalRuns));
+      const penalty = consecutiveFailurePenalty * (maxConsecutiveFailures / totalRuns);
+      score *= (1 - (isNaN(penalty) ? 0 : penalty));
     }
 
     // Boost score if test shows classic flaky patterns
-    if (rerunPassRate > 0.3 && intermittencyScore > 0.4) {
+    if (safeRerunPassRate > 0.3 && safeIntermittencyScore > 0.4) {
       score *= 1.2; // 20% boost for clear flaky behavior
     }
 
     // Penalize if test has been failing consistently at the end
-    if (consecutiveFailures >= Math.min(5, totalRuns * 0.6)) {
+    if (totalRuns > 0 && consecutiveFailures >= Math.min(5, totalRuns * 0.6)) {
       score *= 0.8; // 20% penalty for recent consistent failures
+    }
+
+    // Final NaN protection
+    if (isNaN(score)) {
+      return 0;
     }
 
     return Math.min(1.0, Math.max(0.0, score));

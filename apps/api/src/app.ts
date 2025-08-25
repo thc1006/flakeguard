@@ -146,7 +146,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(adminRoutes);
 
   // Add comprehensive health check that includes all components
-  app.get('/health/comprehensive', async (request, _reply) => {
+  app.get('/health/comprehensive', async (_request, _reply) => {
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),

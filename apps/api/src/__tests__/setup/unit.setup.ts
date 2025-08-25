@@ -5,7 +5,7 @@
  */
 
 import { beforeEach, afterEach, vi } from 'vitest';
-import type { MockedFunction } from 'vitest';
+// import type { MockedFunction } from 'vitest'; // unused for now
 
 // Mock external dependencies at module level
 vi.mock('@octokit/rest', () => ({

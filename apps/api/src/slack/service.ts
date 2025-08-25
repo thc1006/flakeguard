@@ -10,9 +10,9 @@ import { SlackMessageBuilder } from './message-builder.js';
 import type {
   SlackConfig,
   FlakeNotification,
-  BatchMessageRequest,
+  // BatchMessageRequest - unused for now
   SlackMessageState,
-  SlackInteractionPayload,
+  // SlackInteractionPayload - unused for now
   SlackMetrics,
 } from './types.js';
 

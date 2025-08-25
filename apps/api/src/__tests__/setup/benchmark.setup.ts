@@ -35,10 +35,15 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  // Restore console methods
-  delete console.log;
-  delete console.warn;
-  delete console.error;
+  // Restore console methods (can't delete required properties)
+  // delete console.log;
+  // delete console.warn;
+  // delete console.error;
+  
+  // Instead, restore to original if needed
+  // console.log = originalLog;
+  // console.warn = originalWarn;
+  // console.error = originalError;
 });
 
 // Benchmark utilities

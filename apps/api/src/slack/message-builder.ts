@@ -5,17 +5,20 @@
 import type {
   FlakeScore,
   QuarantineCandidate,
-  TestStabilityMetrics,
+  // TestStabilityMetrics - unused for now
 } from '@flakeguard/shared';
 
 import { logger } from '../utils/logger.js';
 
 import type {
   SlackMessageTemplate,
-  FlakeNotification,
+  // FlakeNotification - unused for now
   QualitySummaryData,
   SlackConfig,
 } from './types.js';
+
+// Import from local types until shared types are fixed
+import type { TestStabilityMetrics, FlakeNotification } from './types.js';
 
 export class SlackMessageBuilder {
   private templateCache = new Map<string, SlackMessageTemplate>();
