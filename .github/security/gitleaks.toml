@@ -62,3 +62,32 @@ regexes = [
   '''\$\{\{\s*secrets\..*\s*\}\}''',
   '''\$\{\{\s*github\.token\s*\}\}'''
 ]
+
+[[allowlists]]
+description = "Allow development database connection strings"
+regexes = [
+  '''postgresql://postgres:postgres@.*''',
+  '''postgresql://user:password@.*''',
+  '''postgresql://username:password@.*''',
+  '''postgres://postgres:postgres@.*''',
+  '''postgres://user:password@.*''',
+  '''postgres://username:password@.*''',
+  '''DATABASE_URL=postgresql://.*''',
+  '''redis://redis:6379.*''',
+  '''redis://localhost:6379.*''',
+  '''@postgres:5432''',
+  '''@localhost:5432''',
+  '''@redis:6379''',
+  '''@localhost:6379'''
+]
+
+[[allowlists]]
+description = "Allow Docker Compose database configurations"
+paths = [
+  '''docker-compose.*\.yml''',
+  '''docker-compose.*\.yaml'''
+]
+regexes = [
+  '''postgresql://.*''',
+  '''redis://.*'''
+]

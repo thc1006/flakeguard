@@ -76,6 +76,31 @@ allow:
   - content: 'Bearer <token>'
   - content: 'Authorization: Bearer test'
 
+  # PostgreSQL connection string false positives
+  - content: 'postgresql://postgres:postgres@'
+  - content: 'postgresql://user:password@'
+  - content: 'postgresql://username:password@'
+  - content: 'DATABASE_URL=postgresql://'
+  - content: 'postgres://postgres:postgres@'
+  - content: 'postgres://user:password@'
+  - content: 'postgres://username:password@'
+  
+  # Docker Compose service patterns
+  - path: 'docker-compose.*\.yml$'
+    content: 'postgresql://'
+  - path: 'docker-compose.*\.yaml$'
+    content: 'postgresql://'
+  - path: '\.env\..*'
+    content: 'postgresql://'
+  
+  # Common development database patterns
+  - content: '@postgres:5432'
+  - content: '@localhost:5432'
+  - content: '@redis:6379'
+  - content: '@localhost:6379'
+  - content: 'redis://redis:6379'
+  - content: 'redis://localhost:6379'
+
 # Detector-specific configurations
 detectors:
   # Reduce noise from high-entropy detectors
@@ -98,6 +123,17 @@ detectors:
       - 'PASSWORD'
       - 'PASS'
     entropy_threshold: 4.5
+
+  # PostgreSQL connection string detector configuration
+  - name: PostgreSQL
+    # Allow common development patterns
+    exclude_patterns:
+      - 'postgresql://postgres:postgres@'
+      - 'postgresql://user:password@'
+      - 'postgresql://username:password@'
+      - 'postgres://postgres:postgres@'
+      - 'postgres://user:password@'
+      - 'postgres://username:password@'
 
 # Verification settings
 verification:
