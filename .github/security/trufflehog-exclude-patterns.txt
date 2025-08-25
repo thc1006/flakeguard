@@ -1,0 +1,54 @@
+# TruffleHog exclude patterns
+# One regex pattern per line
+
+# Git and version control
+^\.git/.*
+
+# Node modules and dependencies  
+^node_modules/.*
+^\.pnpm-store/.*
+
+# Build outputs
+^dist/.*
+^build/.*
+^coverage/.*
+^\.next/.*
+^\.turbo/.*
+^out/.*
+
+# Temporary files
+^tmp/.*
+^temp/.*
+
+# Lock files
+.*\.lock$
+.*lock\.json$
+.*lock\.yaml$
+
+# Documentation
+.*\.md$
+^docs/.*
+^apps/docs/.*
+
+# Test files
+.*/__tests__/.*
+.*\.test\..*
+.*\.spec\..*
+^test/.*
+^tests/.*
+.*/__mocks__/.*
+^fixtures/.*
+
+# Environment examples
+.*\.example$
+.*\.sample$
+.*\.template$
+
+# Docker compose files (contain example DB URLs)
+^docker-compose.*\.yml$
+^docker-compose.*\.yaml$
+
+# Minified and source maps
+.*\.min\.js$
+.*\.min\.css$
+.*\.map$
