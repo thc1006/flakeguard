@@ -435,8 +435,8 @@ export class SecurityManager {
     ];
 
     return securityCodes.includes(error.code || '') ||
-           error.message?.toLowerCase().includes('unauthorized') ||
-           error.message?.toLowerCase().includes('forbidden');
+           error.message?.toLowerCase().includes('unauthorized') === true ||
+           error.message?.toLowerCase().includes('forbidden') === true;
   }
 
   /**

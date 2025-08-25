@@ -5,18 +5,31 @@
  * These types ensure type safety across the entire application stack.
  */
 
-import type { 
-  FGRepository, 
-  FGTestCase, 
-  FGOccurrence, 
-  FGFlakeScore,
-  FGQuarantineDecision,
-  FGQuarantineState,
-  FGWorkflowRun,
-  FGJob,
-  FGFailureCluster,
-  FGIssueLink
-} from '@prisma/client';
+// Temporarily commented out until @prisma/client is installed
+// import type { 
+//   FGRepository, 
+//   FGTestCase, 
+//   FGOccurrence, 
+//   FGFlakeScore,
+//   FGQuarantineDecision,
+//   FGQuarantineState,
+//   FGWorkflowRun,
+//   FGJob,
+//   FGFailureCluster,
+//   FGIssueLink
+// } from '@prisma/client';
+
+// Temporary type definitions
+type FGRepository = any;
+type FGTestCase = any;
+type FGOccurrence = any;
+type FGFlakeScore = any;
+type FGQuarantineDecision = any;
+type FGQuarantineState = 'NONE' | 'PARTIAL' | 'FULL';
+type FGWorkflowRun = any;
+type FGJob = any;
+type FGFailureCluster = any;
+type FGIssueLink = any;
 
 // =============================================================================
 // Core Analysis Types

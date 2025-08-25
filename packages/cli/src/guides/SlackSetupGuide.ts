@@ -316,7 +316,7 @@ export class SlackSetupGuide {
     });
   }
 
-  async testSlashCommand(config: SlackConfig): Promise<boolean> {
+  async testSlashCommand(_config: SlackConfig): Promise<boolean> {
     const spinner = ora(this.i18n.t('slack.testingSlashCommand')).start();
     
     try {

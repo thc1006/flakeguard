@@ -10,8 +10,6 @@ import type {
   CircuitBreakerConfig,
   CircuitBreakerState,
   CircuitBreakerStatus,
-  ApiMetrics,
-  RequestMetrics,
 } from './types.js';
 
 export class CircuitBreaker {
@@ -281,7 +279,7 @@ export class CircuitBreaker {
     const windowStart = new Date(Date.now() - this.config.failureTimeWindowMs);
     let removeCount = 0;
     
-    while (this.failures.length > 0 && this.failures[0] <= windowStart) {
+    while (this.failures.length > 0 && this.failures[0]! <= windowStart) {
       this.failures.shift();
       removeCount++;
     }

@@ -58,7 +58,7 @@ export class MockGitHubApiWrapper {
   // Unused in mock but needed for interface compatibility
   
   constructor(
-    private config: Partial<GitHubApiConfig> = {},
+    _config: Partial<GitHubApiConfig> = {},
     private shouldFail: boolean = false,
     private failureRate: number = 0
   ) {
@@ -504,8 +504,8 @@ export class TestUtils {
       return {
         owner: `org${Math.floor(i / 10)}`,
         repo: `repo${i % 10}`,
-        operation: op.operation,
-        priority: op.priority,
+        operation: op!.operation,
+        priority: op!.priority,
       };
     });
   }

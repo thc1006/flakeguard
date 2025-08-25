@@ -1,7 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
-import axios from 'axios';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import ora from 'ora';
@@ -370,7 +369,7 @@ export class GitHubSetupGuide {
     });
   }
 
-  async testWebhook(config: GitHubConfig): Promise<boolean> {
+  async testWebhook(_config: GitHubConfig): Promise<boolean> {
     const spinner = ora(this.i18n.t('github.testingWebhook')).start();
     
     try {

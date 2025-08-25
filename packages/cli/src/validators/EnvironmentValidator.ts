@@ -7,7 +7,7 @@ import semver from 'semver';
 
 
 import { I18nManager } from '../i18n/I18nManager';
-import { ValidationResult, SystemRequirements, PortCheck } from '../types';
+import { ValidationResult, PortCheck } from '../types';
 
 export class EnvironmentValidator {
   private i18n: I18nManager;

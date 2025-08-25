@@ -3,24 +3,24 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 import chalk from 'chalk';
-import Cryptr from 'cryptr';
+// import Cryptr from 'cryptr';
 
 import { I18nManager } from '../i18n/I18nManager';
 
 export class ConfigurationManager {
   private i18n: I18nManager;
   private dryRun: boolean;
-  private cryptr: Cryptr;
+  // private cryptr: Cryptr;
 
   constructor(i18n: I18nManager, dryRun: boolean) {
     this.i18n = i18n;
     this.dryRun = dryRun;
-    this.cryptr = new Cryptr('flakeguard-setup-encryption-key');
+    // this.cryptr = new Cryptr('flakeguard-setup-encryption-key');
   }
 
   async generateConfig(config: Record<string, any>): Promise<string> {
     const envPath = path.join(process.cwd(), '.env');
-    const envExamplePath = path.join(process.cwd(), '.env.example');
+    // const envExamplePath = path.join(process.cwd(), '.env.example');
     
     // Backup existing .env if it exists
     if (!this.dryRun) {
@@ -204,7 +204,7 @@ export class ConfigurationManager {
     
     for (const key of sensitiveKeys) {
       const regex = new RegExp(`(${key}=)([^\n]+)`, 'g');
-      maskedContent = maskedContent.replace(regex, (match, prefix, value) => {
+      maskedContent = maskedContent.replace(regex, (_match, prefix, value) => {
         if (value.length <= 8) {
           return `${prefix}${'*'.repeat(value.length)}`;
         }

@@ -62,7 +62,6 @@ export {
 export {
   OctokitHelpers,
   createOctokitHelpers,
-  GitHubApiError,
   ArtifactDownloadError,
 } from './octokit-helpers.js';
 
@@ -73,12 +72,12 @@ export type {
   OctokitHelpersConfig,
 } from './octokit-helpers.js';
 
-// Example usage patterns
-export {
-  GitHubApiExamples,
-  exampleConfigurations,
-  usagePatterns,
-} from './examples.js';
+// Example usage patterns - temporarily disabled
+// export {
+//   GitHubApiExamples,
+//   exampleConfigurations,
+//   usagePatterns,
+// } from './examples.js';
 
 // Types
 export type {
@@ -112,7 +111,6 @@ export type {
   
   // Error Types
   ApiErrorCode,
-  GitHubApiError,
   
   // Interface Types
   GitHubApiWrapper,

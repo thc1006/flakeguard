@@ -568,7 +568,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
       
       // Remove old metrics
       while (this.requestMetrics.length > 0 && 
-             this.requestMetrics[0].startTime.getTime() < cutoff) {
+             this.requestMetrics[0]!.startTime.getTime() < cutoff) {
         this.requestMetrics.shift();
       }
       

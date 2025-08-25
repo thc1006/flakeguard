@@ -159,7 +159,7 @@ export class RequestQueue {
     totalSize: number;
     priorityQueues: Record<string, number>;
     processing: string[];
-    metrics: typeof this.metrics;
+    metrics: any;
   } {
     const priorityQueues: Record<string, number> = {};
     
@@ -183,7 +183,7 @@ export class RequestQueue {
     this.logger.info('Starting request queue shutdown');
 
     // Reject all pending requests
-    for (const [priority, queue] of this.queues) {
+    for (const [_priority, queue] of this.queues) {
       while (queue.length > 0) {
         const request = queue.shift()!;
         this.clearRequestTimeout(request);
@@ -488,11 +488,11 @@ export class RequestPrioritizer {
     }
 
     // Generate recommendations
-    if (priorityDistribution.critical?.percentage > 50) {
+    if ((priorityDistribution.critical?.percentage ?? 0) > 50) {
       recommendations.push('High critical request volume - consider scaling or optimization');
     }
     
-    if (priorityDistribution.low?.percentage > 30) {
+    if ((priorityDistribution.low?.percentage ?? 0) > 30) {
       recommendations.push('Consider deferring low-priority requests during high load');
     }
     

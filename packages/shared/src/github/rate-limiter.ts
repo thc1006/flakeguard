@@ -20,7 +20,7 @@ import type {
  */
 export class PrimaryRateLimiter {
   private currentLimits: Map<string, RateLimitInfo> = new Map();
-  private readonly pendingRequests = new Map<string, Promise<void>>();
+  // private readonly pendingRequests = new Map<string, Promise<void>>();
 
   constructor(
     private readonly config: RateLimitConfig,
@@ -415,7 +415,7 @@ export class RateLimitMetrics {
     remaining: number;
   }> = [];
 
-  constructor(private readonly logger: Logger) {}
+  constructor(_logger: Logger) {}
 
   /**
    * Record rate limit usage

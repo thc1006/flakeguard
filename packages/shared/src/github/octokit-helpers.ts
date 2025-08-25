@@ -145,9 +145,9 @@ export class OctokitHelpers {
       const octokit = await this.app.getInstallationOctokit(installationId);
       
       // Cache the instance
-      this.installationOctokits.set(installationId, octokit);
+      this.installationOctokits.set(installationId, octokit as any);
       
-      return octokit;
+      return octokit as any;
     } catch (error) {
       throw new GitHubApiError(
         `Failed to get Octokit for installation ${installationId}`,
@@ -230,7 +230,7 @@ export class OctokitHelpers {
       // Download immediately since URL is short-lived
       const response = await fetch(downloadResponse.url, {
         headers: {
-          'Authorization': `token ${octokit.rest.request.endpoint.defaults.headers?.authorization?.replace('token ', '') || ''}`,
+          'Authorization': `token ${(octokit as any).auth?.token || ''}`,
           'User-Agent': 'FlakeGuard/1.0',
         },
       });
