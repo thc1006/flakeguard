@@ -6,7 +6,7 @@
 # =============================================================================
 ARG NODE_VERSION=20
 ARG ALPINE_VERSION=3.19
-ARG PNPM_VERSION=8.15.1
+ARG PNPM_VERSION=10.0.0
 ARG BUILDKIT_INLINE_CACHE=1
 ARG VERSION=latest
 

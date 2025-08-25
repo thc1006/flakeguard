@@ -147,7 +147,7 @@ build_images() {
     
     local build_args=(
         --build-arg NODE_VERSION=20
-        --build-arg PNPM_VERSION=8.15.1
+        --build-arg PNPM_VERSION=10.0.0
         --build-arg ENVIRONMENT="$ENVIRONMENT"
     )
     

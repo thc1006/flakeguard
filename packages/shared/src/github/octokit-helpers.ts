@@ -21,6 +21,10 @@ import { pipeline } from 'stream/promises';
 import { App } from '@octokit/app';
 import { Octokit } from '@octokit/rest';
 
+// Type for Octokit instance returned by App.getInstallationOctokit
+// This is actually the same as the regular Octokit with additional methods
+type InstallationOctokit = Octokit;
+
 // GitHub API response types
 interface GitHubArtifact {
   id: number;
@@ -109,7 +113,7 @@ export class ArtifactDownloadError extends Error {
  */
 export class OctokitHelpers {
   private readonly app: App;
-  private readonly installationOctokits = new Map<number, Octokit>();
+  private readonly installationOctokits = new Map<number, InstallationOctokit>();
   private readonly rateLimitBuffer = 10; // Keep some requests in reserve
 
   constructor(config: OctokitHelpersConfig) {
@@ -126,13 +130,13 @@ export class OctokitHelpers {
   /**
    * P2 Requirement: Get authenticated Octokit instance for installation
    */
-  async getOctokitForInstallation(installationId: number): Promise<Octokit> {
+  async getOctokitForInstallation(installationId: number): Promise<InstallationOctokit> {
     // Check if we have a cached instance
     const cachedOctokit = this.installationOctokits.get(installationId);
     if (cachedOctokit) {
       // Verify the token is still valid by checking rate limits
       try {
-        await cachedOctokit.rest.rateLimit.get();
+        await (cachedOctokit as Octokit).rest.rateLimit.get();
         return cachedOctokit;
       } catch (error) {
         // Token might be expired, remove from cache
@@ -144,10 +148,11 @@ export class OctokitHelpers {
       // Create new authenticated Octokit instance
       const octokit = await this.app.getInstallationOctokit(installationId);
       
-      // Cache the instance
-      this.installationOctokits.set(installationId, octokit);
+      // Cache the instance (cast to correct type)
+      const installationOctokit = octokit as InstallationOctokit;
+      this.installationOctokits.set(installationId, installationOctokit);
       
-      return octokit;
+      return installationOctokit;
     } catch (error) {
       throw new GitHubApiError(
         `Failed to get Octokit for installation ${installationId}`,
@@ -177,7 +182,7 @@ export class OctokitHelpers {
       // Check rate limits before making request
       await this.checkRateLimit(octokit);
 
-      const response = await octokit.rest.actions.listWorkflowRunArtifacts({
+      const response = await (octokit as Octokit).rest.actions.listWorkflowRunArtifacts({
         owner,
         repo,
         run_id: runId,
@@ -216,7 +221,7 @@ export class OctokitHelpers {
       await this.checkRateLimit(octokit);
 
       // Get artifact download URL (this is short-lived!)
-      const downloadResponse = await octokit.rest.actions.downloadArtifact({
+      const downloadResponse = await (octokit as Octokit).rest.actions.downloadArtifact({
         owner,
         repo,
         artifact_id: artifactId,
@@ -280,7 +285,7 @@ export class OctokitHelpers {
       // Check rate limits before making request
       await this.checkRateLimit(octokit);
 
-      const response = await octokit.rest.actions.listJobsForWorkflowRun({
+      const response = await (octokit as Octokit).rest.actions.listJobsForWorkflowRun({
         owner,
         repo,
         run_id: runId,
@@ -316,7 +321,7 @@ export class OctokitHelpers {
     try {
       await this.checkRateLimit(octokit);
 
-      const response = await octokit.rest.actions.getWorkflowRun({
+      const response = await (octokit as Octokit).rest.actions.getWorkflowRun({
         owner,
         repo,
         run_id: runId,
@@ -351,7 +356,7 @@ export class OctokitHelpers {
     try {
       await this.checkRateLimit(octokit);
 
-      await octokit.rest.actions.reRunWorkflowFailedJobs({
+      await (octokit as Octokit).rest.actions.reRunWorkflowFailedJobs({
         owner,
         repo,
         run_id: runId,
@@ -369,9 +374,9 @@ export class OctokitHelpers {
    * Check rate limits and throw if approaching limit
    * P2 Requirement: Handle basic rate limits
    */
-  private async checkRateLimit(octokit: Octokit): Promise<void> {
+  private async checkRateLimit(octokit: InstallationOctokit): Promise<void> {
     try {
-      const { data: rateLimit } = await octokit.rest.rateLimit.get();
+      const { data: rateLimit } = await (octokit as Octokit).rest.rateLimit.get();
       const remaining = rateLimit.rate.remaining;
       
       if (remaining <= this.rateLimitBuffer) {
@@ -408,7 +413,7 @@ export class OctokitHelpers {
     resource: string;
   }> {
     const octokit = await this.getOctokitForInstallation(installationId);
-    const { data: rateLimit } = await octokit.rest.rateLimit.get();
+    const { data: rateLimit } = await (octokit as Octokit).rest.rateLimit.get();
     
     return {
       remaining: rateLimit.rate.remaining,
