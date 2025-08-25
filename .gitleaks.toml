@@ -17,7 +17,9 @@ paths = [
     '''README\.md''',
     '''.*/__tests__/.*''',
     '''docker-compose\.test\.yml''',
-    '''scripts/test-gitleaks\.ps1'''
+    '''scripts/test-gitleaks\.ps1''',
+    '''.*\.env$''',
+    '''.*\.env\..*'''
 ]
 
 # Allowed regex patterns for examples
