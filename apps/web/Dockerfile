@@ -56,8 +56,9 @@ RUN pnpm install --frozen-lockfile
 # =============================================================================
 FROM deps AS shared-builder
 
-# Copy shared package source
+# Copy shared package source and root tsconfig
 COPY --chown=builder:builder packages/shared ./packages/shared
+COPY --chown=builder:builder tsconfig.json ./
 
 # Build shared package
 RUN pnpm --filter @flakeguard/shared build
