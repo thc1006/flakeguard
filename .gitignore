@@ -154,7 +154,7 @@ coverage/
 prisma/migrations/dev/
 
 # pnpm
-pnpm-lock.yaml
+# pnpm-lock.yaml - SHOULD be committed for reproducible CI builds
 
 # Environment secrets - NEVER COMMIT THESE
 .env
