@@ -116,6 +116,21 @@ const failurePatterns = {
 async function seedData() {
   console.log('🌱 Starting FlakeGuard database seed...');
 
+  // Create or find default organization first
+  console.log('🏢 Creating default organization...');
+  const defaultOrg = await prisma.organization.upsert({
+    where: { slug: 'acme-corp' },
+    update: {},
+    create: {
+      name: 'ACME Corp',
+      slug: 'acme-corp',
+      githubLogin: 'acme-corp',
+      plan: 'pro',
+      status: 'active',
+    },
+  });
+  console.log(`  ✓ Organization: ${defaultOrg.name} (${defaultOrg.id})`);
+
   // Clean existing FlakeGuard data
   console.log('🧹 Cleaning existing FlakeGuard data...');
   await prisma.fGOccurrence.deleteMany();
@@ -135,6 +150,7 @@ async function seedData() {
     const created = await prisma.fGRepository.create({
       data: {
         ...repo,
+        orgId: defaultOrg.id,
         installationId: `install_${Math.floor(Math.random() * 1000)}`,
       },
     });
@@ -149,6 +165,7 @@ async function seedData() {
     for (const testTemplate of sampleTestCases) {
       const testCase = await prisma.fGTestCase.create({
         data: {
+          orgId: defaultOrg.id,
           repoId: repo.id,
           suite: testTemplate.suite,
           className: testTemplate.className,
@@ -178,6 +195,7 @@ async function seedData() {
 
       const workflowRun = await prisma.fGWorkflowRun.create({
         data: {
+          orgId: defaultOrg.id,
           repoId: repo.id,
           runId: `${repo.id}_run_${i + 1}`,
           status,
@@ -238,6 +256,7 @@ async function seedData() {
 
         await prisma.fGOccurrence.create({
           data: {
+            orgId: defaultOrg.id,
             testId: testCase.id,
             runId: workflowRun.id,
             status,
@@ -273,6 +292,7 @@ async function seedData() {
 
     await prisma.fGFlakeScore.create({
       data: {
+        orgId: defaultOrg.id,
         testId: testCase.id,
         score,
         windowN: Math.min(totalOccurrences, 50),
@@ -317,6 +337,7 @@ async function seedData() {
     if (clusterData.count > 1) { // Only create clusters with multiple occurrences
       await prisma.fGFailureCluster.create({
         data: {
+          orgId: defaultOrg.id,
           repoId: clusterData.repoId,
           failureMsgSignature: clusterData.failureMsgSignature,
           failureStackDigest: clusterData.failureStackDigest,
@@ -343,6 +364,7 @@ async function seedData() {
     
     await prisma.fGQuarantineDecision.create({
       data: {
+        orgId: defaultOrg.id,
         testId: flakyTest.testId,
         state: state as 'PROPOSED' | 'ACTIVE' | 'DISMISSED',
         rationale: `Test shows ${(flakyTest.score * 100).toFixed(1)}% failure rate over ${flakyTest.windowN} runs. Automated quarantine recommendation.`,
