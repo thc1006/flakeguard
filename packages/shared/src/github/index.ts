@@ -140,42 +140,44 @@ export { GitHubApiError } from './types.js';
 /**
  * Check if error is a GitHub rate limit error
  */
-export function isRateLimitError(error: any): boolean {
+export function isRateLimitError(error: unknown): boolean {
   // Import the class locally to avoid circular dependency
   const { GitHubApiError: GitHubApiErrorClass } = require('./types.js');
   
   if (error instanceof GitHubApiErrorClass) {
-    return error.code === 'RATE_LIMITED';
+    const apiError = error as unknown as { code?: string };
+    return apiError.code === 'RATE_LIMITED';
   }
   
-  if (error.status === 403 || error.status === 429) {
+  if (typeof error === 'object' && error !== null && 'status' in error && (error.status === 403 || error.status === 429)) {
     return true;
   }
   
-  const message = error.message?.toLowerCase() || '';
+  const message = (typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string') ? error.message.toLowerCase() : '';
   return message.includes('rate limit') || message.includes('abuse');
 }
 
 /**
  * Check if error is retryable
  */
-export function isRetryableError(error: any): boolean {
+export function isRetryableError(error: unknown): boolean {
   // Import the class locally to avoid circular dependency
   const { GitHubApiError: GitHubApiErrorClass } = require('./types.js');
   
   if (error instanceof GitHubApiErrorClass) {
-    return error.retryable;
+    const apiError = error as unknown as { retryable?: boolean };
+    return apiError.retryable === true;
   }
   
   // Network errors are generally retryable
   const networkErrorCodes = ['ECONNRESET', 'ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT'];
-  if (networkErrorCodes.includes(error.code)) {
+  if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string' && networkErrorCodes.includes(error.code)) {
     return true;
   }
   
   // HTTP errors that are retryable
   const retryableStatusCodes = [429, 500, 502, 503, 504];
-  if (error.status && retryableStatusCodes.includes(error.status)) {
+  if (typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number' && retryableStatusCodes.includes(error.status)) {
     return true;
   }
   
@@ -213,7 +215,7 @@ export async function withRetry<T>(
     maxDelayMs?: number;
     multiplier?: number;
     jitterFactor?: number;
-    shouldRetry?: (error: any) => boolean;
+    shouldRetry?: (error: unknown) => boolean;
   } = {}
 ): Promise<T> {
   const {
@@ -224,13 +226,13 @@ export async function withRetry<T>(
     shouldRetry = isRetryableError,
   } = options;
   
-  let lastError: any;
+  let lastError: Error = new Error('Operation failed');
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       return await operation();
     } catch (error) {
-      lastError = error;
+      lastError = error instanceof Error ? error : new Error(String(error));
 
       if (attempt === maxAttempts || !shouldRetry(error)) {
         throw error;
@@ -254,11 +256,11 @@ export async function withRetry<T>(
 /**
  * Parse GitHub rate limit headers
  */
-export function parseRateLimitHeaders(headers: Record<string, any>): Partial<import('./types.js').RateLimitInfo> {
-  const limit = parseInt(headers['x-ratelimit-limit'] || '0', 10);
-  const remaining = parseInt(headers['x-ratelimit-remaining'] || '0', 10);
-  const reset = parseInt(headers['x-ratelimit-reset'] || '0', 10);
-  const resource = headers['x-ratelimit-resource'] || 'core';
+export function parseRateLimitHeaders(headers: Record<string, unknown>): Partial<import('./types.js').RateLimitInfo> {
+  const limit = parseInt(String(headers['x-ratelimit-limit'] || '0'), 10);
+  const remaining = parseInt(String(headers['x-ratelimit-remaining'] || '0'), 10);
+  const reset = parseInt(String(headers['x-ratelimit-reset'] || '0'), 10);
+  const resource = String(headers['x-ratelimit-resource'] || 'core');
   
   if (limit === 0 || reset === 0) {
     return {};
@@ -339,7 +341,7 @@ export const debug = {
   /**
    * Log rate limit status
    */
-  logRateLimit: (wrapper: import('./types.js').GitHubApiWrapper, logger: any) => {
+  logRateLimit: (wrapper: import('./types.js').GitHubApiWrapper, logger: { debug: (message: string) => void }) => {
     const rateLimitInfo = wrapper.rateLimitStatus;
     logger.debug(formatRateLimitInfo(rateLimitInfo));
   },
@@ -347,7 +349,7 @@ export const debug = {
   /**
    * Log circuit breaker status
    */
-  logCircuitBreaker: (wrapper: import('./types.js').GitHubApiWrapper, logger: any) => {
+  logCircuitBreaker: (wrapper: import('./types.js').GitHubApiWrapper, logger: { debug: (message: string) => void }) => {
     const status = wrapper.circuitBreakerStatus;
     logger.debug(`Circuit breaker: ${status.state} (${status.failureCount} failures)`);
   },
@@ -355,7 +357,7 @@ export const debug = {
   /**
    * Log full metrics
    */
-  logMetrics: (wrapper: import('./types.js').GitHubApiWrapper, logger: any) => {
+  logMetrics: (wrapper: import('./types.js').GitHubApiWrapper, logger: { debug: (data: Record<string, unknown>, message: string) => void }) => {
     const metrics = wrapper.metrics;
     logger.debug({
       requests: metrics.totalRequests,

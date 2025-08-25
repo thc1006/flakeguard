@@ -195,7 +195,7 @@ export class CircuitBreaker {
   /**
    * Handle failed operation
    */
-  private onFailure(error: any, context?: string): void {
+  private onFailure(error: unknown, context?: string): void {
     this.totalFailures++;
     this.failureCount++;
     this.lastFailureAt = new Date();
@@ -204,7 +204,7 @@ export class CircuitBreaker {
     this.logger.warn(
       { 
         context,
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         failureCount: this.failureCount,
         state: this.state,
       },

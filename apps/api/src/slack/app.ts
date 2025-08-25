@@ -908,6 +908,11 @@ export class FlakeGuardSlackApp {
         },
         requested_action: {
           identifier: 'quarantine' as const
+        },
+        sender: {
+          login: 'flakeguard-bot',
+          id: 1,
+          type: 'Bot' as const
         }
       };
 
@@ -994,6 +999,11 @@ export class FlakeGuardSlackApp {
         },
         requested_action: {
           identifier: 'open_issue' as const
+        },
+        sender: {
+          login: 'flakeguard-bot',
+          id: 1,
+          type: 'Bot' as const
         }
       };
 

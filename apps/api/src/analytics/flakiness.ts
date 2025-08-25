@@ -30,8 +30,12 @@ export class FlakinessScorer {
       throw new Error('Cannot compute flake score with no test runs');
     }
 
-    const testName = runs[0].testName;
-    const testFullName = runs[0].testFullName;
+    const testName = runs[0]?.testName;
+    const testFullName = runs[0]?.testFullName;
+    
+    if (!testName || !testFullName) {
+      throw new Error('Invalid test run data: missing testName or testFullName');
+    }
 
     // Use rolling window of last N runs
     const windowRuns = this.applyRollingWindow(runs);
@@ -183,14 +187,14 @@ export class FlakinessScorer {
       const previous = sortedRuns[i - 1];
       
       // Skip skipped tests for intermittency calculation
-      if (current.status === 'skipped' || previous.status === 'skipped') {
+      if (current?.status === 'skipped' || previous?.status === 'skipped') {
         continue;
       }
 
       totalTransitions++;
       
-      const currentFailed = current.status === 'failed' || current.status === 'error';
-      const previousFailed = previous.status === 'failed' || previous.status === 'error';
+      const currentFailed = current?.status === 'failed' || current?.status === 'error';
+      const previousFailed = previous?.status === 'failed' || previous?.status === 'error';
       
       if (currentFailed !== previousFailed) {
         transitions++;
@@ -286,6 +290,7 @@ export class FlakinessScorer {
 
     for (let i = sortedRuns.length - 1; i >= 0; i--) {
       const run = sortedRuns[i];
+      if (!run) continue;
       const isFailed = run.status === 'failed' || run.status === 'error';
       
       if (isFailed) {
@@ -317,7 +322,11 @@ export class FlakinessScorer {
     let totalGap = 0;
     
     for (let i = 1; i < sortedRuns.length; i++) {
-      totalGap += sortedRuns[i].createdAt.getTime() - sortedRuns[i - 1].createdAt.getTime();
+      const currentRun = sortedRuns[i];
+      const previousRun = sortedRuns[i - 1];
+      if (currentRun && previousRun) {
+        totalGap += currentRun.createdAt.getTime() - previousRun.createdAt.getTime();
+      }
     }
 
     return totalGap / (sortedRuns.length - 1) / (1000 * 60 * 60); // Convert to hours
@@ -345,6 +354,8 @@ export class FlakinessScorer {
       const current = sortedRuns[i];
       const previous = sortedRuns[i - 1];
       
+      if (!current || !previous) continue;
+      
       const gap = current.createdAt.getTime() - previous.createdAt.getTime();
       
       if (gap <= clusterThreshold) {
@@ -369,15 +380,23 @@ export class FlakinessScorer {
    */
   private createCluster(runs: TestRun[]): FailureCluster {
     const sortedRuns = [...runs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-    const start = sortedRuns[0].createdAt;
-    const end = sortedRuns[sortedRuns.length - 1].createdAt;
+    const start = sortedRuns[0]?.createdAt;
+    const end = sortedRuns[sortedRuns.length - 1]?.createdAt;
+    
+    if (!start || !end) {
+      throw new Error('Invalid run data: missing createdAt timestamps');
+    }
     const duration = end.getTime() - start.getTime();
     
     const density = runs.length / Math.max(1, duration / (1000 * 60)); // failures per minute
     
     let totalGap = 0;
     for (let i = 1; i < sortedRuns.length; i++) {
-      totalGap += sortedRuns[i].createdAt.getTime() - sortedRuns[i - 1].createdAt.getTime();
+      const currentRun = sortedRuns[i];
+      const previousRun = sortedRuns[i - 1];
+      if (currentRun && previousRun) {
+        totalGap += currentRun.createdAt.getTime() - previousRun.createdAt.getTime();
+      }
     }
     const avgGap = runs.length > 1 ? totalGap / (runs.length - 1) / 1000 : 0; // average gap in seconds
     
@@ -570,8 +589,12 @@ export class FlakinessScorer {
     const rerunAttempts = runs.filter(r => r.attempt > 1).length;
     const rerunSuccesses = runs.filter(r => r.attempt > 1 && r.status === 'passed').length;
     
-    const firstSeen = sortedRuns[0].createdAt;
-    const lastSeen = sortedRuns[sortedRuns.length - 1].createdAt;
+    const firstSeen = sortedRuns[0]?.createdAt;
+    const lastSeen = sortedRuns[sortedRuns.length - 1]?.createdAt;
+    
+    if (!firstSeen || !lastSeen) {
+      throw new Error('Invalid run data: missing createdAt timestamps');
+    }
     const lastFailure = sortedRuns.reverse().find(r => r.status === 'failed' || r.status === 'error')?.createdAt;
     
     const avgDuration = runs.reduce((sum, r) => sum + r.duration, 0) / runs.length;

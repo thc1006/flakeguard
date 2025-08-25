@@ -647,7 +647,7 @@ export class TokenManager {
     const now = new Date();
     let cleared = 0;
 
-    for (const [key, tokenInfo] of this.tokens.entries()) {
+    for (const [key, tokenInfo] of Array.from(this.tokens.entries())) {
       if (tokenInfo.expiresAt && tokenInfo.expiresAt <= now) {
         this.tokens.delete(key);
         cleared++;

@@ -17,9 +17,13 @@ interface QueuedRequest {
   readonly options: RequestOptions;
   readonly timestamp: Date;
   readonly timeoutMs: number;
-  readonly resolve: (value: any) => void;
-  readonly reject: (error: any) => void;
-  readonly operation: () => Promise<any>;
+  readonly resolve: (value: unknown) => void;
+  readonly reject: (error: unknown) => void;
+  readonly operation: () => Promise<unknown>;
+}
+
+interface QueuedRequestWithTimeout extends QueuedRequest {
+  timeoutId?: NodeJS.Timeout;
 }
 
 /**
@@ -106,8 +110,8 @@ export class RequestQueue {
         options,
         timestamp: new Date(),
         timeoutMs: options.timeout || this.config.maxWaitTimeMs,
-        resolve,
-        reject,
+        resolve: resolve as (value: unknown) => void,
+        reject: reject as (error: unknown) => void,
         operation,
       };
 
@@ -117,7 +121,7 @@ export class RequestQueue {
       }, queuedRequest.timeoutMs);
 
       // Store timeout ID for cleanup
-      (queuedRequest as any).timeoutId = timeoutId;
+      (queuedRequest as QueuedRequestWithTimeout).timeoutId = timeoutId;
 
       // Add to appropriate priority queue
       const queue = this.queues.get(priority);
@@ -159,11 +163,18 @@ export class RequestQueue {
     totalSize: number;
     priorityQueues: Record<string, number>;
     processing: string[];
-    metrics: any;
+    metrics: {
+      totalEnqueued: number;
+      totalProcessed: number;
+      totalFailed: number;
+      totalTimeout: number;
+      currentSize: number;
+      avgWaitTime: number;
+    };
   } {
     const priorityQueues: Record<string, number> = {};
     
-    for (const [priority, queue] of this.queues) {
+    for (const [priority, queue] of Array.from(this.queues.entries())) {
       priorityQueues[priority] = queue.length;
     }
 
@@ -183,7 +194,7 @@ export class RequestQueue {
     this.logger.info('Starting request queue shutdown');
 
     // Reject all pending requests
-    for (const [_priority, queue] of this.queues) {
+    for (const [_priority, queue] of Array.from(this.queues.entries())) {
       while (queue.length > 0) {
         const request = queue.shift()!;
         this.clearRequestTimeout(request);
@@ -349,10 +360,10 @@ export class RequestQueue {
    * Clear request timeout
    */
   private clearRequestTimeout(request: QueuedRequest): void {
-    const timeoutId = (request as any).timeoutId;
+    const timeoutId = (request as QueuedRequestWithTimeout).timeoutId;
     if (timeoutId) {
       clearTimeout(timeoutId);
-      delete (request as any).timeoutId;
+      delete (request as QueuedRequestWithTimeout).timeoutId;
     }
   }
 
@@ -368,7 +379,7 @@ export class RequestQueue {
    */
   private getTotalQueueSize(): number {
     let total = 0;
-    for (const queue of this.queues.values()) {
+    for (const queue of Array.from(this.queues.values())) {
       total += queue.length;
     }
     return total;

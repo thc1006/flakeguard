@@ -58,7 +58,7 @@ async function slackPlugin(
     const handlers = createWebhookHandlers({
       prisma: fastify.prisma,
       authManager: githubAuth,
-      helpers: fastify.githubHelpers, // Assuming this is available from github plugin
+      helpers: (fastify as any).githubHelpers, // Type assertion for plugin dependencies
     });
 
     // Create Slack app
@@ -81,7 +81,7 @@ async function slackPlugin(
       
       fastify.log.info({
         port: slackConfig.port,
-        signingSecret: slackConfig.signingSecret.substring(0, 8) + '...',
+        signingSecret: (slackConfig.signingSecret as string).substring(0, 8) + '...',
       }, 'FlakeGuard Slack app started successfully');
 
       // Graceful shutdown handler
@@ -97,7 +97,7 @@ async function slackPlugin(
     }
 
     // Add health check endpoint for Slack app
-    fastify.get('/slack/health', async (request, reply) => {
+    fastify.get('/slack/health', async (_request, _reply) => {
       return {
         status: 'healthy',
         service: 'flakeguard-slack-app',
@@ -111,7 +111,7 @@ async function slackPlugin(
     });
 
     // Add Slack app information endpoint  
-    fastify.get('/slack/info', async (request, reply) => {
+    fastify.get('/slack/info', async (_request, _reply) => {
       return {
         enabled: true,
         version: '1.0.0',
@@ -147,7 +147,7 @@ async function slackPlugin(
     fastify.log.warn('Continuing without Slack app functionality');
     
     // Register disabled Slack endpoints
-    fastify.get('/slack/health', async (request, reply) => {
+    fastify.get('/slack/health', async (_request, reply) => {
       return reply.status(503).send({
         status: 'disabled',
         service: 'flakeguard-slack-app',

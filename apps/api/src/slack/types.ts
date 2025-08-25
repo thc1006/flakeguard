@@ -5,6 +5,44 @@
 // Note: Import from shared package when available
 // import type { FlakeScore, QuarantineCandidate, TestStabilityMetrics } from '@flakeguard/shared';
 
+// Temporary type definitions until shared package is properly integrated
+export interface FlakeScore {
+  testName: string;
+  testFullName: string;
+  score: number;
+  confidence: number;
+  features: {
+    failSuccessRatio: number;
+    rerunPassRate: number;
+    intermittencyScore: number;
+    consecutiveFailures: number;
+  };
+  recommendation: {
+    action: 'none' | 'warn' | 'quarantine';
+    reason: string;
+  };
+  lastUpdated: Date;
+}
+
+export interface QuarantineCandidate {
+  testId: string;
+  testName: string;
+  score: number;
+  reason: string;
+}
+
+export interface TestStabilityMetrics {
+  testName: string;
+  testFullName: string;
+  repositoryId: string;
+  totalRuns: number;
+  successfulRuns: number;
+  failedRuns: number;
+  avgDuration: number;
+  firstSeen: Date;
+  lastSeen: Date;
+}
+
 export interface SlackConfig {
   botToken: string;
   signingSecret: string;
@@ -148,18 +186,18 @@ export interface SlackMetrics {
 }
 
 export interface EscalationPolicy {
+  name: string;
   triggers: {
     failureRateThreshold: number;
     flakinessScoreThreshold: number;
     consecutiveFailures: number;
-    timeWindowMinutes: number;
+    timeWindowMinutes?: number;
   };
-  actions: Array<{
-    delay: number;
-    channels: string[];
-    users: string[];
-    message: 'escalated' | 'critical' | 'urgent';
-  }>;
+  actions: {
+    notifyChannels: string[];
+    pingUsers: string[];
+    createIncident: boolean;
+  };
 }
 
 export interface NotificationFilter {
@@ -170,8 +208,8 @@ export interface NotificationFilter {
   testNameFilters: string[];
   timeFilters: {
     businessHoursOnly: boolean;
-    timezone: string;
-    quietHours: {
+    timezone?: string;
+    quietHours?: {
       start: string;
       end: string;
     };

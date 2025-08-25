@@ -2,7 +2,8 @@ import { readFileSync } from 'fs';
 
 import { z } from 'zod';
 
-import { githubEnvSchema } from '../github/schemas.js';
+// Remove this import as we're inlining the GitHub schema to avoid merge issues
+// import { githubEnvSchema } from '../github/schemas.js';
 
 // Slack configuration schema
 const slackEnvSchema = z.object({
@@ -13,7 +14,8 @@ const slackEnvSchema = z.object({
   SLACK_PROCESS_BEFORE_RESPONSE: z.string().transform(Boolean).default('true'),
 });
 
-const envSchema = z.object({
+// Base environment schema
+const baseEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().transform(Number).default('3000'),
   HOST: z.string().default('0.0.0.0'),
@@ -33,9 +35,24 @@ const envSchema = z.object({
   ENABLE_SLACK_APP: z.string().transform(Boolean).default('false'),
   ENABLE_GITHUB_WEBHOOKS: z.string().transform(Boolean).default('true'),
   ENABLE_QUARANTINE_ACTIONS: z.string().transform(Boolean).default('true'),
-})
-.merge(githubEnvSchema)
-.merge(slackEnvSchema.partial()); // Make Slack config optional unless enabled
+  
+  // GitHub configuration (inline to avoid merge issues)
+  GITHUB_APP_ID: z.string().transform((val) => parseInt(val, 10)).pipe(z.number().int().positive()),
+  GITHUB_PRIVATE_KEY: z.string().min(1).optional(),
+  GITHUB_PRIVATE_KEY_PATH: z.string().min(1).optional(),
+  GITHUB_WEBHOOK_SECRET: z.string().min(1),
+  GITHUB_CLIENT_ID: z.string().min(1),
+  GITHUB_CLIENT_SECRET: z.string().min(1),
+}).merge(slackEnvSchema.partial());
+
+// Apply GitHub private key validation
+const envSchema = baseEnvSchema.refine(
+  (data) => data.GITHUB_PRIVATE_KEY || data.GITHUB_PRIVATE_KEY_PATH,
+  {
+    message: "Either GITHUB_PRIVATE_KEY or GITHUB_PRIVATE_KEY_PATH must be provided",
+    path: ["GITHUB_PRIVATE_KEY"],
+  }
+);
 
 const env = envSchema.parse(process.env);
 

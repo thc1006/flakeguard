@@ -79,19 +79,19 @@ describe('Metrics Integration', () => {
   });
 
   describe('Ingestion Pipeline Metrics', () => {
-    it('should track ingestion requests', () => {
+    it('should track ingestion requests', async () => {
       const repository = 'owner/test-repo';
       const startTime = Date.now() - 1000; // 1 second ago
 
       trackIngestionRequest(repository, 'application/xml', startTime, true);
 
-      const metrics = getMetricsRegistry().metrics();
-      await expect(metrics).resolves.toContain('flakeguard_api_ingestion_requests_total');
-      await expect(metrics).resolves.toContain('repository=\"owner/test-repo\"');
-      await expect(metrics).resolves.toContain('status=\"success\"');
+      const metrics = await getMetricsRegistry().metrics();
+      expect(metrics).toContain('flakeguard_api_ingestion_requests_total');
+      expect(metrics).toContain('repository=\"owner/test-repo\"');
+      expect(metrics).toContain('status=\"success\"');
     });
 
-    it('should track parse results with framework', () => {
+    it('should track parse results with framework', async () => {
       const repository = 'owner/test-repo';
       const framework = 'jest';
       const startTime = Date.now() - 500;
@@ -102,27 +102,27 @@ describe('Metrics Integration', () => {
         skipped: 2,
       });
 
-      const metrics = getMetricsRegistry().metrics();
-      expect(metrics).resolves.toContain('flakeguard_api_parse_results_total');
-      expect(metrics).resolves.toContain('framework=\"jest\"');
-      expect(metrics).resolves.toContain('result=\"success\"');
-      expect(metrics).resolves.toContain('flakeguard_api_tests_processed_total');
+      const metrics = await getMetricsRegistry().metrics();
+      expect(metrics).toContain('flakeguard_api_parse_results_total');
+      expect(metrics).toContain('framework=\"jest\"');
+      expect(metrics).toContain('result=\"success\"');
+      expect(metrics).toContain('flakeguard_api_tests_processed_total');
     });
 
-    it('should track parse failures', () => {
+    it('should track parse failures', async () => {
       const repository = 'owner/test-repo';
       const framework = 'junit';
       const startTime = Date.now() - 500;
 
       trackParseResult(repository, framework, false, startTime);
 
-      const metrics = getMetricsRegistry().metrics();
-      expect(metrics).resolves.toContain('result=\"failure\"');
+      const metrics = await getMetricsRegistry().metrics();
+      expect(metrics).toContain('result=\"failure\"');
     });
   });
 
   describe('GitHub Integration Metrics', () => {
-    it('should track webhook processing', () => {
+    it('should track webhook processing', async () => {
       const eventType = 'workflow_run';
       const repository = 'owner/test-repo';
       const action = 'completed';
@@ -130,14 +130,14 @@ describe('Metrics Integration', () => {
 
       trackGitHubWebhook(eventType, repository, action, startTime, true);
 
-      const metrics = getMetricsRegistry().metrics();
-      expect(metrics).resolves.toContain('flakeguard_api_github_webhooks_total');
-      expect(metrics).resolves.toContain('event_type=\"workflow_run\"');
-      expect(metrics).resolves.toContain('action=\"completed\"');
-      expect(metrics).resolves.toContain('status=\"success\"');
+      const metrics = await getMetricsRegistry().metrics();
+      expect(metrics).toContain('flakeguard_api_github_webhooks_total');
+      expect(metrics).toContain('event_type=\"workflow_run\"');
+      expect(metrics).toContain('action=\"completed\"');
+      expect(metrics).toContain('status=\"success\"');
     });
 
-    it('should track webhook latency', () => {
+    it('should track webhook latency', async () => {
       const eventType = 'check_run';
       const repository = 'owner/test-repo';
       const action = 'created';
@@ -145,25 +145,25 @@ describe('Metrics Integration', () => {
 
       trackGitHubWebhook(eventType, repository, action, startTime, true);
 
-      const metrics = getMetricsRegistry().metrics();
-      expect(metrics).resolves.toContain('flakeguard_api_github_webhook_processing_seconds');
+      const metrics = await getMetricsRegistry().metrics();
+      expect(metrics).toContain('flakeguard_api_github_webhook_processing_seconds');
     });
   });
 
   describe('Business Logic Metrics', () => {
-    it('should track flake detections with severity', () => {
+    it('should track flake detections with severity', async () => {
       const repository = 'owner/test-repo';
       const flakinessScore = 0.75; // High flakiness
 
       trackFlakeDetection(repository, flakinessScore);
 
-      const metrics = getMetricsRegistry().metrics();
-      expect(metrics).resolves.toContain('flakeguard_api_flake_detections_total');
-      expect(metrics).resolves.toContain('severity=\"high\"');
-      expect(metrics).resolves.toContain('flakeguard_api_flakiness_score_distribution');
+      const metrics = await getMetricsRegistry().metrics();
+      expect(metrics).toContain('flakeguard_api_flake_detections_total');
+      expect(metrics).toContain('severity=\"high\"');
+      expect(metrics).toContain('flakeguard_api_flakiness_score_distribution');
     });
 
-    it('should classify flakiness severity correctly', () => {
+    it('should classify flakiness severity correctly', async () => {
       const repository = 'owner/test-repo';
 
       // Low severity
@@ -173,23 +173,23 @@ describe('Metrics Integration', () => {
       // High severity
       trackFlakeDetection(repository, 0.8);
 
-      const metrics = getMetricsRegistry().metrics();
-      expect(metrics).resolves.toContain('severity=\"low\"');
-      expect(metrics).resolves.toContain('severity=\"medium\"');
-      expect(metrics).resolves.toContain('severity=\"high\"');
+      const metrics = await getMetricsRegistry().metrics();
+      expect(metrics).toContain('severity=\"low\"');
+      expect(metrics).toContain('severity=\"medium\"');
+      expect(metrics).toContain('severity=\"high\"');
     });
 
-    it('should track quarantine actions', () => {
+    it('should track quarantine actions', async () => {
       const repository = 'owner/test-repo';
       const action = 'suggest';
       const reason = 'high_flakiness_score';
 
       trackQuarantineAction(repository, action, reason);
 
-      const metrics = getMetricsRegistry().metrics();
-      expect(metrics).resolves.toContain('flakeguard_api_quarantine_actions_total');
-      expect(metrics).resolves.toContain('action=\"suggest\"');
-      expect(metrics).resolves.toContain('reason=\"high_flakiness_score\"');
+      const metrics = await getMetricsRegistry().metrics();
+      expect(metrics).toContain('flakeguard_api_quarantine_actions_total');
+      expect(metrics).toContain('action=\"suggest\"');
+      expect(metrics).toContain('reason=\"high_flakiness_score\"');
     });
   });
 
@@ -358,7 +358,7 @@ describe('Metrics Integration', () => {
       expect(response.statusCode).toBe(200);
     });
 
-    it('should handle malformed metric labels', () => {
+    it('should handle malformed metric labels', async () => {
       // Test with potentially problematic characters
       const repository = 'owner/test-repo-with-special-chars!@#';
 
@@ -367,8 +367,8 @@ describe('Metrics Integration', () => {
       }).not.toThrow();
 
       // Metrics should still be collectible
-      const metrics = getMetricsRegistry().metrics();
-      expect(metrics).resolves.toContain('flakeguard_api_flake_detections_total');
+      const metrics = await getMetricsRegistry().metrics();
+      expect(metrics).toContain('flakeguard_api_flake_detections_total');
     });
   });
 });

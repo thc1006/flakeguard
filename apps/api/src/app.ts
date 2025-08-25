@@ -8,10 +8,10 @@ import Fastify, { FastifyInstance } from 'fastify';
 import { config } from './config/index.js';
 import githubAppPlugin from './github/index.js';
 import bullmqPlugin from './plugins/bullmq.js';
-import { errorHandler } from './plugins/error-handler.js';
+import errorHandler from './plugins/error-handler.js';
 import metricsPlugin from './plugins/metrics.js';
 import policyPlugin from './plugins/policy.js';
-import { prismaPlugin } from './plugins/prisma.js';
+import prismaPlugin from './plugins/prisma.js';
 import securityPlugin from './plugins/security.js';
 import tenantIsolationPlugin from './plugins/tenant-isolation.js';
 import adminRoutes from './routes/admin.js';
@@ -146,7 +146,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(adminRoutes);
 
   // Add comprehensive health check that includes all components
-  app.get('/health/comprehensive', async (request, reply) => {
+  app.get('/health/comprehensive', async (request, _reply) => {
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),

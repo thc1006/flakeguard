@@ -173,3 +173,33 @@ export class NotificationFilterService {
     }
   }
 }
+
+// Default filters and escalation policies
+export const DEFAULT_FILTERS: Record<string, NotificationFilter> = {
+  global: {
+    repositories: [],
+    testNameFilters: [],
+    excludePatterns: ['tmp', 'temp', 'debug'],
+    minScore: 0.3,
+    minConfidence: 0.5,
+    timeFilters: {
+      businessHoursOnly: false,
+    },
+  },
+};
+
+export const DEFAULT_ESCALATION_POLICIES: Record<string, EscalationPolicy> = {
+  global: {
+    name: 'Global Escalation',
+    triggers: {
+      failureRateThreshold: 0.8,
+      flakinessScoreThreshold: 0.9,
+      consecutiveFailures: 10,
+    },
+    actions: {
+      notifyChannels: ['#alerts'],
+      pingUsers: [],
+      createIncident: true,
+    },
+  },
+};

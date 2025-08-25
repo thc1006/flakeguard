@@ -443,7 +443,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
    */
   private createRequestHook() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (request: (opts: any) => Promise<any>, options: Record<string, unknown>) => {
+    return (request: (opts: Record<string, unknown>) => Promise<{ status: number; headers: Record<string, unknown>; data: unknown }>, options: Record<string, unknown>) => {
       const sanitizedOptions = this.securityManager.sanitizeRequest(options);
       
       // Extract method and url safely from options for logging

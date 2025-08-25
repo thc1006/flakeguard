@@ -30,7 +30,7 @@ export class ArtifactHandler {
   constructor(
     private readonly config: ArtifactDownloadConfig,
     private readonly logger: Logger,
-    private readonly octokitRequest: (options: any) => Promise<any>
+    private readonly octokitRequest: (options: Record<string, unknown>) => Promise<{ url: string; headers: Record<string, unknown> }>
   ) {}
 
   /**
@@ -259,13 +259,13 @@ export class ArtifactHandler {
     options: ArtifactDownloadOptions
   ): Promise<Buffer> {
     const maxRetries = options.maxRetries || this.config.maxRetries;
-    let lastError: any;
+    let lastError: Error = new Error('Download failed');
 
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
       try {
         return await this.performDownload(downloadUrl, options);
       } catch (error) {
-        lastError = error;
+        lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt > maxRetries) {
           break;
@@ -566,25 +566,30 @@ export class ArtifactHandler {
   /**
    * Check if error is retryable
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: unknown): boolean {
     if (error instanceof GitHubApiError) {
       return error.retryable;
     }
 
     // Network errors are generally retryable
-    if (error.code === 'ECONNRESET' || 
-        error.code === 'ENOTFOUND' || 
-        error.code === 'ECONNREFUSED' || 
-        error.code === 'ETIMEDOUT') {
-      return true;
+    if (error && typeof error === 'object' && 'code' in error) {
+      const code = error.code;
+      if (code === 'ECONNRESET' || 
+          code === 'ENOTFOUND' || 
+          code === 'ECONNREFUSED' || 
+          code === 'ETIMEDOUT') {
+        return true;
+      }
     }
 
     // HTTP errors
-    if (error.message?.includes('HTTP')) {
-      const statusMatch = error.message.match(/HTTP (\d+)/);
-      if (statusMatch) {
-        const status = parseInt(statusMatch[1], 10);
-        return status >= 500 || status === 429; // Server errors or rate limiting
+    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+      if (error.message.includes('HTTP')) {
+        const statusMatch = error.message.match(/HTTP (\d+)/);
+        if (statusMatch && statusMatch[1]) {
+          const status = parseInt(statusMatch[1], 10);
+          return status >= 500 || status === 429; // Server errors or rate limiting
+        }
       }
     }
 
@@ -594,11 +599,14 @@ export class ArtifactHandler {
   /**
    * Check if error is due to expired URL
    */
-  private isUrlExpiredError(error: any): boolean {
-    const message = error.message?.toLowerCase() || '';
-    return message.includes('expired') || 
-           message.includes('not found') || 
-           message.includes('404');
+  private isUrlExpiredError(error: unknown): boolean {
+    if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+      const message = error.message.toLowerCase();
+      return message.includes('expired') || 
+             message.includes('not found') || 
+             message.includes('404');
+    }
+    return false;
   }
 
   /**
@@ -662,7 +670,7 @@ export class ArtifactHandler {
     const now = Date.now();
     let cleaned = 0;
 
-    for (const [key, urlInfo] of this.urlCache) {
+    for (const [key, urlInfo] of Array.from(this.urlCache.entries())) {
       if (urlInfo.expiresAt.getTime() <= now) {
         this.urlCache.delete(key);
         cleaned++;

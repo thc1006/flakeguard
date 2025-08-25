@@ -344,7 +344,7 @@ async function seedData() {
     await prisma.fGQuarantineDecision.create({
       data: {
         testId: flakyTest.testId,
-        state: state as any,
+        state: state as 'PROPOSED' | 'ACTIVE' | 'DISMISSED',
         rationale: `Test shows ${(flakyTest.score * 100).toFixed(1)}% failure rate over ${flakyTest.windowN} runs. Automated quarantine recommendation.`,
         byUser: state === 'DISMISSED' ? 'human-reviewer' : 'flakeguard-bot',
         until: state === 'ACTIVE' ? new Date(Date.now() + 30 * 86400000) : null, // 30 days if active
