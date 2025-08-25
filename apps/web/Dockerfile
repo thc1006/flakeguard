@@ -44,6 +44,10 @@ COPY packages/shared/package.json ./packages/shared/
 RUN chown -R builder:builder /app
 USER builder
 
+# Set PNPM_HOME to a writable location for the builder user
+ENV PNPM_HOME=/tmp/.pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 

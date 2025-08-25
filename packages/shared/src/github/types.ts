@@ -146,6 +146,27 @@ export interface RequestQueueConfig {
 // METRICS AND MONITORING TYPES
 // =============================================================================
 
+export interface RateLimitConsumptionStats {
+  readonly requestCount: number;
+  readonly avgRemaining: number;
+  readonly minRemaining: number;
+  readonly throttleCount: number;
+  readonly totalThrottleTime: number;
+}
+
+export interface RateLimitMetricsExport {
+  readonly rateLimitConsumption: {
+    readonly core: RateLimitConsumptionStats;
+    readonly search: RateLimitConsumptionStats;
+    readonly graphql: RateLimitConsumptionStats;
+  };
+  readonly lastHourSummary: {
+    readonly totalRequests: number;
+    readonly totalThrottleTime: number;
+    readonly totalThrottleEvents: number;
+  };
+}
+
 export interface ApiMetrics {
   /** Total API requests made */
   readonly totalRequests: number;
@@ -307,7 +328,7 @@ export interface GitHubApiWrapper {
 export interface RequestOptions {
   readonly method: string;
   readonly endpoint: string;
-  readonly data?: any;
+  readonly data?: unknown;
   readonly headers?: Record<string, string>;
   readonly priority?: 'low' | 'normal' | 'high' | 'critical';
   readonly timeout?: number;
@@ -353,6 +374,7 @@ export class GitHubApiError extends Error {
   public readonly statusCode?: number;
   public readonly retryable: boolean;
   public readonly context?: Record<string, unknown>;
+  public readonly cause?: Error;
 
   constructor(
     code: ApiErrorCode,

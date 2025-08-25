@@ -9,7 +9,7 @@ import { OptimizedFlakinessScorer } from "../../apps/api/src/performance/optimiz
 import { PerformanceBenchmark } from "./benchmark-framework.js";
 
 
-export async function runScoriBenchmarks() {
+export async function runScoringBenchmarks() {
   const benchmark = new PerformanceBenchmark();
   const originalScorer = new FlakinessScorer();
   const optimizedScorer = new OptimizedFlakinessScorer();
@@ -17,12 +17,9 @@ export async function runScoriBenchmarks() {
   // Generate test run data
   const generateTestRuns = (count: number): TestRun[] => 
     Array.from({ length: count }, (_, i) => ({
-      id: `run_${i}`,
       testName: "flaky_test",
       testFullName: "com.example.FlakyTest.flaky_test",
-      repositoryId: "test-repo",
-      suite: "FlakyTestSuite",
-      status: Math.random() > 0.3 ? "passed" : "failed" as any,
+      status: (Math.random() > 0.3 ? "passed" : "failed") as TestRun['status'],
       duration: Math.random() * 1000,
       message: Math.random() > 0.7 ? "Test failed intermittently" : undefined,
       createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
@@ -37,7 +34,7 @@ export async function runScoriBenchmarks() {
   
   // Single test scoring
   await benchmark.runBenchmark("Original Scorer - Single Test (100 runs)", async () => {
-    originalScorer.computeFlakeScore(testRuns);
+    await originalScorer.computeFlakeScore(testRuns);
   }, 10);
   
   await benchmark.runBenchmark("Optimized Scorer - Single Test (100 runs)", async () => {
@@ -46,7 +43,7 @@ export async function runScoriBenchmarks() {
   
   // Large dataset scoring
   await benchmark.runBenchmark("Original Scorer - Large Dataset (1000 runs)", async () => {
-    originalScorer.computeFlakeScore(largeTestRuns);
+    await originalScorer.computeFlakeScore(largeTestRuns);
   }, 5);
   
   await benchmark.runBenchmark("Optimized Scorer - Large Dataset (1000 runs)", async () => {

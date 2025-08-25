@@ -60,10 +60,26 @@ function logMemoryUsage() {
 }
 
 // Log memory usage every 10 seconds during benchmarks
-setInterval(logMemoryUsage, 10000);
+const memoryMonitor = setInterval(logMemoryUsage, 10000);
 
-if (require.main === module) {
-  main().catch(console.error);
+// Clean up interval on process exit
+process.on('exit', () => {
+  clearInterval(memoryMonitor);
+});
+
+process.on('SIGINT', () => {
+  clearInterval(memoryMonitor);
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  clearInterval(memoryMonitor);
+  process.exit(0);
+});
+
+// Check if this module is being run directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  void main().catch(console.error);
 }
 
 export { main as runAllBenchmarks };

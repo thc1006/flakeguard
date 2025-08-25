@@ -15,7 +15,7 @@ interface BenchmarkResult {
 export class PerformanceBenchmark {
   private results: BenchmarkResult[] = [];
 
-  async runBenchmark(name: string, fn: () => Promise<any>, iterations: number = 100): Promise<BenchmarkResult> {
+  async runBenchmark(name: string, fn: () => Promise<unknown>, iterations: number = 100): Promise<BenchmarkResult> {
     const startMemory = process.memoryUsage();
     const startTime = performance.now();
     

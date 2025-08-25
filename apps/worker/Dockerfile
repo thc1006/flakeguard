@@ -41,6 +41,10 @@ COPY apps/worker/package.json ./apps/worker/
 RUN chown -R builder:builder /app
 USER builder
 
+# Configure PNPM for non-root user
+ENV PNPM_HOME=/tmp/.pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
 # Install all dependencies (including dev for building)
 RUN pnpm install --frozen-lockfile
 

@@ -1,0 +1,45 @@
+# Dockerfile for FlakeGuard seed scripts
+FROM node:20-alpine
+
+# Install required system dependencies
+RUN apk add --no-cache \
+    postgresql-client \
+    curl \
+    bash
+
+# Set working directory
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S seeduser && \
+    adduser -S seeduser -u 1001 -G seeduser
+
+# Copy package files
+COPY package*.json pnpm-workspace.yaml ./
+COPY packages ./packages/
+
+# Install pnpm
+RUN npm install -g pnpm@8.15.1
+
+# Set PNPM home to avoid permission issues
+ENV PNPM_HOME=/tmp/.pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy seed scripts
+COPY scripts/seed ./scripts/seed/
+COPY scripts/db ./scripts/db/
+
+# Make scripts executable
+RUN chmod +x scripts/seed/*.js
+
+# Change ownership to seeduser
+RUN chown -R seeduser:seeduser /app
+
+# Switch to non-root user
+USER seeduser
+
+# Default command
+CMD ["node", "scripts/seed/development.js"]

@@ -3,7 +3,7 @@
  * Provides testing utilities, mocks, and configuration for P18 implementation
  */
 
-import type { Logger } from 'pino';
+// Logger type imported but used indirectly in TestLogger compatibility comments
 
 import type { 
   GitHubApiConfig,
@@ -12,6 +12,74 @@ import type {
   CircuitBreakerStatus,
   ApiMetrics,
 } from './types.js';
+
+// Type definitions for testing utilities
+type LogEntry = {
+  level: 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'trace';
+  obj: unknown;
+  msg?: string;
+};
+
+// Minimal logger interface for testing (compatible with pino Logger)
+type TestLogger = {
+  level: string;
+  debug: (obj: unknown, msg?: string) => void;
+  info: (obj: unknown, msg?: string) => void;
+  warn: (obj: unknown, msg?: string) => void;
+  error: (obj: unknown, msg?: string) => void;
+  fatal: (obj: unknown, msg?: string) => void;
+  trace: (obj: unknown, msg?: string) => void;
+  child: () => TestLogger;
+  getLogs: () => LogEntry[];
+};
+
+type BaseWebhookPayload = {
+  action?: string;
+  sender: {
+    login: string;
+    id: number;
+    type: string;
+  };
+  repository: {
+    id: number;
+    name: string;
+    full_name: string;
+    owner: {
+      login: string;
+      id: number;
+      type: string;
+    };
+  };
+};
+
+type WorkflowRunPayload = BaseWebhookPayload & {
+  workflow_run: {
+    id: number;
+    name: string;
+    status: string;
+    conclusion: string;
+    html_url: string;
+    artifacts_url: string;
+  };
+};
+
+type CheckRunPayload = BaseWebhookPayload & {
+  check_run: {
+    id: number;
+    name: string;
+    status: string;
+    conclusion: string;
+    output: {
+      title: string;
+      summary: string;
+    };
+  };
+  requested_action?: {
+    identifier: string;
+  };
+};
+
+type WebhookPayload = BaseWebhookPayload | WorkflowRunPayload | CheckRunPayload;
 
 // Mutable versions for testing
 type MutableRateLimitInfo = {
@@ -107,7 +175,7 @@ export class MockGitHubApiWrapper {
     return this.mockCircuitBreaker;
   }
 
-  async request<T = any>(options: RequestOptions): Promise<T> {
+  async request<T = unknown>(options: RequestOptions): Promise<T> {
     this.requestLog.push({ options, timestamp: new Date() });
     this.mockMetrics.totalRequests++;
     
@@ -127,7 +195,7 @@ export class MockGitHubApiWrapper {
     }
 
     // Simulate response delay
-    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200));
+    await new Promise<void>(resolve => setTimeout(resolve, 100 + Math.random() * 200));
     
     this.mockMetrics.successRate = (this.mockMetrics.totalRequests - this.mockMetrics.totalFailures) / this.mockMetrics.totalRequests;
     
@@ -135,12 +203,14 @@ export class MockGitHubApiWrapper {
   }
 
   async downloadArtifact(): Promise<Buffer> {
+    await new Promise<void>(resolve => setTimeout(resolve, 10)); // Simulate async operation
     return Buffer.from('mock artifact content');
   }
 
   async* streamArtifact(): AsyncIterable<Buffer> {
     const chunks = ['chunk1', 'chunk2', 'chunk3'];
     for (const chunk of chunks) {
+      await new Promise<void>(resolve => setTimeout(resolve, 10)); // Simulate async streaming
       yield Buffer.from(chunk);
     }
   }
@@ -181,7 +251,7 @@ export class MockGitHubApiWrapper {
     this.mockCircuitBreaker.nextAttemptAt = new Date(Date.now() + 300000);
   }
 
-  private generateMockResponse(options: RequestOptions): any {
+  private generateMockResponse(options: RequestOptions): unknown {
     // Generate appropriate mock response based on endpoint
     if (options.endpoint.includes('/check-runs')) {
       if (options.method === 'POST') {
@@ -344,7 +414,7 @@ export class TestUtils {
       if (await condition()) {
         return;
       }
-      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      await new Promise<void>(resolve => setTimeout(resolve, intervalMs));
     }
     
     throw new Error(`Condition not met within ${timeoutMs}ms`);
@@ -353,30 +423,41 @@ export class TestUtils {
   /**
    * Create test logger that captures logs
    */
-  static createTestLogger(): Logger & { getLogs(): any[] } {
-    const logs: any[] = [];
+  static createTestLogger(): TestLogger {
+    const logs: LogEntry[] = [];
     
-    const logger = {
+    const mockLogger: TestLogger = {
       level: 'debug',
-      silent: false,
-      debug: (obj: any, msg?: string) => logs.push({ level: 'debug', obj, msg }),
-      info: (obj: any, msg?: string) => logs.push({ level: 'info', obj, msg }),
-      warn: (obj: any, msg?: string) => logs.push({ level: 'warn', obj, msg }),
-      error: (obj: any, msg?: string) => logs.push({ level: 'error', obj, msg }),
-      fatal: (obj: any, msg?: string) => logs.push({ level: 'fatal', obj, msg }),
-      trace: (obj: any, msg?: string) => logs.push({ level: 'trace', obj, msg }),
-      child: () => logger,
+      debug: (obj: unknown, msg?: string) => {
+        logs.push({ level: 'debug', obj, msg });
+      },
+      info: (obj: unknown, msg?: string) => {
+        logs.push({ level: 'info', obj, msg });
+      },
+      warn: (obj: unknown, msg?: string) => {
+        logs.push({ level: 'warn', obj, msg });
+      },
+      error: (obj: unknown, msg?: string) => {
+        logs.push({ level: 'error', obj, msg });
+      },
+      fatal: (obj: unknown, msg?: string) => {
+        logs.push({ level: 'fatal', obj, msg });
+      },
+      trace: (obj: unknown, msg?: string) => {
+        logs.push({ level: 'trace', obj, msg });
+      },
+      child: () => mockLogger,
       getLogs: () => [...logs],
-    } as any;
+    };
 
-    return logger;
+    return mockLogger;
   }
 
   /**
    * Generate test webhook payload
    */
-  static generateWebhookPayload(event: string, action?: string): any {
-    const basePayload = {
+  static generateWebhookPayload(event: string, action?: string): WebhookPayload {
+    const basePayload: BaseWebhookPayload = {
       action,
       sender: {
         login: 'testuser',
@@ -396,8 +477,8 @@ export class TestUtils {
     };
 
     switch (event) {
-      case 'workflow_run':
-        return {
+      case 'workflow_run': {
+        const workflowPayload: WorkflowRunPayload = {
           ...basePayload,
           workflow_run: {
             id: 123456789,
@@ -408,9 +489,11 @@ export class TestUtils {
             artifacts_url: 'https://api.github.com/repos/testorg/test-repo/actions/runs/123456789/artifacts',
           },
         };
+        return workflowPayload;
+      }
 
-      case 'check_run':
-        return {
+      case 'check_run': {
+        const checkRunPayload: CheckRunPayload = {
           ...basePayload,
           check_run: {
             id: 987654321,
@@ -426,6 +509,8 @@ export class TestUtils {
             identifier: action,
           } : undefined,
         };
+        return checkRunPayload;
+      }
 
       default:
         return basePayload;
@@ -447,7 +532,7 @@ export class TestUtils {
    */
   static async simulateNetworkDelay(minMs: number = 50, maxMs: number = 200): Promise<void> {
     const delay = minMs + Math.random() * (maxMs - minMs);
-    await new Promise(resolve => setTimeout(resolve, delay));
+    await new Promise<void>(resolve => setTimeout(resolve, delay));
   }
 
   /**
@@ -501,11 +586,14 @@ export class TestUtils {
 
     return Array.from({ length: count }, (_, i) => {
       const op = operations[i % operations.length];
+      if (!op) {
+        throw new Error('Invalid operation index');
+      }
       return {
         owner: `org${Math.floor(i / 10)}`,
         repo: `repo${i % 10}`,
-        operation: op!.operation,
-        priority: op!.priority,
+        operation: op.operation,
+        priority: op.priority,
       };
     });
   }
@@ -536,6 +624,10 @@ export class TestUtils {
       times.push(end - start);
     }
 
+    if (!result) {
+      throw new Error('Function must return a result');
+    }
+
     return {
       name,
       iterations,
@@ -543,7 +635,7 @@ export class TestUtils {
       avgTimeMs: times.reduce((sum, time) => sum + time, 0) / times.length,
       minTimeMs: Math.min(...times),
       maxTimeMs: Math.max(...times),
-      result: result!,
+      result,
     };
   }
 
@@ -568,8 +660,11 @@ export class TestUtils {
               endpoint: '/user',
             });
             throw new Error('Should have failed with rate limit');
-          } catch (error) {
-            // Expected
+          } catch (error: unknown) {
+            // Expected - type guard to ensure error is handled properly
+            if (!(error instanceof Error)) {
+              throw new Error('Expected Error instance');
+            }
           }
         },
       },
@@ -586,8 +681,11 @@ export class TestUtils {
               endpoint: '/user',
             });
             throw new Error('Should have failed with circuit breaker');
-          } catch (error) {
-            // Expected
+          } catch (error: unknown) {
+            // Expected - type guard to ensure error is handled properly
+            if (!(error instanceof Error)) {
+              throw new Error('Expected Error instance');
+            }
           }
         },
       },
@@ -608,6 +706,7 @@ export class TestUtils {
           
           const failures = results.filter(r => r.status === 'rejected').length;
           console.log(`Failed ${failures} out of 5 requests`);
+          // No return value needed as this is just for testing
         },
       },
     ];
@@ -621,7 +720,7 @@ export const exampleTests = {
   /**
    * Unit test example
    */
-  async testRateLimitThrottling() {
+  async testRateLimitThrottling(): Promise<void> {
     const logger = TestUtils.createTestLogger();
     const wrapper = new MockGitHubApiWrapper({ debug: true }, false, 0);
     
@@ -642,7 +741,7 @@ export const exampleTests = {
   /**
    * Integration test example
    */
-  async testCircuitBreakerRecovery() {
+  async testCircuitBreakerRecovery(): Promise<void> {
     const wrapper = new MockGitHubApiWrapper({}, false, 0.8); // 80% failure rate
     
     // Make requests until circuit breaker opens
@@ -664,7 +763,7 @@ export const exampleTests = {
   /**
    * Performance test example
    */
-  async testRequestThroughput() {
+  async testRequestThroughput(): Promise<void> {
     const wrapper = new MockGitHubApiWrapper({}, false, 0);
     const testData = TestUtils.generatePerformanceTestData(100);
     
@@ -696,7 +795,7 @@ export const exampleTests = {
   /**
    * Error handling test example
    */
-  async testErrorRecovery() {
+  async testErrorRecovery(): Promise<void> {
     const scenarios = TestUtils.createFailureScenarios();
     
     for (const scenario of scenarios) {

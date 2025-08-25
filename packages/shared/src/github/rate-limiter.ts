@@ -12,6 +12,8 @@ import type {
   SecondaryRateLimitConfig,
   RateLimitInfo,
   RetryAttempt,
+  RateLimitConsumptionStats,
+  RateLimitMetricsExport,
 } from './types.js';
 
 /**
@@ -359,9 +361,9 @@ export class ExponentialBackoff {
   async execute<T>(
     operation: () => Promise<T>,
     maxAttempts: number = 3,
-    shouldRetry?: (error: any) => boolean
+    shouldRetry?: (error: unknown) => boolean
   ): Promise<T> {
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
@@ -454,13 +456,7 @@ export class RateLimitMetrics {
   /**
    * Get rate limit consumption stats
    */
-  getConsumptionStats(windowMs: number, resource: string = 'core'): {
-    requestCount: number;
-    avgRemaining: number;
-    minRemaining: number;
-    throttleCount: number;
-    totalThrottleTime: number;
-  } {
+  getConsumptionStats(windowMs: number, resource: string = 'core'): RateLimitConsumptionStats {
     const windowStart = new Date(Date.now() - windowMs);
     
     const windowRequests = this.requests.filter(
@@ -485,7 +481,7 @@ export class RateLimitMetrics {
   /**
    * Export metrics for monitoring
    */
-  exportMetrics(): Record<string, any> {
+  exportMetrics(): RateLimitMetricsExport {
     const hour = 60 * 60 * 1000;
     const coreStats = this.getConsumptionStats(hour, 'core');
     const searchStats = this.getConsumptionStats(hour, 'search');

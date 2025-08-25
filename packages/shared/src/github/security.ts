@@ -14,6 +14,48 @@ import type {
 } from './types.js';
 
 /**
+ * Type for sanitizable data structures
+ */
+type SanitizableData = 
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | SanitizableData[]
+  | { [key: string]: SanitizableData };
+
+/**
+ * Type for request validation options
+ */
+interface RequestValidationOptions {
+  method: string;
+  endpoint: string;
+  data?: unknown;
+  headers?: Record<string, string>;
+}
+
+/**
+ * Type guard to check if a value is a valid object for sanitization
+ */
+function isValidObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Type guard to check if a value is sanitizable
+ */
+function isSanitizableData(value: unknown): value is SanitizableData {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
+  if (Array.isArray(value)) return value.every(isSanitizableData);
+  if (isValidObject(value)) {
+    return Object.values(value).every(isSanitizableData);
+  }
+  return false;
+}
+
+/**
  * Security manager for GitHub API operations
  */
 export class SecurityManager {
@@ -84,9 +126,9 @@ export class SecurityManager {
   /**
    * Sanitize request data for logging
    */
-  sanitizeRequest(data: any): any {
+  sanitizeRequest(data: unknown): SanitizableData {
     if (!this.config.sanitizeRequests) {
-      return data;
+      return isSanitizableData(data) ? data : '[UNSANITIZABLE_DATA]';
     }
 
     return this.recursiveSanitize(data);
@@ -95,9 +137,9 @@ export class SecurityManager {
   /**
    * Sanitize response data for logging
    */
-  sanitizeResponse(data: any): any {
+  sanitizeResponse(data: unknown): SanitizableData {
     if (!this.config.sanitizeRequests) {
-      return data;
+      return isSanitizableData(data) ? data : '[UNSANITIZABLE_DATA]';
     }
 
     return this.recursiveSanitize(data);
@@ -106,12 +148,7 @@ export class SecurityManager {
   /**
    * Validate request parameters
    */
-  validateRequest(options: {
-    method: string;
-    endpoint: string;
-    data?: any;
-    headers?: Record<string, string>;
-  }): void {
+  validateRequest(options: RequestValidationOptions): void {
     // Validate HTTP method
     const allowedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD'];
     if (!allowedMethods.includes(options.method.toUpperCase())) {
@@ -189,11 +226,13 @@ export class SecurityManager {
 
     // Apply time filters
     if (options.since) {
-      entries = entries.filter(entry => entry.timestamp >= options.since!);
+      const sinceDate = options.since;
+      entries = entries.filter(entry => entry.timestamp >= sinceDate);
     }
 
     if (options.until) {
-      entries = entries.filter(entry => entry.timestamp <= options.until!);
+      const untilDate = options.until;
+      entries = entries.filter(entry => entry.timestamp <= untilDate);
     }
 
     // Filter failures only
@@ -267,7 +306,7 @@ export class SecurityManager {
   /**
    * Recursively sanitize object
    */
-  private recursiveSanitize(obj: any, depth: number = 0): any {
+  private recursiveSanitize(obj: unknown, depth: number = 0): SanitizableData {
     // Prevent infinite recursion
     if (depth > 10) {
       return '[MAX_DEPTH_REACHED]';
@@ -281,23 +320,30 @@ export class SecurityManager {
       return this.sanitizeString(obj);
     }
 
+    if (typeof obj === 'number' || typeof obj === 'boolean') {
+      return obj;
+    }
+
     if (typeof obj === 'object') {
       if (Array.isArray(obj)) {
         return obj.map(item => this.recursiveSanitize(item, depth + 1));
       }
 
-      const sanitized: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (this.isSensitiveField(key)) {
-          sanitized[key] = this.redactValue(value);
-        } else {
-          sanitized[key] = this.recursiveSanitize(value, depth + 1);
+      if (isValidObject(obj)) {
+        const sanitized: Record<string, SanitizableData> = {};
+        for (const [key, value] of Object.entries(obj)) {
+          if (this.isSensitiveField(key)) {
+            sanitized[key] = this.redactValue(value);
+          } else {
+            sanitized[key] = this.recursiveSanitize(value, depth + 1);
+          }
         }
+        return sanitized;
       }
-      return sanitized;
     }
 
-    return obj;
+    // For any other type (functions, symbols, etc.), return a safe representation
+    return '[UNSANITIZABLE_TYPE]';
   }
 
   /**
@@ -313,7 +359,7 @@ export class SecurityManager {
   /**
    * Redact sensitive value
    */
-  private redactValue(value: any): string {
+  private redactValue(value: unknown): string {
     if (typeof value === 'string' && value.length > 0) {
       if (value.length <= 4) {
         return '*'.repeat(value.length);
@@ -334,12 +380,7 @@ export class SecurityManager {
   /**
    * Detect suspicious patterns in request
    */
-  private detectSuspiciousPatterns(options: {
-    method: string;
-    endpoint: string;
-    data?: any;
-    headers?: Record<string, string>;
-  }): void {
+  private detectSuspiciousPatterns(options: RequestValidationOptions): void {
     // Check for path traversal attempts
     if (options.endpoint.includes('..') || options.endpoint.includes('//')) {
       this.logger.warn(
@@ -369,6 +410,31 @@ export class SecurityManager {
           this.logger.warn(
             { pattern: pattern.source },
             'Potential SQL injection attempt detected'
+          );
+          
+          throw new GitHubApiError(
+            'PERMISSION_DENIED',
+            'Suspicious request data detected',
+            { retryable: false }
+          );
+        }
+      }
+    } else if (options.data && typeof options.data === 'object') {
+      // Handle object data by converting to string for pattern checking
+      const dataStr = JSON.stringify(options.data);
+      const sqlPatterns = [
+        /union\s+select/i,
+        /drop\s+table/i,
+        /insert\s+into/i,
+        /delete\s+from/i,
+        /update\s+.*\s+set/i,
+      ];
+
+      for (const pattern of sqlPatterns) {
+        if (pattern.test(dataStr)) {
+          this.logger.warn(
+            { pattern: pattern.source },
+            'Potential SQL injection attempt detected in object data'
           );
           
           throw new GitHubApiError(
@@ -581,7 +647,7 @@ export class TokenManager {
     const now = new Date();
     let cleared = 0;
 
-    for (const [key, tokenInfo] of this.tokens) {
+    for (const [key, tokenInfo] of this.tokens.entries()) {
       if (tokenInfo.expiresAt && tokenInfo.expiresAt <= now) {
         this.tokens.delete(key);
         cleared++;
@@ -609,7 +675,7 @@ export class TokenManager {
     let expiredTokens = 0;
     let tokensUsedLast24h = 0;
 
-    for (const tokenInfo of this.tokens.values()) {
+    for (const tokenInfo of Array.from(this.tokens.values())) {
       if (tokenInfo.expiresAt && tokenInfo.expiresAt <= now) {
         expiredTokens++;
       }

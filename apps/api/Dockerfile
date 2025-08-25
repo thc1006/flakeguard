@@ -41,6 +41,10 @@ COPY apps/api/package.json ./apps/api/
 RUN chown -R builder:builder /app
 USER builder
 
+# Set PNPM home to avoid permission issues
+ENV PNPM_HOME=/tmp/.pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
 # Install all dependencies (including dev for building)
 RUN pnpm install --frozen-lockfile
 
