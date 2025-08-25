@@ -20,16 +20,16 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@octokit/app": "^14.0.0",
-    "@octokit/rest": "^20.0.0",
-    "@octokit/webhooks-types": "^7.0.0",
-    "@octokit/request-error": "^5.0.0",
-    "pino": "^8.17.2",
-    "zod": "^3.22.4"
+    "@octokit/app": "^14.1.0",
+    "@octokit/request-error": "^5.1.1",
+    "@octokit/rest": "^20.1.2",
+    "@octokit/webhooks-types": "^7.6.1",
+    "pino": "^8.21.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
-    "typescript": "^5.3.3",
-    "vitest": "^1.2.1"
+    "@types/node": "^20.19.11",
+    "typescript": "^5.9.2",
+    "vitest": "^1.6.1"
   }
 }

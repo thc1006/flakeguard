@@ -199,7 +199,8 @@ export class MockGitHubApiWrapper {
     
     this.mockMetrics.successRate = (this.mockMetrics.totalRequests - this.mockMetrics.totalFailures) / this.mockMetrics.totalRequests;
     
-    return this.generateMockResponse(options) as T;
+    const response = this.generateMockResponse(options);
+    return response as T;
   }
 
   async downloadArtifact(): Promise<Buffer> {
@@ -251,7 +252,7 @@ export class MockGitHubApiWrapper {
     this.mockCircuitBreaker.nextAttemptAt = new Date(Date.now() + 300000);
   }
 
-  private generateMockResponse(options: RequestOptions): unknown {
+  private generateMockResponse(options: RequestOptions): Record<string, unknown> {
     // Generate appropriate mock response based on endpoint
     if (options.endpoint.includes('/check-runs')) {
       if (options.method === 'POST') {
@@ -297,7 +298,7 @@ export class MockGitHubApiWrapper {
     return {
       status: 'success',
       message: 'Mock response',
-      data: options.data,
+      data: options.data ?? null,
     };
   }
 }
@@ -541,12 +542,12 @@ export class TestUtils {
   static createFlakyFunction<T>(
     fn: () => T | Promise<T>,
     failureRate: number = 0.3
-  ): () => T | Promise<T> {
+  ): () => Promise<T> {
     return async () => {
       if (Math.random() < failureRate) {
         throw new Error('Simulated intermittent failure');
       }
-      return fn();
+      return await fn();
     };
   }
 
@@ -585,9 +586,10 @@ export class TestUtils {
     ];
 
     return Array.from({ length: count }, (_, i) => {
-      const op = operations[i % operations.length];
+      const opIndex = i % operations.length;
+      const op = operations[opIndex];
       if (!op) {
-        throw new Error('Invalid operation index');
+        throw new Error(`Invalid operation index: ${opIndex}`);
       }
       return {
         owner: `org${Math.floor(i / 10)}`,
@@ -615,7 +617,7 @@ export class TestUtils {
     result: T;
   }> {
     const times: number[] = [];
-    let result: T;
+    let result: T | undefined;
 
     for (let i = 0; i < iterations; i++) {
       const start = Date.now();
@@ -624,15 +626,16 @@ export class TestUtils {
       times.push(end - start);
     }
 
-    if (!result) {
+    if (result === undefined) {
       throw new Error('Function must return a result');
     }
 
+    const totalTime = times.reduce((sum, time) => sum + time, 0);
     return {
       name,
       iterations,
-      totalTimeMs: times.reduce((sum, time) => sum + time, 0),
-      avgTimeMs: times.reduce((sum, time) => sum + time, 0) / times.length,
+      totalTimeMs: totalTime,
+      avgTimeMs: totalTime / times.length,
       minTimeMs: Math.min(...times),
       maxTimeMs: Math.max(...times),
       result,
@@ -665,6 +668,7 @@ export class TestUtils {
             if (!(error instanceof Error)) {
               throw new Error('Expected Error instance');
             }
+            // Error is expected, so we don't rethrow
           }
         },
       },
@@ -686,6 +690,7 @@ export class TestUtils {
             if (!(error instanceof Error)) {
               throw new Error('Expected Error instance');
             }
+            // Error is expected, so we don't rethrow
           }
         },
       },
@@ -705,6 +710,7 @@ export class TestUtils {
           ]);
           
           const failures = results.filter(r => r.status === 'rejected').length;
+          // eslint-disable-next-line no-console
           console.log(`Failed ${failures} out of 5 requests`);
           // No return value needed as this is just for testing
         },
@@ -715,6 +721,8 @@ export class TestUtils {
 
 /**
  * Example test cases
+ * Console statements are intentionally used here for demonstration purposes
+ * eslint-disable-next-line no-console
  */
 export const exampleTests = {
   /**
@@ -734,7 +742,9 @@ export const exampleTests = {
     });
     const duration = Date.now() - start;
     
+    // eslint-disable-next-line no-console
     console.log(`Request took ${duration}ms (should include throttling delay)`);
+    // eslint-disable-next-line no-console
     console.log('Logs:', logger.getLogs());
   },
 
@@ -749,14 +759,19 @@ export const exampleTests = {
     for (let i = 0; i < 10 && !circuitOpened; i++) {
       try {
         await wrapper.request({ method: 'GET', endpoint: '/test' });
-      } catch (error) {
-        // Expected failures
+      } catch (error: unknown) {
+        // Expected failures - error is handled by ignoring
+        if (error instanceof Error) {
+          // Log error for debugging if needed
+        }
       }
       
       circuitOpened = wrapper.circuitBreakerStatus.state === 'open';
     }
     
+    // eslint-disable-next-line no-console
     console.log('Circuit breaker opened:', circuitOpened);
+    // eslint-disable-next-line no-console
     console.log('Circuit breaker status:', wrapper.circuitBreakerStatus);
   },
 
@@ -783,12 +798,15 @@ export const exampleTests = {
       1
     );
     
+    // eslint-disable-next-line no-console
     console.log('Benchmark results:', benchmark);
     
-    const successful = (benchmark.result)
-      .filter(r => r.status === 'fulfilled').length;
+    const successful = benchmark.result
+      .filter((r): r is PromiseFulfilledResult<unknown> => r.status === 'fulfilled').length;
     
+    // eslint-disable-next-line no-console
     console.log(`Successful requests: ${successful}/${testData.length}`);
+    // eslint-disable-next-line no-console
     console.log(`Throughput: ${(successful / benchmark.totalTimeMs * 1000).toFixed(2)} requests/second`);
   },
 
@@ -799,6 +817,7 @@ export const exampleTests = {
     const scenarios = TestUtils.createFailureScenarios();
     
     for (const scenario of scenarios) {
+      // eslint-disable-next-line no-console
       console.log(`\nTesting scenario: ${scenario.name}`);
       
       const wrapper = new MockGitHubApiWrapper({}, scenario.name.includes('failure'), 0.7);
@@ -806,9 +825,11 @@ export const exampleTests = {
       
       try {
         await scenario.test(wrapper);
+        // eslint-disable-next-line no-console
         console.log('✓ Scenario completed');
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
+        // eslint-disable-next-line no-console
         console.log('✗ Scenario failed:', message);
       }
     }
