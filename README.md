@@ -15,6 +15,8 @@ A production-grade system for detecting, monitoring, and managing flaky tests in
 
 ## Quick Start with Docker Compose
 
+> **Package Manager Requirements**: FlakeGuard uses pnpm (>=8.0.0) as the required package manager. Other package managers are not supported.
+
 ### 1. Clone and Setup
 
 ```bash

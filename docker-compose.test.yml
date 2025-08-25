@@ -88,11 +88,11 @@ services:
         echo 'Generating test private key...' &&
         export GITHUB_PRIVATE_KEY=\"$(node /app/docker/scripts/generate-test-keys.js rsa-private)\" &&
         echo 'Waiting for database to be ready...' &&
-        npm run migrate:deploy &&
+        pnpm migrate:deploy &&
         echo 'Database migrations completed' &&
-        npm run seed &&
+        pnpm seed &&
         echo 'Database seeding completed' &&
-        npm run dev
+        pnpm dev
       "
 
   # FlakeGuard Web service for testing
@@ -134,7 +134,7 @@ services:
       sh -c "
         echo 'Generating NextAuth secret...' &&
         export NEXTAUTH_SECRET=\"$(node /app/docker/scripts/generate-test-keys.js jwt)\" &&
-        npm run dev
+        pnpm dev
       "
 
   # Background worker for testing
@@ -168,7 +168,7 @@ services:
       sh -c "
         echo 'Generating test private key...' &&
         export GITHUB_PRIVATE_KEY=\"$(node /app/docker/scripts/generate-test-keys.js rsa-private)\" &&
-        npm run dev
+        pnpm dev
       "
 
   # Test data seeder service

@@ -120,11 +120,11 @@ export default defineConfig({
       timeout: 120000,
     },
     {
-      command: 'docker-compose -f docker-compose.test.yml exec api npm run migrate:deploy',
+      command: 'docker-compose -f docker-compose.test.yml exec api pnpm migrate:deploy',
       timeout: 30000,
     },
     {
-      command: 'docker-compose -f docker-compose.test.yml exec api npm run seed',
+      command: 'docker-compose -f docker-compose.test.yml exec api pnpm seed',
       timeout: 30000,
     },
   ],

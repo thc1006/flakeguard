@@ -21,8 +21,8 @@
     "test:policy": "vitest run src/policy",
     "test:ingestion": "vitest run src/ingestion",
     "test:analytics": "vitest run src/analytics",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
-    "test:ci": "npm run test:unit && npm run test:integration",
+    "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
+    "test:ci": "pnpm test:unit && pnpm test:integration",
     "test:benchmark": "vitest run --config vitest.benchmark.config.ts",
     "test:containers": "USE_TEST_CONTAINERS=true vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit",
@@ -34,13 +34,13 @@
     "studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "sample-queries": "tsx prisma/sample-queries.ts",
-    "security:audit": "npm audit --audit-level high",
+    "security:audit": "pnpm audit --audit-level high",
     "security:scan": "npx snyk test",
     "security:secrets": "npx secretlint '**/*'",
     "security:deps": "npx audit-ci --high",
     "security:docker": "docker scout cves --format sarif --output security-report.sarif",
     "security:test": "vitest run src/plugins/__tests__/security.test.ts",
-    "security:all": "npm run security:audit && npm run security:deps && npm run security:test"
+    "security:all": "pnpm security:audit && pnpm security:deps && pnpm security:test"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
