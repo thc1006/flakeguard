@@ -33,7 +33,7 @@ WORKDIR /app
 RUN npm install -g pnpm@${PNPM_VERSION}
 
 # Copy package files for better caching
-COPY package.json pnpm-workspace.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
 
