@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
 
 import { OctokitHelpers, GitHubApiError, ArtifactDownloadError } from '../octokit-helpers.js';
+import { TestCrypto } from '../../../utils/test-crypto.js';
 
 // Mock dependencies
 vi.mock('@octokit/app', () => ({
@@ -27,6 +28,12 @@ vi.mock('os', () => ({
 vi.mock('path', () => ({
   join: vi.fn(),
 }));
+
+// Generate test secrets once for the entire test suite
+const testSecrets = {
+  privateKey: TestCrypto.generateBase64PrivateKey(), // Base64 encoded for this test
+  webhookSecret: TestCrypto.generateWebhookSecret(),
+};
 
 vi.mock('stream/promises', () => ({
   pipeline: vi.fn(),
@@ -76,8 +83,8 @@ describe('OctokitHelpers - P2', () => {
 
     octokitHelpers = new OctokitHelpers({
       githubAppId: '12345',
-      githubAppPrivateKey: Buffer.from('test-private-key').toString('base64'),
-      webhookSecret: 'test-webhook-secret',
+      githubAppPrivateKey: testSecrets.privateKey,
+      webhookSecret: testSecrets.webhookSecret,
     });
   });
 

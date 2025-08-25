@@ -128,7 +128,7 @@ receivers:
   - name: 'sre-oncall'
     # PagerDuty integration
     pagerduty_configs:
-      - routing_key: 'YOUR_PAGERDUTY_INTEGRATION_KEY'
+      - routing_key: 'EXAMPLE-PAGERDUTY-INTEGRATION-KEY'
         description: 'FlakeGuard {{ .GroupLabels.alertname }}'
         details:
           severity: '{{ .GroupLabels.severity }}'
@@ -143,7 +143,7 @@ receivers:
         
     # Slack integration for immediate visibility
     slack_configs:
-      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+      - api_url: 'https://hooks.slack.com/services/EXAMPLE/EXAMPLE/EXAMPLE'
         channel: '#sre-alerts'
         title: 'FlakeGuard Critical Alert'
         text: |
@@ -164,7 +164,7 @@ receivers:
   # API team critical alerts
   - name: 'api-team-critical'
     slack_configs:
-      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+      - api_url: 'https://hooks.slack.com/services/EXAMPLE/EXAMPLE/EXAMPLE'
         channel: '#api-team-alerts'
         title: 'API Critical Issue'
         text: |
@@ -186,7 +186,7 @@ receivers:
     
     # OpsGenie for database team
     opsgenie_configs:
-      - api_key: 'YOUR_OPSGENIE_API_KEY'
+      - api_key: 'EXAMPLE-OPSGENIE-API-KEY'
         teams: ['database-team']
         priority: 'P1'
         description: 'FlakeGuard database critical issue'
@@ -198,7 +198,7 @@ receivers:
   # Development team warnings (business hours)
   - name: 'dev-team-warnings'
     slack_configs:
-      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+      - api_url: 'https://hooks.slack.com/services/EXAMPLE/EXAMPLE/EXAMPLE'
         channel: '#flakeguard-alerts'
         title: 'FlakeGuard Warning'
         text: |
@@ -218,13 +218,13 @@ receivers:
   # Specialized team receivers
   - name: 'ingestion-team'
     slack_configs:
-      - api_url: 'YOUR_SLACK_WEBHOOK_URL'  
+      - api_url: 'https://hooks.slack.com/services/EXAMPLE/EXAMPLE/EXAMPLE'  
         channel: '#ingestion-alerts'
         title: 'Ingestion Pipeline Issue'
         
   - name: 'backend-team'
     slack_configs:
-      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+      - api_url: 'https://hooks.slack.com/services/EXAMPLE/EXAMPLE/EXAMPLE'
         channel: '#backend-alerts'
         title: 'Worker Performance Issue'
         
@@ -240,7 +240,7 @@ receivers:
   # Low-priority informational alerts
   - name: 'dev-team-info'
     slack_configs:
-      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+      - api_url: 'https://hooks.slack.com/services/EXAMPLE/EXAMPLE/EXAMPLE'
         channel: '#flakeguard-info'
         title: 'FlakeGuard Information'
         text: |

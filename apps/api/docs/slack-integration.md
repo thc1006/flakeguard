@@ -39,7 +39,7 @@ ENABLE_SLACK_APP=true
 
 # Required Slack credentials
 SLACK_SIGNING_SECRET="your-slack-signing-secret"
-SLACK_BOT_TOKEN="xoxb-your-bot-token"
+SLACK_BOT_TOKEN="xoxb-EXAMPLE-EXAMPLE-EXAMPLE-EXAMPLE"
 
 # Optional: Slack app server port (default: 3001)
 SLACK_PORT=3001
@@ -284,7 +284,7 @@ ENABLE_SLACK_APP=true
 
 # Use production URLs
 SLACK_SIGNING_SECRET="prod-signing-secret"
-SLACK_BOT_TOKEN="xoxb-prod-bot-token"
+SLACK_BOT_TOKEN="xoxb-EXAMPLE-PRODUCTION-TOKEN-HERE"
 
 # Production server settings
 SLACK_PORT=3001

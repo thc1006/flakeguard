@@ -17,6 +17,7 @@ import { FlakinessScorer } from '../../analytics/flakiness.js';
 import { GitHubAuthManager } from '../../github/auth.js';
 import { CheckRunHandler } from '../../github/handlers.js';
 import { FlakeGuardSlackApp } from '../app.js';
+import { TestCrypto } from '@flakeguard/shared/utils';
 
 
 // Mock external services
@@ -37,8 +38,8 @@ describe('FlakeGuard Slack App Integration', () => {
   let mockFlakinessScorer: any;
   
   const mockConfig = {
-    signingSecret: 'test_signing_secret_for_integration',
-    token: 'xoxb-test-placeholder-token',
+    signingSecret: TestCrypto.generateSlackSigningSecret(),
+    token: TestCrypto.generateBotToken(),
     port: 3002
   };
 

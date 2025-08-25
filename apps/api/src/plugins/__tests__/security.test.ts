@@ -20,7 +20,17 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { buildApp } from '../../app.js';
 import { SecretsManager } from '../security.js';
+import { TestCrypto } from '@flakeguard/shared/utils';
 
+
+// Generate test secrets once for the entire test suite
+const testSecrets = {
+  jwtSecret: TestCrypto.generateJwtSecret(),
+  apiKey: TestCrypto.generateApiKey(),
+  clientSecret: TestCrypto.generateClientSecret(),
+  webhookSecret: TestCrypto.generateWebhookSecret(),
+  slackSigningSecret: TestCrypto.generateSlackSigningSecret(),
+};
 
 describe('Security Plugin', () => {
   let app: FastifyInstance;
@@ -31,16 +41,16 @@ describe('Security Plugin', () => {
     // Create temporary directory for test secrets
     tempDir = fs.mkdtempSync(path.join(tmpdir(), 'flakeguard-security-test-'));
     
-    // Set up test environment variables
+    // Set up test environment variables with runtime-generated secrets
     process.env.NODE_ENV = 'test';
     process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
     process.env.REDIS_URL = 'redis://localhost:6379';
-    process.env.JWT_SECRET = 'test-jwt-secret-32-characters-long';
-    process.env.API_KEY = 'test-api-key-16-chars';
+    process.env.JWT_SECRET = testSecrets.jwtSecret;
+    process.env.API_KEY = testSecrets.apiKey;
     process.env.GITHUB_APP_ID = '123456';
     process.env.GITHUB_CLIENT_ID = 'Iv1.test123456';
-    process.env.GITHUB_CLIENT_SECRET = 'test-client-secret';
-    process.env.GITHUB_WEBHOOK_SECRET = 'test-webhook-secret';
+    process.env.GITHUB_CLIENT_SECRET = testSecrets.clientSecret;
+    process.env.GITHUB_WEBHOOK_SECRET = testSecrets.webhookSecret;
     
     // Build app with security plugin
     app = await buildApp();
@@ -67,18 +77,22 @@ describe('Security Plugin', () => {
       const secretsManager = new SecretsManager();
       
       expect(secretsManager.hasSecret('JWT_SECRET')).toBe(true);
-      expect(secretsManager.getSecret('JWT_SECRET')).toBe('test-jwt-secret-32-characters-long');
+      expect(secretsManager.getSecret('JWT_SECRET')).toBe(testSecrets.jwtSecret);
       expect(secretsManager.hasSecret('API_KEY')).toBe(true);
-      expect(secretsManager.getSecret('API_KEY')).toBe('test-api-key-16-chars');
+      expect(secretsManager.getSecret('API_KEY')).toBe(testSecrets.apiKey);
     });
 
     it('should load secrets from files when _FILE env var is set', () => {
+      // Generate secrets for file-based test
+      const fileJwtSecret = TestCrypto.generateJwtSecret();
+      const fileApiKey = TestCrypto.generateApiKey();
+      
       // Create test secret files
       const jwtSecretFile = path.join(tempDir, 'jwt-secret.txt');
       const apiKeyFile = path.join(tempDir, 'api-key.txt');
       
-      fs.writeFileSync(jwtSecretFile, 'file-based-jwt-secret-32-chars-long');
-      fs.writeFileSync(apiKeyFile, 'file-based-api-key-16');
+      fs.writeFileSync(jwtSecretFile, fileJwtSecret);
+      fs.writeFileSync(apiKeyFile, fileApiKey);
       
       // Set file paths
       process.env.JWT_SECRET_FILE = jwtSecretFile;
@@ -86,8 +100,8 @@ describe('Security Plugin', () => {
       
       const secretsManager = new SecretsManager();
       
-      expect(secretsManager.getSecret('JWT_SECRET')).toBe('file-based-jwt-secret-32-chars-long');
-      expect(secretsManager.getSecret('API_KEY')).toBe('file-based-api-key-16');
+      expect(secretsManager.getSecret('JWT_SECRET')).toBe(fileJwtSecret);
+      expect(secretsManager.getSecret('API_KEY')).toBe(fileApiKey);
       
       // Clean up
       delete process.env.JWT_SECRET_FILE;
@@ -95,12 +109,16 @@ describe('Security Plugin', () => {
     });
 
     it('should load secrets from Docker secrets directory', () => {
+      // Generate secrets for Docker test
+      const dockerJwtSecret = TestCrypto.generateJwtSecret();
+      const dockerApiKey = TestCrypto.generateApiKey();
+      
       // Create mock Docker secrets directory
       const dockerSecretsDir = path.join(tempDir, 'run', 'secrets');
       fs.mkdirSync(dockerSecretsDir, { recursive: true });
       
-      fs.writeFileSync(path.join(dockerSecretsDir, 'jwt_secret'), 'docker-jwt-secret-32-characters');
-      fs.writeFileSync(path.join(dockerSecretsDir, 'api_key'), 'docker-api-key-16ch');
+      fs.writeFileSync(path.join(dockerSecretsDir, 'jwt_secret'), dockerJwtSecret);
+      fs.writeFileSync(path.join(dockerSecretsDir, 'api_key'), dockerApiKey);
       
       const secretsManager = new SecretsManager({
         dockerSecretsPath: dockerSecretsDir,
@@ -116,8 +134,8 @@ describe('Security Plugin', () => {
         dockerSecretsPath: dockerSecretsDir,
       });
       
-      expect(newSecretsManager.getSecret('JWT_SECRET')).toBe('docker-jwt-secret-32-characters');
-      expect(newSecretsManager.getSecret('API_KEY')).toBe('docker-api-key-16ch');
+      expect(newSecretsManager.getSecret('JWT_SECRET')).toBe(dockerJwtSecret);
+      expect(newSecretsManager.getSecret('API_KEY')).toBe(dockerApiKey);
       
       // Restore env vars
       process.env.JWT_SECRET = originalJwtSecret!;
@@ -143,7 +161,7 @@ describe('Security Plugin', () => {
 
   describe('Webhook Signature Verification', () => {
     const testPayload = JSON.stringify({ test: 'payload' });
-    const webhookSecret = 'test-webhook-secret';
+    const webhookSecret = testSecrets.webhookSecret;
 
     it('should verify valid GitHub webhook signatures', async () => {
       const signature = 'sha256=' + crypto
@@ -188,12 +206,12 @@ describe('Security Plugin', () => {
       const timestamp = Math.floor(Date.now() / 1000).toString();
       const sigBaseString = `v0:${timestamp}:${testPayload}`;
       const signature = 'v0=' + crypto
-        .createHmac('sha256', 'test-slack-secret')
+        .createHmac('sha256', testSecrets.slackSigningSecret)
         .update(sigBaseString)
         .digest('hex');
       
       // Mock Slack signing secret
-      process.env.SLACK_SIGNING_SECRET = 'test-slack-secret';
+      process.env.SLACK_SIGNING_SECRET = testSecrets.slackSigningSecret;
       
       const response = await app.inject({
         method: 'POST',
@@ -216,11 +234,11 @@ describe('Security Plugin', () => {
       const oldTimestamp = (Math.floor(Date.now() / 1000) - 600).toString();
       const sigBaseString = `v0:${oldTimestamp}:${testPayload}`;
       const signature = 'v0=' + crypto
-        .createHmac('sha256', 'test-slack-secret')
+        .createHmac('sha256', testSecrets.slackSigningSecret)
         .update(sigBaseString)
         .digest('hex');
       
-      process.env.SLACK_SIGNING_SECRET = 'test-slack-secret';
+      process.env.SLACK_SIGNING_SECRET = testSecrets.slackSigningSecret;
       
       const response = await app.inject({
         method: 'POST',
@@ -415,7 +433,7 @@ describe('Webhook Signature Verification Functions', () => {
   describe('GitHub signature verification', () => {
     it('should verify valid signatures', () => {
       const payload = 'test payload';
-      const secret = 'test-secret';
+      const secret = TestCrypto.generateWebhookSecret();
       const signature = 'sha256=' + crypto
         .createHmac('sha256', secret)
         .update(payload)
@@ -436,7 +454,7 @@ describe('Webhook Signature Verification Functions', () => {
     it('should verify valid signatures with timestamp', () => {
       const payload = 'test payload';
       const timestamp = Math.floor(Date.now() / 1000).toString();
-      const signingSecret = 'test-signing-secret';
+      const signingSecret = TestCrypto.generateSlackSigningSecret();
       
       const sigBaseString = `v0:${timestamp}:${payload}`;
       const signature = 'v0=' + crypto

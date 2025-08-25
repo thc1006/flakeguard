@@ -15,6 +15,7 @@ import nock from 'nock';
 import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
 
 import githubAppPlugin from '../index.js';
+import { TestCrypto } from '@flakeguard/shared/utils';
 
 import { createTestMocks ,
   createMockCheckRunPayload,
@@ -26,6 +27,12 @@ import { createTestMocks ,
   signWebhookPayload,
 } from './mocks.js';
 
+// Generate test secrets once for the entire test suite
+const testSecrets = {
+  privateKey: TestCrypto.generateGitHubAppPrivateKey(),
+  webhookSecret: TestCrypto.generateWebhookSecret(),
+  clientSecret: TestCrypto.generateClientSecret(),
+};
 
 describe('GitHub App Plugin', () => {
   let fastify: FastifyInstance;
@@ -52,15 +59,15 @@ describe('GitHub App Plugin', () => {
       fastify.decorate('prisma', mockPrisma);
     });
 
-    // Mock environment configuration
+    // Mock environment configuration with runtime-generated secrets
     vi.mock('../config/index.js', () => ({
       config: {
         github: {
           appId: 12345,
-          privateKey: '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA...\n-----END RSA PRIVATE KEY-----',
-          webhookSecret: 'test-webhook-secret',
+          privateKey: testSecrets.privateKey,
+          webhookSecret: testSecrets.webhookSecret,
           clientId: 'test-client-id',
-          clientSecret: 'test-client-secret',
+          clientSecret: testSecrets.clientSecret,
         },
       },
     }));
@@ -123,7 +130,7 @@ describe('GitHub App Plugin', () => {
           conclusion: 'failure',
         });
 
-        const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+        const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
         const response = await fastify.inject({
           method: 'POST',
@@ -188,7 +195,7 @@ describe('GitHub App Plugin', () => {
           confidenceLevel: 'high',
         });
 
-        const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+        const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
         const response = await fastify.inject({
           method: 'POST',
@@ -230,7 +237,7 @@ describe('GitHub App Plugin', () => {
 
         testMocks.flakeDetector.updateFlakeStatus.mockResolvedValue();
 
-        const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+        const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
         const response = await fastify.inject({
           method: 'POST',
@@ -302,7 +309,7 @@ describe('GitHub App Plugin', () => {
           },
         ]);
 
-        const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+        const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
         const response = await fastify.inject({
           method: 'POST',
@@ -368,7 +375,7 @@ describe('GitHub App Plugin', () => {
           ],
         });
 
-        const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+        const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
         const response = await fastify.inject({
           method: 'POST',
@@ -424,7 +431,7 @@ describe('GitHub App Plugin', () => {
           ],
         });
 
-        const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+        const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
         const response = await fastify.inject({
           method: 'POST',
@@ -474,7 +481,7 @@ describe('GitHub App Plugin', () => {
           },
         });
 
-        const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+        const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
         const response = await fastify.inject({
           method: 'POST',
@@ -534,7 +541,7 @@ describe('GitHub App Plugin', () => {
 
     it('should reject webhook with unsupported event type', async () => {
       const payload = { action: 'unknown' };
-      const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+      const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -553,7 +560,7 @@ describe('GitHub App Plugin', () => {
 
     it('should reject webhook with invalid payload', async () => {
       const payload = { invalid: 'payload' };
-      const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+      const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -576,7 +583,7 @@ describe('GitHub App Plugin', () => {
       mockPrisma.checkRun.upsert = vi.fn().mockRejectedValue(new Error('Database connection failed'));
 
       const payload = createMockCheckRunPayload('created');
-      const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+      const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -603,7 +610,7 @@ describe('GitHub App Plugin', () => {
       const payload = createMockCheckRunPayload('completed', {
         conclusion: 'failure',
       });
-      const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+      const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -625,7 +632,7 @@ describe('GitHub App Plugin', () => {
   describe('Rate Limiting', () => {
     it('should apply rate limiting to webhook endpoint', async () => {
       const payload = createMockCheckRunPayload('created');
-      const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+      const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
       // Make multiple rapid requests
       const requests = Array.from({ length: 5 }, () =>
@@ -654,7 +661,7 @@ describe('GitHub App Plugin', () => {
   describe('Metrics and Monitoring', () => {
     it('should emit metrics for webhook events', async () => {
       const payload = createMockCheckRunPayload('created');
-      const signature = signWebhookPayload(JSON.stringify(payload), 'test-webhook-secret');
+      const signature = signWebhookPayload(JSON.stringify(payload), testSecrets.webhookSecret);
 
       const response = await fastify.inject({
         method: 'POST',
@@ -692,10 +699,10 @@ describe('API Endpoints', () => {
       config: {
         github: {
           appId: 12345,
-          privateKey: '-----BEGIN RSA PRIVATE KEY-----\ntest\n-----END RSA PRIVATE KEY-----',
-          webhookSecret: 'test-secret',
+          privateKey: testSecrets.privateKey,
+          webhookSecret: testSecrets.webhookSecret,
           clientId: 'test-client',
-          clientSecret: 'test-secret',
+          clientSecret: testSecrets.clientSecret,
         },
       },
     }));

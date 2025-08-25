@@ -14,6 +14,7 @@ import { GitHubAuthManager } from '../auth.js';
 import { createFlakeDetector } from '../flake-detector.js';
 import { CheckRunHandler, WorkflowRunHandler } from '../handlers.js';
 import { GitHubHelpers } from '../helpers.js';
+import { TestCrypto } from '@flakeguard/shared/utils';
 import type {
   CheckRunWebhookPayload,
   WorkflowRunWebhookPayload,
@@ -23,6 +24,13 @@ import type {
 
 // Mock GitHub API base URL
 const GITHUB_API_BASE = 'https://api.github.com';
+
+// Generate test secrets once for the entire test suite
+const testSecrets = {
+  privateKey: TestCrypto.generateGitHubAppPrivateKey(),
+  webhookSecret: TestCrypto.generateWebhookSecret(),
+  githubToken: TestCrypto.generateGitHubToken(),
+};
 
 describe('GitHub Integration Tests', () => {
   let prisma: PrismaClient;
@@ -62,12 +70,10 @@ describe('GitHub Integration Tests', () => {
   beforeEach(async () => {
     prisma = testDb.prisma;
     
-    // Set up test environment
+    // Set up test environment with runtime-generated secrets
     process.env.GITHUB_APP_ID = 'test-app-id';
-    process.env.GITHUB_PRIVATE_KEY = `-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
------END PRIVATE KEY-----`;
-    process.env.GITHUB_WEBHOOK_SECRET = 'test-webhook-secret';
+    process.env.GITHUB_PRIVATE_KEY = testSecrets.privateKey;
+    process.env.GITHUB_WEBHOOK_SECRET = testSecrets.webhookSecret;
 
     // Initialize components
     authManager = new GitHubAuthManager();
@@ -137,7 +143,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
       nock(GITHUB_API_BASE)
         .post('/app/installations/12345/access_tokens')
         .reply(200, {
-          token: 'ghs_test_token_123',
+          token: testSecrets.githubToken,
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         });
 
@@ -200,7 +206,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
       nock(GITHUB_API_BASE)
         .post('/app/installations/12345/access_tokens')
         .reply(200, {
-          token: 'ghs_test_token_123',
+          token: testSecrets.githubToken,
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         });
 
@@ -283,7 +289,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
       nock(GITHUB_API_BASE)
         .post('/app/installations/12345/access_tokens')
         .reply(200, {
-          token: 'ghs_test_token_123',
+          token: testSecrets.githubToken,
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         });
 
@@ -338,7 +344,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
       nock(GITHUB_API_BASE)
         .post('/app/installations/12345/access_tokens')
         .reply(200, {
-          token: 'ghs_test_token_123',
+          token: testSecrets.githubToken,
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         });
 
@@ -401,7 +407,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
       nock(GITHUB_API_BASE)
         .post('/app/installations/12345/access_tokens')
         .reply(200, {
-          token: 'ghs_test_token_123',
+          token: testSecrets.githubToken,
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         });
 
@@ -524,7 +530,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
       nock(GITHUB_API_BASE)
         .post('/app/installations/12345/access_tokens')
         .reply(200, {
-          token: 'ghs_test_token_123',
+          token: testSecrets.githubToken,
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         });
 
@@ -647,7 +653,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
       nock(GITHUB_API_BASE)
         .post('/app/installations/12345/access_tokens')
         .reply(200, {
-          token: 'ghs_test_token_123',
+          token: testSecrets.githubToken,
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         });
 
@@ -833,7 +839,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
       nock(GITHUB_API_BASE)
         .post('/app/installations/12345/access_tokens')
         .reply(200, {
-          token: 'ghs_test_token_123',
+          token: testSecrets.githubToken,
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         });
 
@@ -918,7 +924,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
       nock(GITHUB_API_BASE)
         .post('/app/installations/12345/access_tokens')
         .reply(200, {
-          token: 'ghs_test_token_123',
+          token: testSecrets.githubToken,
           expires_at: new Date(Date.now() + 3600000).toISOString(),
         });
 

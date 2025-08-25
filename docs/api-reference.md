@@ -14,7 +14,7 @@ Complete API documentation for FlakeGuard's REST API endpoints.
 ### API Key Authentication
 
 ```http
-Authorization: Bearer your-api-key
+Authorization: Bearer EXAMPLE-API-KEY-HERE
 ```
 
 ### GitHub App Authentication

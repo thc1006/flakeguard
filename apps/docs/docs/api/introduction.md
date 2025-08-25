@@ -32,11 +32,11 @@ The API uses URL-based versioning with the version number included in the path:
 Obtain an API token from your FlakeGuard dashboard:
 
 ```bash
-# Set your API token
-export FLAKEGUARD_TOKEN="fg_1234567890abcdef"
+# Set your API token (example)
+export FLAKEGUARD_TOKEN="fg_EXAMPLE_TOKEN_1234567890abcdef"
 
 # Test authentication
-curl -H "Authorization: Bearer $FLAKEGUARD_TOKEN" \
+curl -H "Authorization: $(printf '%s' "Bearer $FLAKEGUARD_TOKEN")" \
      https://api.flakeguard.dev/v1/user
 ```
 
@@ -46,7 +46,7 @@ Submit JUnit XML test results for analysis:
 
 ```bash
 curl -X POST \
-  -H "Authorization: Bearer $FLAKEGUARD_TOKEN" \
+  -H "Authorization: $(printf '%s' "Bearer $FLAKEGUARD_TOKEN")" \
   -H "Content-Type: application/xml" \
   -H "X-Repository-Id: owner/repo" \
   -H "X-Run-Id: workflow-run-123" \
@@ -59,7 +59,7 @@ curl -X POST \
 Retrieve flakiness analysis for your tests:
 
 ```bash
-curl -H "Authorization: Bearer $FLAKEGUARD_TOKEN" \
+curl -H "Authorization: $(printf '%s' "Bearer $FLAKEGUARD_TOKEN")" \
      "https://api.flakeguard.dev/v1/repositories/owner%2Frepo/analysis?limit=10"
 ```
 
@@ -172,7 +172,7 @@ FlakeGuard API uses standard HTTP status codes:
 
 #### Required Headers
 ```http
-Authorization: Bearer fg_1234567890abcdef
+Authorization: Bearer fg_EXAMPLE_TOKEN_1234567890abcdef
 Content-Type: application/json
 Accept: application/json
 ```

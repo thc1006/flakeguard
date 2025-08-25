@@ -56,11 +56,7 @@ services:
       DATABASE_URL: postgresql://test_user:test_password@postgres-test:5432/flakeguard_test
       REDIS_URL: redis://redis-test:6379
       GITHUB_APP_ID: test-app-id
-      GITHUB_PRIVATE_KEY: |
-        -----BEGIN PRIVATE KEY-----
-        FAKE_TEST_KEY_FOR_TESTING_ONLY_DO_NOT_USE_IN_PRODUCTION
-        REPLACE_WITH_ACTUAL_TEST_KEY_CONTENT_FOR_REAL_TESTING
-        -----END PRIVATE KEY-----
+      GITHUB_PRIVATE_KEY_GENERATE: "true"
       GITHUB_WEBHOOK_SECRET: test-webhook-secret-12345
       SLACK_BOT_TOKEN: xoxb-test-slack-token
       SLACK_SIGNING_SECRET: test-slack-signing-secret
@@ -71,6 +67,7 @@ services:
       - ./apps/api/src:/app/src:ro
       - ./apps/api/prisma:/app/prisma:ro
       - ./packages/shared:/app/packages/shared:ro
+      - ./docker/scripts:/app/docker/scripts:ro
     ports:
       - "3001:3001"
     depends_on:
@@ -88,6 +85,8 @@ services:
       - flakeguard-test
     command: >
       sh -c "
+        echo 'Generating test private key...' &&
+        export GITHUB_PRIVATE_KEY=\"$(node /app/docker/scripts/generate-test-keys.js rsa-private)\" &&
         echo 'Waiting for database to be ready...' &&
         npm run migrate:deploy &&
         echo 'Database migrations completed' &&
@@ -107,7 +106,7 @@ services:
       NODE_ENV: test
       PORT: 3000
       NEXTAUTH_URL: http://localhost:3000
-      NEXTAUTH_SECRET: test-nextauth-secret-12345
+      NEXTAUTH_SECRET_GENERATE: "true"
       GITHUB_CLIENT_ID: test-github-client-id
       GITHUB_CLIENT_SECRET: test-github-client-secret
       API_URL: http://api-test:3001
@@ -117,6 +116,7 @@ services:
       - ./apps/web/src:/app/src:ro
       - ./apps/web/messages:/app/messages:ro
       - ./packages/shared:/app/packages/shared:ro
+      - ./docker/scripts:/app/docker/scripts:ro
     ports:
       - "3000:3000"
     depends_on:
@@ -130,7 +130,12 @@ services:
       start_period: 30s
     networks:
       - flakeguard-test
-    command: npm run dev
+    command: >
+      sh -c "
+        echo 'Generating NextAuth secret...' &&
+        export NEXTAUTH_SECRET=\"$(node /app/docker/scripts/generate-test-keys.js jwt)\" &&
+        npm run dev
+      "
 
   # Background worker for testing
   worker-test:
@@ -144,17 +149,14 @@ services:
       DATABASE_URL: postgresql://test_user:test_password@postgres-test:5432/flakeguard_test
       REDIS_URL: redis://redis-test:6379
       GITHUB_APP_ID: test-app-id
-      GITHUB_PRIVATE_KEY: |
-        -----BEGIN PRIVATE KEY-----
-        MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC5f5QWxMRbYbww
-        Test Private Key Content (Replace with actual test key)
-        -----END PRIVATE KEY-----
+      GITHUB_PRIVATE_KEY_GENERATE: "true"
       SLACK_BOT_TOKEN: xoxb-test-slack-token
       LOG_LEVEL: debug
       MAX_CONCURRENCY: 2
     volumes:
       - ./apps/worker/src:/app/src:ro
       - ./packages/shared:/app/packages/shared:ro
+      - ./docker/scripts:/app/docker/scripts:ro
     depends_on:
       postgres-test:
         condition: service_healthy
@@ -162,7 +164,12 @@ services:
         condition: service_healthy
     networks:
       - flakeguard-test
-    command: npm run dev
+    command: >
+      sh -c "
+        echo 'Generating test private key...' &&
+        export GITHUB_PRIVATE_KEY=\"$(node /app/docker/scripts/generate-test-keys.js rsa-private)\" &&
+        npm run dev
+      "
 
   # Test data seeder service
   test-seeder:

@@ -8,6 +8,7 @@ import { createSlackConfig } from '../config.js';
 import { SlackMessageBuilder } from '../message-builder.js';
 import { SlackService } from '../service.js';
 import type { FlakeNotification, SlackConfig } from '../types.js';
+import { TestCrypto } from '@flakeguard/shared/utils';
 
 vi.mock('@slack/web-api', () => ({
   WebClient: vi.fn().mockImplementation(() => ({
@@ -29,8 +30,8 @@ describe('Slack Integration Performance Tests', () => {
   beforeEach(() => {
     config = {
       ...createSlackConfig(),
-      botToken: 'xoxb-test-token',
-      signingSecret: 'test-secret',
+      botToken: TestCrypto.generateBotToken(),
+      signingSecret: TestCrypto.generateSlackSigningSecret(),
       performance: {
         connectionPoolSize: 3,
         maxConcurrentMessages: 10,

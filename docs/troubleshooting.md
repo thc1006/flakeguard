@@ -419,14 +419,18 @@ GitHub App installation issues
 # - Actions: Read  
 # - Contents: Read
 
+# Set your tokens (examples)
+export GITHUB_JWT='eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.EXAMPLE_JWT_TOKEN_PAYLOAD.EXAMPLE_SIGNATURE'
+export INSTALLATION_TOKEN='ghs_EXAMPLE_INSTALLATION_TOKEN_123456789abcdef'
+
 # Check installation status
-curl -H "Authorization: Bearer $GITHUB_JWT" \
+curl -H "Authorization: $(printf '%s' "Bearer $GITHUB_JWT")" \
      -H "Accept: application/vnd.github.v3+json" \
      https://api.github.com/app/installations
 
 # Test check run creation
 curl -X POST \
-     -H "Authorization: Bearer $INSTALLATION_TOKEN" \
+     -H "Authorization: $(printf '%s' "Bearer $INSTALLATION_TOKEN")" \
      -H "Accept: application/vnd.github.v3+json" \
      https://api.github.com/repos/OWNER/REPO/check-runs \
      -d '{"name":"Test Check","head_sha":"SHA"}'

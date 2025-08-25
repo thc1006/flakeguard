@@ -121,7 +121,7 @@ REDIS_PASSWORD=secure_password
 
 # 安全設定
 JWT_SECRET=your-super-secure-jwt-secret-minimum-32-chars
-API_KEY=your-api-key-minimum-16-chars
+API_KEY=EXAMPLE-API-KEY-MINIMUM-16-CHARACTERS
 WEBHOOK_SECRET=your-webhook-secret
 ```
 
@@ -134,9 +134,9 @@ GITHUB_WEBHOOK_SECRET=your-github-webhook-secret
 
 #### Slack 整合（可選）
 ```env
-SLACK_BOT_TOKEN=xoxb-your-bot-token
+SLACK_BOT_TOKEN=xoxb-EXAMPLE-EXAMPLE-EXAMPLE-EXAMPLE
 SLACK_SIGNING_SECRET=your-signing-secret
-SLACK_APP_TOKEN=xapp-your-app-token
+SLACK_APP_TOKEN=xapp-EXAMPLE-EXAMPLE-EXAMPLE-EXAMPLE
 ```
 
 ### 生產環境安全設定

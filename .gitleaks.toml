@@ -1,0 +1,31 @@
+# Gitleaks Configuration - Minimal Security-Focused Allowlist
+# This configuration provides a minimal, auditable allowlist for clearly-marked examples only
+# Any production secrets or credentials should be caught by the scanners
+
+# Use default Gitleaks rules as baseline
+[extend]
+useDefault = true
+
+# Minimal allowlist for clearly-marked examples only
+[allowlist]
+description = "Allowlist for clearly-marked examples and test content"
+
+# Allowed paths for example content
+paths = [
+    '''apps/docs/.*''',
+    '''docs/.*''',
+    '''README\.md''',
+    '''.*/__tests__/.*''',
+    '''docker-compose\.test\.yml''',
+    '''scripts/test-gitleaks\.ps1'''
+]
+
+# Allowed regex patterns for examples
+regexes = [
+    '''EXAMPLE_[A-Z_]+''',
+    '''<EXAMPLE_[A-Z_]+>''',
+    '''https://hooks\.slack\.com/services/.*/EXAMPLE''',
+    '''postgresql://postgres:postgres@.*''',
+    '''redis://redis:6379.*''',
+    '''(FAKE_|TEST_)[A-Z_]+'''
+]

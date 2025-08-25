@@ -10,10 +10,11 @@ import Fastify from 'fastify';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { githubWebhookRoutes } from '../github-webhook.js';
+import { TestCrypto } from '@flakeguard/shared/utils';
 
 describe('GitHub Webhook Routes - P1', () => {
   let app: ReturnType<typeof Fastify>;
-  const webhookSecret = 'test-webhook-secret';
+  const webhookSecret = TestCrypto.generateWebhookSecret();
 
   beforeEach(async () => {
     // Set up environment

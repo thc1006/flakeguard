@@ -24,7 +24,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$ConfigPath = ".github/security/gitleaks.toml",
+    [string]$ConfigPath = ".gitleaks.toml",
     [switch]$Force
 )
 

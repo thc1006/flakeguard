@@ -94,7 +94,7 @@ Enable the following webhook events:
 2. **Store the Private Key**
    ```bash
    # Move to secure location
-   mv ~/Downloads/your-app-name.2024-01-15.private-key.pem /path/to/secure/location/
+   mv ~/Downloads/example-app-name.YYYY-MM-DD.private-key.pem /path/to/secure/location/
    
    # Set proper permissions
    chmod 600 /path/to/secure/location/github-app-private-key.pem
@@ -107,7 +107,7 @@ Add the GitHub App configuration to your FlakeGuard environment:
 ```bash
 # .env file
 GITHUB_APP_ID=123456
-GITHUB_APP_PRIVATE_KEY="YOUR_GITHUB_APP_PRIVATE_KEY_HERE"
+GITHUB_APP_PRIVATE_KEY="EXAMPLE-GITHUB-APP-PRIVATE-KEY-HERE"
 GITHUB_WEBHOOK_SECRET=your-generated-webhook-secret
 GITHUB_APP_NAME=FlakeGuard-YourOrgName
 ```
@@ -428,14 +428,17 @@ console.log('Generated JWT:', token);
 3. Check repository access
 
 ```bash
+# Set your JWT token (example)
+export GITHUB_JWT='eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.EXAMPLE_JWT_TOKEN_PAYLOAD.EXAMPLE_SIGNATURE'
+
 # List installations
-curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+curl -H "Authorization: $(printf '%s' "Bearer $GITHUB_JWT")" \
      -H "Accept: application/vnd.github.v3+json" \
      https://api.github.com/app/installations
 
 # Get installation token
 curl -X POST \
-     -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+     -H "Authorization: $(printf '%s' "Bearer $GITHUB_JWT")" \
      -H "Accept: application/vnd.github.v3+json" \
      https://api.github.com/app/installations/INSTALLATION_ID/access_tokens
 ```

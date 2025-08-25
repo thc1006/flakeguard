@@ -843,9 +843,9 @@ NODE_ENV=production
 DATABASE_URL=postgresql://user:pass@prod-host:5432/flakeguard
 REDIS_URL=redis://prod-host:6379
 JWT_SECRET=your-production-jwt-secret-32-chars-minimum
-API_KEY=your-production-api-key-16-chars-minimum
+API_KEY=EXAMPLE-PRODUCTION-API-KEY-16-CHARS-MIN
 GITHUB_APP_ID=123456
-GITHUB_APP_PRIVATE_KEY="YOUR_GITHUB_APP_PRIVATE_KEY_HERE"
+GITHUB_APP_PRIVATE_KEY="EXAMPLE-GITHUB-APP-PRIVATE-KEY-HERE"
 GITHUB_WEBHOOK_SECRET=your-webhook-secret
 LOG_LEVEL=info
 ```

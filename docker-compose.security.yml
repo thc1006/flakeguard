@@ -444,7 +444,7 @@ secrets:
 # 1. Create secrets directory and files:
 #    mkdir -p secrets
 #    echo "your-jwt-secret" > secrets/jwt-secret.txt
-#    echo "your-api-key" > secrets/api-key.txt
+#    echo "EXAMPLE-API-KEY" > secrets/api-key.txt
 #    # ... add other secrets
 # 
 # 2. Set environment variables:

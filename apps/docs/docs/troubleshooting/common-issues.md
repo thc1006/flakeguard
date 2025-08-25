@@ -57,8 +57,11 @@ First, confirm the button click is registered:
 Verify your GitHub App webhook settings:
 
 ```bash
+# Set your GitHub token (example)
+export GITHUB_TOKEN='ghp_EXAMPLE_TOKEN_123456789abcdefghijklmnopqrstuvwxyz'
+
 # Check current webhook configuration
-curl -H "Authorization: token YOUR_GITHUB_TOKEN" \
+curl -H "Authorization: $(printf '%s' "token $GITHUB_TOKEN")" \
      -H "Accept: application/vnd.github.v3+json" \
      https://api.github.com/app/hook/config
 ```
@@ -266,9 +269,12 @@ docker logs flakeguard-worker | grep -i "github\|check.*run\|api.*error" | tail 
 **To test GitHub API access:**
 
 ```bash
+# Set your installation token (example)
+export INSTALLATION_TOKEN='ghs_EXAMPLE_INSTALLATION_TOKEN_123456789abcdef'
+
 # Test Check Run update manually
 curl -X PATCH \
-  -H "Authorization: token YOUR_INSTALLATION_TOKEN" \
+  -H "Authorization: $(printf '%s' "token $INSTALLATION_TOKEN")" \
   -H "Accept: application/vnd.github.v3+json" \
   https://api.github.com/repos/OWNER/REPO/check-runs/CHECK_RUN_ID \
   -d '{"status":"completed","conclusion":"success","output":{"title":"Test Update","summary":"Manual test"}}'
@@ -437,9 +443,12 @@ docker-compose restart api worker
 
 ### Test Action Manually
 ```bash
+# Set your API token (example)
+export API_TOKEN='fg_EXAMPLE_TOKEN_1234567890abcdef'
+
 # Trigger quarantine action via API
 curl -X POST https://your-domain.com/api/actions/quarantine \
-  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Authorization: $(printf '%s' "Bearer $API_TOKEN")" \
   -H "Content-Type: application/json" \
   -d '{
     "testId": "test-identifier", 

@@ -65,10 +65,10 @@ User Token Scopes:
 2. **Get Tokens**
    ```bash
    # Bot User OAuth Token (starts with xoxb-)
-   SLACK_BOT_TOKEN=xoxb-your-bot-token-here
+   SLACK_BOT_TOKEN=xoxb-EXAMPLE-EXAMPLE-EXAMPLE-EXAMPLE
    
    # User OAuth Token (starts with xoxp-) - Optional
-   SLACK_USER_TOKEN=xoxp-your-user-token-here
+   SLACK_USER_TOKEN=xoxp-EXAMPLE-EXAMPLE-EXAMPLE-EXAMPLE
    ```
 
 ### 4. Configure Incoming Webhooks (Optional)
@@ -83,7 +83,7 @@ For simpler notifications without interactive features:
 
 2. **Get Webhook URL**
    ```bash
-   SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+   SLACK_WEBHOOK_URL=https://hooks.slack.com/services/EXAMPLE/EXAMPLE/EXAMPLE
    ```
 
 ### 5. Environment Configuration
@@ -92,10 +92,10 @@ Add Slack configuration to your FlakeGuard environment:
 
 ```bash
 # .env file
-SLACK_BOT_TOKEN=xoxb-your-bot-token-here
+SLACK_BOT_TOKEN=xoxb-EXAMPLE-EXAMPLE-EXAMPLE-EXAMPLE
 SLACK_SIGNING_SECRET=your-slack-signing-secret
 SLACK_DEFAULT_CHANNEL=#dev-alerts
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/EXAMPLE/EXAMPLE/EXAMPLE
 
 # Optional: Team-specific channels
 SLACK_FRONTEND_CHANNEL=#frontend-team
