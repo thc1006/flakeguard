@@ -37,6 +37,13 @@ import type {
 } from './types.js';
 
 /**
+ * Type guard to check if value is a valid object
+ */
+function isValidObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
  * Enhanced GitHub API wrapper with comprehensive resilience patterns
  */
 export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
@@ -78,7 +85,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
       ? new Octokit({
           auth: async () => {
             const installationOctokit = await this.app.getInstallationOctokit(
-              this.config.app.installationId!
+              this.config.app.installationId as number
             );
             return installationOctokit.auth();
           },
@@ -132,7 +139,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
     
     const responseTimes = recentMetrics
       .filter(m => m.duration !== undefined)
-      .map(m => m.duration!)
+      .map(m => m.duration as number)
       .sort((a, b) => a - b);
     
     const avgResponseTime = responseTimes.length > 0 
@@ -342,7 +349,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
    */
   private async executeWithRetry<T>(options: RequestOptions, requestId: string): Promise<T> {
     const maxAttempts = this.config.retry.maxAttempts;
-    let lastError: Error | RequestError | unknown;
+    let lastError: Error | RequestError = new Error('Request failed');
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
@@ -381,7 +388,9 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
 
         return response.data as T;
       } catch (error) {
-        lastError = error;
+        lastError = error instanceof Error || error instanceof RequestError 
+          ? error 
+          : new Error(String(error));
 
         if (attempt === maxAttempts) {
           break; // Don't retry on last attempt
@@ -426,32 +435,34 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
       }
     }
 
-    throw lastError as Error;
+    throw lastError;
   }
 
   /**
    * Create request hook for Octokit
    */
   private createRequestHook() {
-    return (request: any, options: any) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (request: (opts: any) => Promise<any>, options: Record<string, unknown>) => {
       const sanitizedOptions = this.securityManager.sanitizeRequest(options);
       
       // Extract method and url safely from options for logging
-      const method = typeof options?.method === 'string' ? options.method : 'UNKNOWN';
-      const url = typeof options?.url === 'string' ? options.url : 'UNKNOWN';
+      const method = typeof options.method === 'string' ? options.method : 'UNKNOWN';
+      const url = typeof options.url === 'string' ? options.url : 'UNKNOWN';
+      const headers = isValidObject(options.headers) ? options.headers : {};
       
       this.config.logger.debug(
         {
           method,
           url,
-          headers: this.securityManager.sanitizeRequest(options.headers || {}),
+          headers: this.securityManager.sanitizeRequest(headers),
           sanitizedOptions,
         },
         'Making GitHub API request'
       );
 
       return request(options).then(
-        (response: any) => {
+        (response: { status: number; headers: Record<string, unknown>; data: unknown }) => {
           // Update rate limits
           this.updateRateLimits(response.headers, 'core');
           
@@ -459,11 +470,18 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
             ? this.securityManager.sanitizeResponse(response.data)
             : '[RESPONSE_DATA_HIDDEN]';
             
+          const rateLimitRemaining = typeof response.headers['x-ratelimit-remaining'] === 'string'
+            ? response.headers['x-ratelimit-remaining']
+            : undefined;
+          const rateLimitReset = typeof response.headers['x-ratelimit-reset'] === 'string'
+            ? response.headers['x-ratelimit-reset']
+            : undefined;
+            
           this.config.logger.debug(
             {
               status: response.status,
-              rateLimitRemaining: response.headers['x-ratelimit-remaining'],
-              rateLimitReset: response.headers['x-ratelimit-reset'],
+              rateLimitRemaining,
+              rateLimitReset,
               response: sanitizedResponse,
             },
             'GitHub API request completed'
@@ -584,7 +602,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
       
       // Remove old metrics
       while (this.requestMetrics.length > 0 && 
-             this.requestMetrics[0]!.startTime.getTime() < cutoff) {
+             this.requestMetrics[0] && this.requestMetrics[0].startTime.getTime() < cutoff) {
         this.requestMetrics.shift();
       }
       
