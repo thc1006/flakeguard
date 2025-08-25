@@ -5,7 +5,7 @@
   "description": "Production-grade monorepo for flakeguard",
   "engines": {
     "node": "^20.0.0",
-    "pnpm": ">=8.0.0"
+    "pnpm": ">=10.0.0"
   },
   "scripts": {
     "flakeguard:init": "node packages/cli/src/bin/cli.js",
@@ -39,7 +39,7 @@
     "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
-  "packageManager": "pnpm@8.15.1",
+  "packageManager": "pnpm@10.0.0",
   "license": "Apache-2.0",
   "bin": {
     "flakeguard-init": "packages/cli/src/bin/cli.js"
