@@ -229,13 +229,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      # TruffleHog secret scanning with official marketplace inputs
+      # For PR scans: uses base/head from pull_request payload
+      # For push/schedule: compares against HEAD~1 for recent changes
+      # Add excludes via .trufflehogignore file in repo root
       - name: Run TruffleHog OSS
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@v3.82.13
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-          extra_args: --debug --only-verified
+          base: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}
+          head: ${{ github.event.pull_request.head.sha || 'HEAD' }}
+          version: '3.90.5'
+          extra_args: --only-verified
 
       - name: Run GitLeaks
         uses: gitleaks/gitleaks-action@v2
