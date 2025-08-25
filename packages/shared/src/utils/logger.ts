@@ -39,7 +39,18 @@ class FlakeGuardLogger implements Logger {
 
   private formatMessage(level: LogLevel, message: string, context?: LogContext, error?: Error): string {
     const timestamp = new Date().toISOString();
-    const baseLog = {
+    const baseLog: {
+      timestamp: string;
+      level: string;
+      namespace: string;
+      message: string;
+      error?: {
+        name: string;
+        message: string;
+        stack?: string;
+      };
+      [key: string]: unknown;
+    } = {
       timestamp,
       level: level.toUpperCase(),
       namespace: this.namespace,

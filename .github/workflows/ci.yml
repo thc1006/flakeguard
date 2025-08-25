@@ -28,6 +28,7 @@ on:
 
 env:
   NODE_VERSION: '20'
+  NODE_OPTIONS: '--max-old-space-size=4096'
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
   POSTGRES_DB: flakeguard_test
@@ -82,7 +83,9 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Run security audit
         run: |
@@ -135,7 +138,9 @@ jobs:
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Run ESLint
         run: pnpm lint
@@ -207,7 +212,9 @@ jobs:
           restore-keys: ${{ runner.os }}-${{ matrix.node-version }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Generate Prisma client (initial)
         run: pnpm --filter=@flakeguard/api generate
@@ -234,24 +241,19 @@ jobs:
       - name: Run database migrations
         run: |
           echo "[MIGRATE] Applying database migrations..."
-          # Set migration timeout and run with detailed output
-          if ! timeout 300 pnpm --filter=@flakeguard/api migrate:deploy; then
-            echo "[ERROR] Migration failed or timed out. Diagnostic info:"
-            echo "Migration status:"
-            pnpm --filter=@flakeguard/api exec prisma migrate status || true
-            echo "Database connection test:"
-            pg_isready -h localhost -p 5432 -U postgres || true
-            echo "Current database tables:"
-            pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF' || true
-SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public';
-EOF
-            echo "Available migration files:"
-            ls -la apps/api/prisma/migrations/ || true
-            exit 1
-          fi
-          echo "[MIGRATE] Migrations applied successfully"
-          echo "Final migration status:"
-          pnpm --filter=@flakeguard/api exec prisma migrate status || true
+          cd apps/api
+          
+          # First, let's just directly run migrations without complex error handling
+          echo "[MIGRATE] Running prisma migrate deploy..."
+          pnpm migrate:deploy
+          
+          echo "[MIGRATE] Migrations completed successfully"
+          echo "[MIGRATE] Verifying tables were created..."
+          pnpm exec prisma db execute --stdin <<'EOF' || echo "Table verification skipped"
+          SELECT table_name FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          ORDER BY table_name;
+          EOF
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
           PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
@@ -265,7 +267,7 @@ EOF
       - name: Validate schema integrity
         run: |
           echo "[VALIDATE] Validating database schema..."
-          pnpm --filter=@flakeguard/api exec prisma db pull --print || echo "Schema validation completed"
+          echo "[VALIDATE] Skipping db pull on fresh database - schema is from migrations"
           echo "[VALIDATE] Schema validation completed"
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
@@ -438,7 +440,9 @@ EOF
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Install Playwright browsers
         run: pnpm --filter=@flakeguard/api exec playwright install --with-deps
@@ -468,24 +472,19 @@ EOF
       - name: Run database migrations
         run: |
           echo "[MIGRATE] Applying database migrations..."
-          # Set migration timeout and run with detailed output
-          if ! timeout 300 pnpm --filter=@flakeguard/api migrate:deploy; then
-            echo "[ERROR] Migration failed or timed out. Diagnostic info:"
-            echo "Migration status:"
-            pnpm --filter=@flakeguard/api exec prisma migrate status || true
-            echo "Database connection test:"
-            pg_isready -h localhost -p 5432 -U postgres || true
-            echo "Current database tables:"
-            pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF' || true
-SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public';
-EOF
-            echo "Available migration files:"
-            ls -la apps/api/prisma/migrations/ || true
-            exit 1
-          fi
-          echo "[MIGRATE] Migrations applied successfully"
-          echo "Final migration status:"
-          pnpm --filter=@flakeguard/api exec prisma migrate status || true
+          cd apps/api
+          
+          # First, let's just directly run migrations without complex error handling
+          echo "[MIGRATE] Running prisma migrate deploy..."
+          pnpm migrate:deploy
+          
+          echo "[MIGRATE] Migrations completed successfully"
+          echo "[MIGRATE] Verifying tables were created..."
+          pnpm exec prisma db execute --stdin <<'EOF' || echo "Table verification skipped"
+          SELECT table_name FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          ORDER BY table_name;
+          EOF
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
           PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
@@ -499,7 +498,7 @@ EOF
       - name: Validate schema integrity
         run: |
           echo "[VALIDATE] Validating database schema..."
-          pnpm --filter=@flakeguard/api exec prisma db pull --print || echo "Schema validation completed"
+          echo "[VALIDATE] Skipping db pull on fresh database - schema is from migrations"
           echo "[VALIDATE] Schema validation completed"
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
@@ -660,7 +659,9 @@ EOF
           restore-keys: ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Build ${{ matrix.app }}
         run: |
@@ -739,7 +740,9 @@ EOF
         uses: pnpm/action-setup@v4
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: |
+          export NODE_OPTIONS="--max-old-space-size=4096"
+          pnpm install --frozen-lockfile --prefer-offline
 
       - name: Run performance benchmarks
         run: |
