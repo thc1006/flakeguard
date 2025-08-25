@@ -92,7 +92,6 @@ jobs:
           path: ./
           base: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}
           head: ${{ github.event.pull_request.head.sha || 'HEAD' }}
-          version: '3.90.5'
           extra_args: --only-verified
 
       - name: Run license check
