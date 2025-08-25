@@ -10,8 +10,29 @@
  * - Comprehensive error handling and logging
  */
 
+import { QueueNames, JobPriorities } from '@flakeguard/shared';
 import type { PrismaClient } from '@prisma/client';
 import type { Queue } from 'bullmq';
+
+import { 
+  GitHubArtifactsIntegration,
+  createGitHubArtifactsIntegration,
+  IngestionJobConfig,
+  createTestResultsFilter
+} from '../ingestion/github-integration.js';
+import { JUnitIngestionService } from '../ingestion/junit.js';
+import { generateCorrelationId } from '../ingestion/utils.js';
+import { logger } from '../utils/logger.js';
+
+import { GitHubAuthManager } from './auth.js';
+import {
+  WEBHOOK_EVENTS,
+  CHECK_RUN_ACTION_CONFIGS,
+  FLAKE_DETECTION,
+  ERROR_MESSAGES,
+} from './constants.js';
+import { FlakeDetector, createFlakeDetector } from './flake-detector.js';
+import { GitHubHelpers } from './helpers.js';
 import type {
   CheckRunWebhookPayload,
   CheckSuiteWebhookPayload,
@@ -27,25 +48,6 @@ import {
   BaseWebhookProcessor,
   type WebhookProcessor,
 } from './webhook-router.js';
-import { FlakeDetector, createFlakeDetector } from './flake-detector.js';
-import { GitHubHelpers } from './helpers.js';
-import { GitHubAuthManager } from './auth.js';
-import {
-  WEBHOOK_EVENTS,
-  CHECK_RUN_ACTION_CONFIGS,
-  FLAKE_DETECTION,
-  ERROR_MESSAGES,
-} from './constants.js';
-import { logger } from '../utils/logger.js';
-import { 
-  GitHubArtifactsIntegration,
-  createGitHubArtifactsIntegration,
-  IngestionJobConfig,
-  createTestResultsFilter
-} from '../ingestion/github-integration.js';
-import { JUnitIngestionService } from '../ingestion/junit.js';
-import { QueueNames, JobPriorities } from '@flakeguard/shared';
-import { generateCorrelationId } from '../ingestion/utils.js';
 
 /**
  * Handler options interface

@@ -187,7 +187,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
   /**
    * Make authenticated API request with resilience
    */
-  async request<T = any>(options: RequestOptions): Promise<T> {
+  async request<T = unknown>(options: RequestOptions): Promise<T> {
     if (this.isShuttingDown) {
       throw new GitHubApiError(
         'SERVICE_UNAVAILABLE',
@@ -294,7 +294,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
 
     try {
       // Circuit breaker check
-      return await this.circuitBreaker.execute(async () => {
+      const result = await this.circuitBreaker.execute(async () => {
         // Rate limit check
         await this.primaryRateLimiter.checkRateLimit();
         
@@ -302,6 +302,8 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
         return await this.executeWithRetry(options, requestId);
       }, `${options.method} ${options.endpoint}`);
       
+      requestMetric.success = true;
+      return result as T;
     } catch (error) {
       requestMetric.success = false;
       requestMetric.error = error instanceof Error ? error : new Error(String(error));
@@ -340,7 +342,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
    */
   private async executeWithRetry<T>(options: RequestOptions, requestId: string): Promise<T> {
     const maxAttempts = this.config.retry.maxAttempts;
-    let lastError: any;
+    let lastError: Error | RequestError | unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
@@ -355,7 +357,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
         );
 
         const response = await this.octokit.request({
-          method: options.method as any,
+          method: options.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD',
           url: options.endpoint,
           data: options.data,
           headers: {
@@ -377,7 +379,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
           'API request completed successfully'
         );
 
-        return response.data;
+        return response.data as T;
       } catch (error) {
         lastError = error;
 
@@ -424,7 +426,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
       }
     }
 
-    throw lastError;
+    throw lastError as Error;
   }
 
   /**
@@ -434,11 +436,16 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
     return (request: any, options: any) => {
       const sanitizedOptions = this.securityManager.sanitizeRequest(options);
       
+      // Extract method and url safely from options for logging
+      const method = typeof options?.method === 'string' ? options.method : 'UNKNOWN';
+      const url = typeof options?.url === 'string' ? options.url : 'UNKNOWN';
+      
       this.config.logger.debug(
         {
-          method: sanitizedOptions.method,
-          url: sanitizedOptions.url,
+          method,
+          url,
           headers: this.securityManager.sanitizeRequest(options.headers || {}),
+          sanitizedOptions,
         },
         'Making GitHub API request'
       );
@@ -464,7 +471,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
 
           return response;
         },
-        (error: any) => {
+        (error: unknown) => {
           if (error instanceof RequestError) {
             // Update rate limits even on error
             if (error.response?.headers) {
@@ -490,19 +497,28 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
   /**
    * Update rate limits from response headers
    */
-  private updateRateLimits(headers: Record<string, any>, resource: string): void {
-    this.primaryRateLimiter.updateRateLimit(headers, resource);
+  private updateRateLimits(headers: Record<string, unknown>, resource: string): void {
+    // Convert headers to the expected format, filtering out non-string values
+    const stringHeaders: Record<string, string> = {};
+    for (const [key, value] of Object.entries(headers)) {
+      if (typeof value === 'string') {
+        stringHeaders[key] = value;
+      }
+    }
+    this.primaryRateLimiter.updateRateLimit(stringHeaders, resource);
   }
 
   /**
    * Check if error is retryable
    */
-  private isRetryableError(error: any): boolean {
+  private isRetryableError(error: unknown): boolean {
     if (error instanceof RequestError) {
       return this.config.retry.retryableStatusCodes.includes(error.status);
     }
 
-    if (error.code && this.config.retry.retryableErrors.includes(error.code)) {
+    if (error && typeof error === 'object' && 'code' in error && 
+        typeof error.code === 'string' && 
+        this.config.retry.retryableErrors.includes(error.code)) {
       return true;
     }
 

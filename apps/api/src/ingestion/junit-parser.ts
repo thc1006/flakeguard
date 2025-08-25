@@ -321,8 +321,7 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
         normalize: true,
         lowercase: false,
         xmlns: false,
-        position: true,
-        strictEntities: false
+        position: true
       });
 
       // Configure parser event handlers
@@ -357,7 +356,7 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
       clearInterval(memoryMonitorInterval);
     };
 
-    parser.on('opentag', (node: sax.SAXTag) => {
+    parser.on('opentag', (node: any) => {
       try {
         elementsProcessed++;
         state.elementDepth++;

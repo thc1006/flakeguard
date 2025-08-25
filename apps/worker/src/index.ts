@@ -29,13 +29,13 @@ import { reportProcessor } from './processors/report.processor.js';
 import { runsAnalyzeProcessor } from './processors/runs-analyze.processor.js';
 import { runsIngestProcessor } from './processors/runs-ingest.processor.js';
 import { taskProcessor } from './processors/task.processor.js';
+import { testsRecomputeProcessor } from './processors/tests-recompute.processor.js';
 import { initializeHealthCheck, getHealthManager } from './utils/health.js';
 import { logger } from './utils/logger.js';
-import { connection, closeRedisConnection } from './utils/redis.js';
 import { initializeMetricsCollection, workerHealth, updateQueueMetrics } from './utils/metrics.js';
+import { connection, closeRedisConnection } from './utils/redis.js';
 
 // Import processors
-import { testsRecomputeProcessor } from './processors/tests-recompute.processor.js';
 
 
 // ============================================================================

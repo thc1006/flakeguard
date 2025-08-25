@@ -309,7 +309,7 @@ export async function withRetry<T>(
   config: RetryConfig = DEFAULT_RETRY_CONFIG
 ): Promise<T> {
   const { maxAttempts } = config;
-  let lastError: Error;
+  let lastError: Error = new Error('Unknown error');
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
