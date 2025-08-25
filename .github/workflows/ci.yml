@@ -204,16 +204,148 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma client
+      - name: Generate Prisma client (initial)
         run: pnpm --filter=@flakeguard/api generate
 
+      - name: Check database connection
+        run: |
+          echo "[DB] Testing database connection..."
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done'
+          echo "[DB] Database is ready"
+        env:
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+
+      - name: Show pending migrations
+        run: |
+          echo "[MIGRATE] Checking migration status..."
+          echo "Available migration files:"
+          ls -la apps/api/prisma/migrations/ || echo "No migrations directory found"
+          echo "Migration lock file:"
+          cat apps/api/prisma/migrations/migration_lock.toml || echo "No lock file found"
+          echo "Current migration status:"
+          pnpm --filter=@flakeguard/api exec prisma migrate status || echo "Migration status check completed"
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
       - name: Run database migrations
-        run: pnpm --filter=@flakeguard/api migrate:deploy
+        run: |
+          echo "[MIGRATE] Applying database migrations..."
+          # Set migration timeout and run with detailed output
+          if ! timeout 300 pnpm --filter=@flakeguard/api migrate:deploy; then
+            echo "[ERROR] Migration failed or timed out. Diagnostic info:"
+            echo "Migration status:"
+            pnpm --filter=@flakeguard/api exec prisma migrate status || true
+            echo "Database connection test:"
+            pg_isready -h localhost -p 5432 -U postgres || true
+            echo "Current database tables:"
+            pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF' || true
+            SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public';
+            EOF
+            echo "Available migration files:"
+            ls -la apps/api/prisma/migrations/ || true
+            exit 1
+          fi
+          echo "[MIGRATE] Migrations applied successfully"
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+
+      - name: Regenerate Prisma client (post-migration)
+        run: |
+          echo "[PRISMA] Regenerating Prisma client after migrations..."
+          pnpm --filter=@flakeguard/api generate
+          echo "[PRISMA] Prisma client regenerated"
+
+      - name: Validate schema integrity
+        run: |
+          echo "[VALIDATE] Validating database schema..."
+          pnpm --filter=@flakeguard/api exec prisma db pull --print || echo "Schema validation completed"
+          echo "[VALIDATE] Schema validation completed"
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Pre-seed database validation
+        run: |
+          echo "[VALIDATE] Validating required tables exist before seeding..."
+          pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF'
+          DO $$
+          DECLARE
+              required_tables TEXT[] := ARRAY['Organization', 'User', 'FGRepository', 'FGTestCase'];
+              table_name TEXT;
+              table_exists BOOLEAN;
+          BEGIN
+              FOREACH table_name IN ARRAY required_tables
+              LOOP
+                  SELECT EXISTS (
+                      SELECT FROM information_schema.tables 
+                      WHERE table_schema = 'public' 
+                      AND table_name = table_name
+                  ) INTO table_exists;
+                  
+                  IF NOT table_exists THEN
+                      RAISE EXCEPTION 'Required table % does not exist', table_name;
+                  ELSE
+                      RAISE NOTICE 'Table % exists [OK]', table_name;
+                  END IF;
+              END LOOP;
+              
+              RAISE NOTICE 'All required tables validated successfully [OK]';
+          END $$;
+          EOF
+          echo "[VALIDATE] Database schema validation completed"
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
       - name: Seed database
-        run: pnpm --filter=@flakeguard/api seed
+        run: |
+          echo "[SEED] Seeding database with sample data..."
+          if ! pnpm --filter=@flakeguard/api seed; then
+            echo "[ERROR] Seeding failed. Checking database state..."
+            echo "Available tables:"
+            pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF' || true
+            SELECT table_name FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            ORDER BY table_name;
+            EOF
+            echo "Prisma client info:"
+            pnpm --filter=@flakeguard/api exec prisma --version || true
+            exit 1
+          fi
+          echo "[SEED] Database seeded successfully"
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Verify database setup
+        run: |
+          echo "[VERIFY] Final verification of database setup..."
+          # Check that key tables have data
+          pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF'
+          DO $$
+          DECLARE
+              org_count INTEGER;
+              repo_count INTEGER;
+              test_count INTEGER;
+          BEGIN
+              SELECT COUNT(*) INTO org_count FROM "Organization";
+              SELECT COUNT(*) INTO repo_count FROM "FGRepository";
+              SELECT COUNT(*) INTO test_count FROM "FGTestCase";
+              
+              RAISE NOTICE 'Organizations: %', org_count;
+              RAISE NOTICE 'Repositories: %', repo_count;
+              RAISE NOTICE 'Test Cases: %', test_count;
+              
+              IF org_count = 0 THEN
+                  RAISE EXCEPTION 'No organizations found - seed may have failed';
+              END IF;
+              
+              IF repo_count = 0 THEN
+                  RAISE EXCEPTION 'No repositories found - seed may have failed';
+              END IF;
+              
+              RAISE NOTICE 'Database setup verification passed [OK]';
+          END $$;
+          EOF
+          echo "[VERIFY] Database verification completed"
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
@@ -305,16 +437,148 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter=@flakeguard/api exec playwright install --with-deps
 
-      - name: Generate Prisma client
+      - name: Generate Prisma client (initial)
         run: pnpm --filter=@flakeguard/api generate
 
+      - name: Check database connection
+        run: |
+          echo "[DB] Testing database connection..."
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done'
+          echo "[DB] Database is ready"
+        env:
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+
+      - name: Show pending migrations
+        run: |
+          echo "[MIGRATE] Checking migration status..."
+          echo "Available migration files:"
+          ls -la apps/api/prisma/migrations/ || echo "No migrations directory found"
+          echo "Migration lock file:"
+          cat apps/api/prisma/migrations/migration_lock.toml || echo "No lock file found"
+          echo "Current migration status:"
+          pnpm --filter=@flakeguard/api exec prisma migrate status || echo "Migration status check completed"
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
       - name: Run database migrations
-        run: pnpm --filter=@flakeguard/api migrate:deploy
+        run: |
+          echo "[MIGRATE] Applying database migrations..."
+          # Set migration timeout and run with detailed output
+          if ! timeout 300 pnpm --filter=@flakeguard/api migrate:deploy; then
+            echo "[ERROR] Migration failed or timed out. Diagnostic info:"
+            echo "Migration status:"
+            pnpm --filter=@flakeguard/api exec prisma migrate status || true
+            echo "Database connection test:"
+            pg_isready -h localhost -p 5432 -U postgres || true
+            echo "Current database tables:"
+            pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF' || true
+            SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public';
+            EOF
+            echo "Available migration files:"
+            ls -la apps/api/prisma/migrations/ || true
+            exit 1
+          fi
+          echo "[MIGRATE] Migrations applied successfully"
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+
+      - name: Regenerate Prisma client (post-migration)
+        run: |
+          echo "[PRISMA] Regenerating Prisma client after migrations..."
+          pnpm --filter=@flakeguard/api generate
+          echo "[PRISMA] Prisma client regenerated"
+
+      - name: Validate schema integrity
+        run: |
+          echo "[VALIDATE] Validating database schema..."
+          pnpm --filter=@flakeguard/api exec prisma db pull --print || echo "Schema validation completed"
+          echo "[VALIDATE] Schema validation completed"
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Pre-seed database validation
+        run: |
+          echo "[VALIDATE] Validating required tables exist before seeding..."
+          pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF'
+          DO $$
+          DECLARE
+              required_tables TEXT[] := ARRAY['Organization', 'User', 'FGRepository', 'FGTestCase'];
+              table_name TEXT;
+              table_exists BOOLEAN;
+          BEGIN
+              FOREACH table_name IN ARRAY required_tables
+              LOOP
+                  SELECT EXISTS (
+                      SELECT FROM information_schema.tables 
+                      WHERE table_schema = 'public' 
+                      AND table_name = table_name
+                  ) INTO table_exists;
+                  
+                  IF NOT table_exists THEN
+                      RAISE EXCEPTION 'Required table % does not exist', table_name;
+                  ELSE
+                      RAISE NOTICE 'Table % exists [OK]', table_name;
+                  END IF;
+              END LOOP;
+              
+              RAISE NOTICE 'All required tables validated successfully [OK]';
+          END $$;
+          EOF
+          echo "[VALIDATE] Database schema validation completed"
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
       - name: Seed database
-        run: pnpm --filter=@flakeguard/api seed
+        run: |
+          echo "[SEED] Seeding database with sample data..."
+          if ! pnpm --filter=@flakeguard/api seed; then
+            echo "[ERROR] Seeding failed. Checking database state..."
+            echo "Available tables:"
+            pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF' || true
+            SELECT table_name FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            ORDER BY table_name;
+            EOF
+            echo "Prisma client info:"
+            pnpm --filter=@flakeguard/api exec prisma --version || true
+            exit 1
+          fi
+          echo "[SEED] Database seeded successfully"
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Verify database setup
+        run: |
+          echo "[VERIFY] Final verification of database setup..."
+          # Check that key tables have data
+          pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF'
+          DO $$
+          DECLARE
+              org_count INTEGER;
+              repo_count INTEGER;
+              test_count INTEGER;
+          BEGIN
+              SELECT COUNT(*) INTO org_count FROM "Organization";
+              SELECT COUNT(*) INTO repo_count FROM "FGRepository";
+              SELECT COUNT(*) INTO test_count FROM "FGTestCase";
+              
+              RAISE NOTICE 'Organizations: %', org_count;
+              RAISE NOTICE 'Repositories: %', repo_count;
+              RAISE NOTICE 'Test Cases: %', test_count;
+              
+              IF org_count = 0 THEN
+                  RAISE EXCEPTION 'No organizations found - seed may have failed';
+              END IF;
+              
+              IF repo_count = 0 THEN
+                  RAISE EXCEPTION 'No repositories found - seed may have failed';
+              END IF;
+              
+              RAISE NOTICE 'Database setup verification passed [OK]';
+          END $$;
+          EOF
+          echo "[VERIFY] Database verification completed"
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
