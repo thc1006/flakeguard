@@ -141,12 +141,12 @@ export { GitHubApiError } from './types.js';
  * Check if error is a GitHub rate limit error
  */
 export function isRateLimitError(error: unknown): boolean {
-  // Import the class locally to avoid circular dependency
-  const { GitHubApiError: GitHubApiErrorClass } = require('./types.js');
-  
-  if (error instanceof GitHubApiErrorClass) {
-    const apiError = error as unknown as { code?: string };
-    return apiError.code === 'RATE_LIMITED';
+  // Use duck typing to check for rate limit errors without circular dependency
+  if (error && typeof error === 'object' && 'code' in error) {
+    const errorWithCode = error as { code: unknown };
+    if (errorWithCode.code === 'RATE_LIMITED') {
+      return true;
+    }
   }
   
   if (typeof error === 'object' && error !== null && 'status' in error && (error.status === 403 || error.status === 429)) {
@@ -161,12 +161,12 @@ export function isRateLimitError(error: unknown): boolean {
  * Check if error is retryable
  */
 export function isRetryableError(error: unknown): boolean {
-  // Import the class locally to avoid circular dependency
-  const { GitHubApiError: GitHubApiErrorClass } = require('./types.js');
-  
-  if (error instanceof GitHubApiErrorClass) {
-    const apiError = error as unknown as { retryable?: boolean };
-    return apiError.retryable === true;
+  // Use duck typing to check for retryable errors without circular dependency
+  if (error && typeof error === 'object' && 'retryable' in error) {
+    const errorWithRetryable = error as { retryable: unknown };
+    if (errorWithRetryable.retryable === true) {
+      return true;
+    }
   }
   
   // Network errors are generally retryable
@@ -293,7 +293,7 @@ export function formatRateLimitInfo(info: import('./types.js').RateLimitInfo): s
  * Create a health check function for the API wrapper
  */
 export function createHealthCheck(wrapper: import('./types.js').GitHubApiWrapper) {
-  return async (): Promise<{
+  return (): {
     healthy: boolean;
     status: string;
     details: {
@@ -301,7 +301,7 @@ export function createHealthCheck(wrapper: import('./types.js').GitHubApiWrapper
       rateLimit: string;
       lastRequest?: string;
     };
-  }> => {
+  } => {
     try {
       const metrics = wrapper.metrics;
       const rateLimitStatus = wrapper.rateLimitStatus;
@@ -374,15 +374,9 @@ export const debug = {
    * Create a simple test function
    */
   test: async (wrapper: import('./types.js').GitHubApiWrapper): Promise<void> => {
-    try {
-      await wrapper.request({
-        method: 'GET',
-        endpoint: '/user',
-      });
-      console.log('✅ GitHub API wrapper test passed');
-    } catch (error) {
-      console.error('❌ GitHub API wrapper test failed:', error);
-      throw error;
-    }
+    await wrapper.request({
+      method: 'GET',
+      endpoint: '/user',
+    });
   },
 };

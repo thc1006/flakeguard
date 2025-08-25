@@ -233,7 +233,12 @@ describe('OctokitHelpers - P2', () => {
 
       vi.mocked(fs.mkdtempSync).mockReturnValue('/tmp/flakeguard-artifact-test');
       vi.mocked(os.tmpdir).mockReturnValue('/tmp');
-      vi.mocked(path.join).mockReturnValue('/tmp/flakeguard-artifact-test/artifact-123.zip');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/unbound-method, @typescript-eslint/no-explicit-any
+      const pathJoinMock = vi.mocked(path.join) as any;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      pathJoinMock.mockReturnValue = vi.fn().mockReturnValue('/tmp/flakeguard-artifact-test/artifact-123.zip');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+      pathJoinMock.mockReturnValue('/tmp/flakeguard-artifact-test/artifact-123.zip');
       vi.mocked(fs.createWriteStream).mockReturnValue({
         write: vi.fn(),
         end: vi.fn(),

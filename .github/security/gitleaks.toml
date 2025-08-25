@@ -159,8 +159,8 @@ regexes = [
   '''xapp-test-[a-zA-Z0-9-]*''',
   '''xapp-.*-placeholder[a-zA-Z0-9-]*''',
   
-  # Common JWT example token (John Doe)
-  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'''
+  # Common JWT example token (John Doe) - official jwt.io example
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'''
 ]
 
 # ============================================================================

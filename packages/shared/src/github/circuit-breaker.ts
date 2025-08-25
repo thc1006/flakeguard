@@ -279,7 +279,7 @@ export class CircuitBreaker {
     const windowStart = new Date(Date.now() - this.config.failureTimeWindowMs);
     let removeCount = 0;
     
-    while (this.failures.length > 0 && this.failures[0]! <= windowStart) {
+    while (this.failures.length > 0 && this.failures[0] !== undefined && this.failures[0] <= windowStart) {
       this.failures.shift();
       removeCount++;
     }

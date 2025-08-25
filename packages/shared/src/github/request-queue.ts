@@ -151,9 +151,9 @@ export class RequestQueue {
 
       // Start processing if not already running for this priority
       if (!this.processing.has(priority)) {
-        void this.processQueue(priority).catch((error) => {
+        void this.processQueue(priority).catch((error: unknown) => {
           this.logger.error(
-            { error, priority, requestId },
+            { error: error instanceof Error ? error : String(error), priority, requestId },
             'Queue processing failed'
           );
         });

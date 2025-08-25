@@ -123,7 +123,11 @@ export class TestCrypto {
     if (!this.keyCache.has(keyType)) {
       this.keyCache.set(keyType, generator());
     }
-    return this.keyCache.get(keyType)!;
+    const cachedKey = this.keyCache.get(keyType);
+    if (!cachedKey) {
+      throw new Error(`Key not found in cache: ${keyType}`);
+    }
+    return cachedKey;
   }
 
   /**

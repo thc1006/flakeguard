@@ -346,11 +346,7 @@ export class ArtifactHandler {
 
         // If URL expired, refresh it
         if (this.isUrlExpiredError(error)) {
-          try {
-            downloadUrl = await this.getArtifactDownloadUrl(options);
-          } catch (refreshError) {
-            throw refreshError;
-          }
+          downloadUrl = await this.getArtifactDownloadUrl(options);
         }
 
         const delayMs = this.calculateRetryDelay(attempt);

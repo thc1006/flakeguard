@@ -136,7 +136,7 @@ export class OctokitHelpers {
     if (cachedOctokit) {
       // Verify the token is still valid by checking rate limits
       try {
-        await (cachedOctokit as Octokit).rest.rateLimit.get();
+        await (cachedOctokit).rest.rateLimit.get();
         return cachedOctokit;
       } catch (error) {
         // Token might be expired, remove from cache
@@ -182,7 +182,7 @@ export class OctokitHelpers {
       // Check rate limits before making request
       await this.checkRateLimit(octokit);
 
-      const response = await (octokit as Octokit).rest.actions.listWorkflowRunArtifacts({
+      const response = await (octokit).rest.actions.listWorkflowRunArtifacts({
         owner,
         repo,
         run_id: runId,
@@ -221,7 +221,7 @@ export class OctokitHelpers {
       await this.checkRateLimit(octokit);
 
       // Get artifact download URL (this is short-lived!)
-      const downloadResponse = await (octokit as Octokit).rest.actions.downloadArtifact({
+      const downloadResponse = await (octokit).rest.actions.downloadArtifact({
         owner,
         repo,
         artifact_id: artifactId,
@@ -285,7 +285,7 @@ export class OctokitHelpers {
       // Check rate limits before making request
       await this.checkRateLimit(octokit);
 
-      const response = await (octokit as Octokit).rest.actions.listJobsForWorkflowRun({
+      const response = await (octokit).rest.actions.listJobsForWorkflowRun({
         owner,
         repo,
         run_id: runId,
@@ -321,7 +321,7 @@ export class OctokitHelpers {
     try {
       await this.checkRateLimit(octokit);
 
-      const response = await (octokit as Octokit).rest.actions.getWorkflowRun({
+      const response = await (octokit).rest.actions.getWorkflowRun({
         owner,
         repo,
         run_id: runId,
@@ -356,7 +356,7 @@ export class OctokitHelpers {
     try {
       await this.checkRateLimit(octokit);
 
-      await (octokit as Octokit).rest.actions.reRunWorkflowFailedJobs({
+      await (octokit).rest.actions.reRunWorkflowFailedJobs({
         owner,
         repo,
         run_id: runId,
@@ -376,7 +376,7 @@ export class OctokitHelpers {
    */
   private async checkRateLimit(octokit: InstallationOctokit): Promise<void> {
     try {
-      const { data: rateLimit } = await (octokit as Octokit).rest.rateLimit.get();
+      const { data: rateLimit } = await (octokit).rest.rateLimit.get();
       const remaining = rateLimit.rate.remaining;
       
       if (remaining <= this.rateLimitBuffer) {
@@ -413,7 +413,7 @@ export class OctokitHelpers {
     resource: string;
   }> {
     const octokit = await this.getOctokitForInstallation(installationId);
-    const { data: rateLimit } = await (octokit as Octokit).rest.rateLimit.get();
+    const { data: rateLimit } = await (octokit).rest.rateLimit.get();
     
     return {
       remaining: rateLimit.rate.remaining,
