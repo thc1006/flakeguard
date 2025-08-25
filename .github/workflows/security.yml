@@ -31,8 +31,6 @@ env:
 permissions:
   contents: read
   security-events: write
-  issues: write
-  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -45,22 +43,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      actions: read
       contents: read
       security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['javascript']
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-          queries: security-extended,security-and-quality
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -68,7 +55,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -78,10 +65,16 @@ jobs:
       - name: Build applications
         run: pnpm build
 
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          queries: security-extended,security-and-quality
+
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.language }}"
+          category: "/language:javascript"
 
   # Dependency vulnerability scanning
   dependency-scan:
@@ -98,7 +91,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -111,7 +104,7 @@ jobs:
           cat audit-results.json
 
       - name: Run Snyk vulnerability scan
-        uses: snyk/actions/node@master
+        uses: snyk/actions/node@0.4.0
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -124,18 +117,6 @@ jobs:
         with:
           sarif_file: snyk.sarif
 
-  # OSV Scanner using official reusable workflow
-  osv-scan:
-    name: OSV Scanner
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.2.1
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    with:
-      scan-args: |-
-        -r
-        .
 
   # License compliance check
   license-check:
@@ -152,7 +133,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -198,7 +179,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./apps/${{ matrix.app }}/Dockerfile
@@ -208,7 +189,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: flakeguard-${{ matrix.app }}:security-scan
           format: 'sarif'
@@ -303,7 +284,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -311,7 +292,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate SBOM with Syft
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@v0.17.2
         with:
           path: ./
           format: spdx-json
@@ -348,7 +329,7 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -368,7 +349,7 @@ jobs:
 
       - name: Create Pull Request
         if: env.HAS_UPDATES == 'true'
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: chore/dependency-updates
@@ -401,7 +382,7 @@ jobs:
   security-summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [codeql-analysis, dependency-scan, osv-scan, license-check, docker-security-scan, secret-scan, sbom-generation]
+    needs: [codeql-analysis, dependency-scan, license-check, docker-security-scan, secret-scan, sbom-generation]
     if: always()
     steps:
       - name: Generate security report
@@ -412,7 +393,6 @@ jobs:
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| CodeQL Analysis | ${{ needs.codeql-analysis.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Dependency Scan | ${{ needs.dependency-scan.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| OSV Scanner | ${{ needs.osv-scan.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| License Check | ${{ needs.license-check.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Docker Security | ${{ needs.docker-security-scan.result == 'success' && '✅' || needs.docker-security-scan.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Secret Scan | ${{ needs.secret-scan.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
