@@ -33,6 +33,11 @@ env:
   POSTGRES_DB: flakeguard_test
   REDIS_URL: redis://localhost:6379
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
+  PGUSER: postgres
+  PGPASSWORD: postgres
+  PGDATABASE: flakeguard_test
+  PGHOST: localhost
+  PGPORT: 5432
   JWT_SECRET: test-jwt-secret-minimum-32-characters-long-for-testing-only
   API_KEY: test-api-key-minimum-16-chars-for-testing
   LOG_LEVEL: error
@@ -222,8 +227,7 @@ jobs:
           ls -la apps/api/prisma/migrations/ || echo "No migrations directory found"
           echo "Migration lock file:"
           cat apps/api/prisma/migrations/migration_lock.toml || echo "No lock file found"
-          echo "Current migration status:"
-          pnpm --filter=@flakeguard/api exec prisma migrate status || echo "Migration status check completed"
+          # Note: Skip migrate status check initially as _prisma_migrations table may not exist yet
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
@@ -239,13 +243,15 @@ jobs:
             pg_isready -h localhost -p 5432 -U postgres || true
             echo "Current database tables:"
             pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF' || true
-            SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public';
-            EOF
+SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public';
+EOF
             echo "Available migration files:"
             ls -la apps/api/prisma/migrations/ || true
             exit 1
           fi
           echo "[MIGRATE] Migrations applied successfully"
+          echo "Final migration status:"
+          pnpm --filter=@flakeguard/api exec prisma migrate status || true
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
           PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
@@ -455,8 +461,7 @@ jobs:
           ls -la apps/api/prisma/migrations/ || echo "No migrations directory found"
           echo "Migration lock file:"
           cat apps/api/prisma/migrations/migration_lock.toml || echo "No lock file found"
-          echo "Current migration status:"
-          pnpm --filter=@flakeguard/api exec prisma migrate status || echo "Migration status check completed"
+          # Note: Skip migrate status check initially as _prisma_migrations table may not exist yet
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
@@ -472,13 +477,15 @@ jobs:
             pg_isready -h localhost -p 5432 -U postgres || true
             echo "Current database tables:"
             pnpm --filter=@flakeguard/api exec prisma db execute --stdin <<'EOF' || true
-            SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public';
-            EOF
+SELECT schemaname, tablename FROM pg_tables WHERE schemaname = 'public';
+EOF
             echo "Available migration files:"
             ls -la apps/api/prisma/migrations/ || true
             exit 1
           fi
           echo "[MIGRATE] Migrations applied successfully"
+          echo "Final migration status:"
+          pnpm --filter=@flakeguard/api exec prisma migrate status || true
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
           PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}

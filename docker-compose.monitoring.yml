@@ -6,8 +6,6 @@
 # - Alertmanager for alert routing
 # - Node exporter for system metrics
 
-version: '3.8'
-
 services:
   # ============================================================================
   # Prometheus - Metrics Collection & Alerting
@@ -155,6 +153,49 @@ services:
       - monitoring
 
   # ============================================================================
+  # PostgreSQL - Database for Monitoring
+  # ============================================================================
+  postgres:
+    image: postgres:15
+    container_name: flakeguard-monitoring-postgres
+    ports:
+      - "5433:5432"  # Use different port to avoid conflicts
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=flakeguard
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  # ============================================================================
+  # Redis - Cache for Monitoring
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: flakeguard-monitoring-redis
+    ports:
+      - "6380:6379"  # Use different port to avoid conflicts
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - monitoring
+
+  # ============================================================================
   # PostgreSQL Exporter - Database Metrics
   # ============================================================================
   postgres-exporter:
@@ -170,7 +211,6 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
-      - default  # Connect to main application network
     depends_on:
       - postgres
 
@@ -188,7 +228,6 @@ services:
     restart: unless-stopped
     networks:
       - monitoring
-      - default  # Connect to main application network
     depends_on:
       - redis
 
@@ -201,9 +240,6 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
-  default:
-    external: true
-    name: flakeguard_default
 
 # ============================================================================
 # Volumes
@@ -214,4 +250,8 @@ volumes:
   grafana-data:
     driver: local
   alertmanager-data:
+    driver: local
+  postgres-data:
+    driver: local
+  redis-data:
     driver: local
