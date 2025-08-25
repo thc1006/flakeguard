@@ -8,9 +8,10 @@ useDefault = true
 [[allowlists]]
 description = "Allow documentation example files"
 paths = [
-  '''apps/docs/docs/troubleshooting/.*\.md''',
+  '''apps/docs/docs/.*\.md''',
   '''docs/.*\.md''',
-  '''.*\.example'''
+  '''.*\.example''',
+  '''README\.md'''
 ]
 
 [[allowlists]]
@@ -19,17 +20,21 @@ regexes = [
   '''Authorization:\s*<REDACTED_TOKEN>''',
   '''Authorization:\s*Bearer\s*<REDACTED_TOKEN>''',
   '''Authorization:\s*token\s*<REDACTED_TOKEN>''',
+  '''Authorization:\s*Bearer\s*flakeguard_[a-zA-Z0-9]+''',
   '''FAKE_PRIVATE_KEY_FOR_TESTS''',
+  '''-----BEGIN RSA PRIVATE KEY-----\s*FAKE_PRIVATE_KEY_FOR_TESTS''',
   '''<your_.*>''',
   '''<base64_encoded_.*>''',
   '''xoxb-test-.*''',
+  '''xoxb-1234567890-.*''',
   '''xapp-test-.*''',
   '''test-webhook-secret''',
   '''your-secret-here''',
   '''placeholder-.*''',
   '''example-.*''',
   '''dummy-.*''',
-  '''fake-.*'''
+  '''fake-.*''',
+  '''https://hooks\.slack\.com/services/T00000000/B00000000/.*'''
 ]
 
 [[allowlists]]
@@ -39,7 +44,8 @@ paths = [
   '''.*\.test\..*''',
   '''.*\.spec\..*''',
   '''test/.*''',
-  '''tests/.*'''
+  '''tests/.*''',
+  '''docker-compose\.test\.yml'''
 ]
 
 [[allowlists]]
