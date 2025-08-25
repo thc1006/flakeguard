@@ -101,7 +101,29 @@ export declare class GitHubHelpers {
     /**
      * Get workflow jobs
      */
-    getWorkflowJobs(owner: string, repo: string, runId: number, installationId: number): Promise<any[]>;
+    getWorkflowJobs(owner: string, repo: string, runId: number, installationId: number): Promise<Array<{
+        id: number;
+        run_id: number;
+        workflow_name: string;
+        head_branch: string;
+        run_url: string;
+        run_attempt: number;
+        node_id: string;
+        head_sha: string;
+        url: string;
+        html_url: string;
+        status: string;
+        conclusion: string | null;
+        started_at: string;
+        completed_at: string | null;
+        name: string;
+        check_run_url: string;
+        labels: string[];
+        runner_id: number | null;
+        runner_name: string | null;
+        runner_group_id: number | null;
+        runner_group_name: string | null;
+    }>>;
     /**
      * List artifacts for a workflow run
      */

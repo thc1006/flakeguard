@@ -292,3 +292,249 @@ groups:
             
             Verify webhook configuration and repository activity.
           runbook_url: "https://runbooks.flakeguard.dev/no-test-activity"
+
+  # ============================================================================
+  # Database Health and Performance Alerts
+  # ============================================================================
+  
+  - name: flakeguard.database.health
+    interval: 30s
+    rules:
+      # Database connection pool near capacity
+      - alert: DatabaseConnectionPoolHighUtilization
+        expr: |
+          (flakeguard_api_database_connections_active / 
+           (flakeguard_api_database_connections_active + on() group_left() 
+            (label_replace(pg_settings_max_connections{job="postgres-exporter"}, "instance", "$1", "instance", "(.+)")))) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database connection pool utilization high"
+          description: |
+            Database connection pool utilization is {{ $value }}%, approaching capacity.
+            
+            Current active connections: {{ with query "flakeguard_api_database_connections_active" }}{{ . | first | value }}{{ end }}
+            
+            This may lead to connection exhaustion and service degradation.
+          runbook_url: "https://runbooks.flakeguard.dev/database-connection-pool"
+          
+      # Database connection pool at capacity  
+      - alert: DatabaseConnectionPoolAtCapacity
+        expr: |
+          (flakeguard_api_database_connections_active / 
+           (flakeguard_api_database_connections_active + on() group_left() 
+            (label_replace(pg_settings_max_connections{job="postgres-exporter"}, "instance", "$1", "instance", "(.+)")))) * 100 > 95
+        for: 2m
+        labels:
+          severity: page
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database connection pool at capacity"
+          description: |
+            Database connection pool utilization is {{ $value }}%, at critical capacity.
+            
+            IMMEDIATE ACTION REQUIRED - New connections will be rejected!
+            
+            Current active connections: {{ with query "flakeguard_api_database_connections_active" }}{{ . | first | value }}{{ end }}
+          runbook_url: "https://runbooks.flakeguard.dev/database-connection-pool"
+          
+      # Long-running database queries
+      - alert: DatabaseLongRunningQueries
+        expr: |
+          pg_stat_activity_max_tx_duration{datname="flakeguard"} > 300
+        for: 2m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard has long-running database queries"
+          description: |
+            Database has queries running longer than {{ $value }}s.
+            
+            This may indicate:
+            - Slow queries that need optimization
+            - Deadlocks or blocking operations
+            - Database performance issues
+            
+            Review active queries and consider query optimization.
+          runbook_url: "https://runbooks.flakeguard.dev/long-running-queries"
+          
+      # High database query error rate
+      - alert: DatabaseQueryErrorRateHigh
+        expr: |
+          rate(flakeguard_api_database_queries_total{status="failure"}[5m]) / 
+          rate(flakeguard_api_database_queries_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database query error rate elevated"
+          description: |
+            Database query error rate is {{ $value | humanizePercentage }} over the last 5 minutes.
+            
+            Operation: {{ $labels.operation }}
+            Table: {{ $labels.table }}
+            
+            This indicates potential database issues requiring investigation.
+          runbook_url: "https://runbooks.flakeguard.dev/database-query-errors"
+          
+      # Database cache hit ratio low
+      - alert: DatabaseCacheHitRatioLow
+        expr: |
+          pg_stat_database_blks_hit{datname="flakeguard"} / 
+          (pg_stat_database_blks_hit{datname="flakeguard"} + pg_stat_database_blks_read{datname="flakeguard"}) * 100 < 95
+        for: 10m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database cache hit ratio low"
+          description: |
+            Database cache hit ratio is {{ $value }}%, below the 95% threshold.
+            
+            This indicates:
+            - Increased disk I/O
+            - Potential performance degradation
+            - Need for memory tuning
+            
+            Consider increasing shared_buffers or investigating query patterns.
+          runbook_url: "https://runbooks.flakeguard.dev/database-cache-hit-ratio"
+          
+      # Database deadlock detection
+      - alert: DatabaseDeadlocksDetected
+        expr: |
+          increase(pg_stat_database_deadlocks{datname="flakeguard"}[5m]) > 0
+        for: 0s
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database deadlocks detected"
+          description: |
+            {{ $value }} database deadlocks detected in the last 5 minutes.
+            
+            This indicates:
+            - Concurrent transaction conflicts
+            - Potential application logic issues
+            - Need for transaction optimization
+            
+            Review application transaction patterns and database logs.
+          runbook_url: "https://runbooks.flakeguard.dev/database-deadlocks"
+
+  # ============================================================================
+  # Multi-Tenant Data Isolation Alerts
+  # ============================================================================
+  
+  - name: flakeguard.tenant.isolation
+    interval: 60s
+    rules:
+      # Tenant isolation violation detected
+      - alert: TenantIsolationViolationDetected
+        expr: |
+          increase(flakeguard_api_tenant_isolation_violations_total[5m]) > 0
+        for: 0s
+        labels:
+          severity: page
+          service: flakeguard
+          component: security
+          security_impact: critical
+        annotations:
+          summary: "FlakeGuard tenant isolation violation detected"
+          description: |
+            {{ $value }} tenant isolation violations detected in the last 5 minutes.
+            
+            CRITICAL SECURITY ISSUE - Cross-tenant data access detected!
+            
+            Organization: {{ $labels.org_id }}
+            Violation Type: {{ $labels.violation_type }}
+            
+            IMMEDIATE ACTION REQUIRED:
+            1. Review security logs
+            2. Investigate data access patterns
+            3. Validate RLS policies
+            4. Consider tenant quarantine if necessary
+          runbook_url: "https://runbooks.flakeguard.dev/tenant-isolation-violations"
+          
+      # Suspicious cross-tenant query patterns
+      - alert: SuspiciousCrossTenantQueryPattern
+        expr: |
+          rate(flakeguard_api_database_queries_total{operation=~".*cross_tenant.*"}[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: security
+        annotations:
+          summary: "FlakeGuard suspicious cross-tenant query patterns"
+          description: |
+            Elevated rate of cross-tenant queries detected: {{ $value }} queries/second.
+            
+            This may indicate:
+            - Application bugs bypassing tenant isolation
+            - Potential security issues
+            - Incorrect data access patterns
+            
+            Review query logs and validate tenant boundaries.
+          runbook_url: "https://runbooks.flakeguard.dev/cross-tenant-queries"
+
+  # ============================================================================
+  # Database Migration and Schema Alerts
+  # ============================================================================
+  
+  - name: flakeguard.database.schema
+    interval: 60s
+    rules:
+      # Failed database migration
+      - alert: DatabaseMigrationFailed
+        expr: |
+          flakeguard_api_migration_status{status="failed"} > 0
+        for: 0s
+        labels:
+          severity: page
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database migration failed"
+          description: |
+            Database migration has failed.
+            
+            Migration: {{ $labels.migration_name }}
+            Error: {{ $labels.error_message }}
+            
+            IMMEDIATE ACTION REQUIRED:
+            1. Review migration logs
+            2. Fix migration issues
+            3. Ensure database consistency
+            4. Coordinate with deployment process
+          runbook_url: "https://runbooks.flakeguard.dev/migration-failures"
+          
+      # Pending database migrations in production
+      - alert: DatabaseMigrationsPending
+        expr: |
+          flakeguard_api_migration_status{status="pending"} > 0
+        for: 30m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard has pending database migrations"
+          description: |
+            {{ $value }} database migrations are pending for more than 30 minutes.
+            
+            This may indicate:
+            - Incomplete deployment process
+            - Migration automation issues
+            - Manual intervention required
+            
+            Review deployment status and apply pending migrations.
+          runbook_url: "https://runbooks.flakeguard.dev/pending-migrations"

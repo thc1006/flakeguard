@@ -4,6 +4,7 @@
  * Tests GitHub API responses, webhook processing, and state changes
  */
 
+import { TestCrypto } from '@flakeguard/shared/utils';
 import { PrismaClient } from '@prisma/client';
 import { Queue } from 'bullmq';
 import nock from 'nock';
@@ -14,7 +15,6 @@ import { GitHubAuthManager } from '../auth.js';
 import { createFlakeDetector } from '../flake-detector.js';
 import { CheckRunHandler, WorkflowRunHandler } from '../handlers.js';
 import { GitHubHelpers } from '../helpers.js';
-import { TestCrypto } from '@flakeguard/shared/utils';
 import type {
   CheckRunWebhookPayload,
   WorkflowRunWebhookPayload,

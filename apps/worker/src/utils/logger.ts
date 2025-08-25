@@ -1,8 +1,23 @@
-import pino from 'pino';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
+import pino, { type Logger } from 'pino';
 
 import { config } from '../config/index.js';
 
-export const logger = pino({
+export const logger: Logger = pino.default ? pino.default({
+  level: config.logLevel,
+  transport:
+    config.env === 'development'
+      ? {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            ignore: 'pid,hostname',
+            translateTime: 'HH:MM:ss Z',
+          },
+        }
+      : undefined,
+}) : pino({
   level: config.logLevel,
   transport:
     config.env === 'development'

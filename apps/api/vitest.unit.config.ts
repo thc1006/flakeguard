@@ -13,6 +13,26 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     
+    // Load test environment variables
+    env: {
+      NODE_ENV: 'test',
+      DATABASE_URL: 'postgresql://test:test@localhost:5432/flakeguard_test',
+      REDIS_URL: 'redis://localhost:6379',
+      JWT_SECRET: 'test-jwt-secret-32-chars-minimum-length-for-security',
+      API_KEY: 'test-api-key-16-chars-minimum',
+      GITHUB_APP_ID: '12345',
+      GITHUB_PRIVATE_KEY: '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA4f5wg5l2hKsTeNem/V41fGnJm6gOdrj8ym3rFkEjWT2JjSBP\n-----END RSA PRIVATE KEY-----',
+      GITHUB_WEBHOOK_SECRET: 'test-webhook-secret',
+      GITHUB_CLIENT_ID: 'test-github-client-id',
+      GITHUB_CLIENT_SECRET: 'test-github-client-secret',
+      SLACK_BOT_TOKEN: 'xoxb-test-token',
+      SLACK_SIGNING_SECRET: 'test-signing-secret',
+      ENABLE_SLACK_APP: 'false',
+      LOG_LEVEL: 'error',
+      FLAKE_WARN_THRESHOLD: '0.3',
+      FLAKE_QUARANTINE_THRESHOLD: '0.6',
+    },
+    
     // File patterns - only unit tests
     include: [
       'src/**/*.unit.test.{js,mjs,cjs,ts,mts,cts}',

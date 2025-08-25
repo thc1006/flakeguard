@@ -2,13 +2,13 @@
  * Slack integration performance tests
  */
 
+import { TestCrypto } from '@flakeguard/shared/utils';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { createSlackConfig } from '../config.js';
 import { SlackMessageBuilder } from '../message-builder.js';
 import { SlackService } from '../service.js';
 import type { FlakeNotification, SlackConfig } from '../types.js';
-import { TestCrypto } from '@flakeguard/shared/utils';
 
 vi.mock('@slack/web-api', () => ({
   WebClient: vi.fn().mockImplementation(() => ({

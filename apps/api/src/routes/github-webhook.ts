@@ -129,8 +129,45 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
   // P1 Requirement: POST /github/webhook with signature verification
   fastify.post('/github/webhook', {
     schema: {
-      headers: webhookHeadersSchema,
-      body: webhookPayloadSchema,
+      headers: {
+        type: 'object',
+        properties: {
+          'x-github-event': { type: 'string' },
+          'x-github-delivery': { type: 'string' },
+          'x-hub-signature-256': { type: 'string' },
+          'content-type': { type: 'string' },
+          'user-agent': { type: 'string' },
+        },
+        required: ['x-github-event', 'x-github-delivery', 'x-hub-signature-256'],
+      },
+      body: {
+        type: 'object',
+        properties: {
+          action: { type: 'string' },
+          repository: {
+            type: 'object',
+            properties: {
+              id: { type: 'number' },
+              name: { type: 'string' },
+              full_name: { type: 'string' },
+              owner: {
+                type: 'object',
+                properties: {
+                  login: { type: 'string' },
+                  id: { type: 'number' },
+                },
+              },
+            },
+          },
+          installation: {
+            type: 'object',
+            properties: {
+              id: { type: 'number' },
+            },
+          },
+        },
+        additionalProperties: true,
+      },
       response: {
         202: {
           type: 'object',
@@ -139,20 +176,23 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
             message: { type: 'string' },
             deliveryId: { type: 'string' },
           },
+          required: ['success', 'message', 'deliveryId'],
         },
         400: {
           type: 'object',
           properties: {
-            success: { type: 'boolean', const: false },
+            success: { type: 'boolean' },
             error: { type: 'string' },
           },
+          required: ['success', 'error'],
         },
         401: {
           type: 'object',
           properties: {
-            success: { type: 'boolean', const: false },
+            success: { type: 'boolean' },
             error: { type: 'string' },
           },
+          required: ['success', 'error'],
         },
       },
     },
@@ -160,16 +200,16 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
     const startTime = Date.now();
     
     try {
-      // Parse and validate headers
-      const headers = webhookHeadersSchema.parse(request.headers);
-      const eventType = headers['x-github-event'];
-      const deliveryId = headers['x-github-delivery'];
-      const signature = headers['x-hub-signature-256'];
+      // Extract headers (already validated by Fastify schema)
+      const eventType = request.headers['x-github-event'] as string;
+      const deliveryId = request.headers['x-github-delivery'] as string;
+      const signature = request.headers['x-hub-signature-256'] as string;
+      const userAgent = request.headers['user-agent'] as string;
 
       logger.info('GitHub webhook received', {
         eventType,
         deliveryId,
-        userAgent: headers['user-agent'],
+        userAgent,
       });
 
       // P1 Requirement: Check if event is supported
@@ -185,18 +225,46 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
       }
 
       // P1 Requirement: Verify HMAC signature
-      const rawPayload = request.rawBody || JSON.stringify(request.body);
-      const isValidSignature = verifyWebhookSignature(
-        rawPayload,
-        signature,
-        webhookSecret
-      );
+      let rawPayload: string;
+      try {
+        rawPayload = request.rawBody || JSON.stringify(request.body);
+      } catch (error) {
+        logger.error('Failed to get raw payload for signature verification', {
+          eventType,
+          deliveryId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return reply.code(400).send({
+          success: false,
+          error: 'Invalid request format',
+        });
+      }
+
+      let isValidSignature: boolean;
+      try {
+        isValidSignature = verifyWebhookSignature(
+          rawPayload,
+          signature,
+          webhookSecret
+        );
+      } catch (error) {
+        logger.error('Error during signature verification', {
+          eventType,
+          deliveryId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return reply.code(401).send({
+          success: false,
+          error: 'Invalid webhook signature',
+        });
+      }
 
       if (!isValidSignature) {
         logger.error('Invalid webhook signature', { 
           eventType, 
           deliveryId,
           hasSignature: !!signature,
+          signatureLength: signature?.length,
         });
         
         return reply.code(401).send({
@@ -205,8 +273,8 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // Validate payload structure
-      const payload = webhookPayloadSchema.parse(request.body);
+      // Payload is already validated by Fastify schema
+      const payload = request.body as any;
 
       // P1 Requirement: Create minimal job payload for BullMQ
       const jobPayload = createJobPayload(
@@ -261,12 +329,8 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
         duration,
       });
 
-      if (error instanceof z.ZodError) {
-        return reply.code(400).send({
-          success: false,
-          error: 'Invalid request format',
-        });
-      }
+      // Fastify will handle validation errors before reaching this handler,
+      // so we don't need to check for ZodError here anymore
 
       // Don't expose internal errors to GitHub
       return reply.code(500).send({

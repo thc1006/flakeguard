@@ -10,17 +10,12 @@
  * - Error handling and logging
  */
 
-import type { Octokit } from '@octokit/rest';
-
 import { logger } from '../utils/logger.js';
 
 import { ErrorCode } from './api-spec.js';
 import { GitHubAuthManager } from './auth.js';
 import {
   CHECK_RUN_ACTION_CONFIGS,
-  GITHUB_ENDPOINTS,
-  GITHUB_API,
-  TIMEOUTS,
   ERROR_MESSAGES,
   ARTIFACT_TYPES,
 } from './constants.js';
@@ -92,8 +87,8 @@ export class GitHubHelpers {
         repo,
         name: params.name,
         head_sha: params.headSha,
-        status: params.status as any,
-        conclusion: params.conclusion as any,
+        status: params.status as 'queued' | 'in_progress' | 'completed',
+        conclusion: params.conclusion as 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | 'skipped' | null,
         started_at: params.startedAt,
         completed_at: params.completedAt,
         output: params.output,
@@ -108,8 +103,8 @@ export class GitHubHelpers {
         id: data.id,
         name: data.name,
         headSha: data.head_sha,
-        status: data.status as any,
-        conclusion: data.conclusion as any,
+        status: data.status as 'queued' | 'in_progress' | 'completed',
+        conclusion: data.conclusion as 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | 'skipped' | null,
         startedAt: data.started_at,
         completedAt: data.completed_at,
         output: {
@@ -117,7 +112,7 @@ export class GitHubHelpers {
           summary: data.output?.summary || '',
           text: data.output?.text,
         },
-        actions: data.actions?.map(action => ({
+        actions: data.actions?.map((action: { label: string; description: string; identifier: string }) => ({
           label: action.label,
           description: action.description,
           identifier: action.identifier as CheckRunAction,
@@ -133,20 +128,20 @@ export class GitHubHelpers {
 
       return { success: true, data: checkRun };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to create check run', {
         owner,
         repo,
         name: params.name,
-        error: error.message,
-        status: error.status,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        status: error && typeof error === 'object' && 'status' in error ? (error as { status: unknown }).status : undefined,
       });
 
       return {
         success: false,
         error: {
           code: this.mapGitHubErrorCode(error),
-          message: error.message || ERROR_MESSAGES.GITHUB_API_ERROR,
+          message: error instanceof Error ? error.message : ERROR_MESSAGES.GITHUB_API_ERROR,
         },
       };
     }
@@ -169,8 +164,8 @@ export class GitHubHelpers {
         owner,
         repo,
         check_run_id: checkRunId,
-        status: updates.status as any,
-        conclusion: updates.conclusion as any,
+        status: updates.status as 'queued' | 'in_progress' | 'completed',
+        conclusion: updates.conclusion as 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | 'skipped' | null,
         completed_at: updates.completedAt,
         output: updates.output,
         actions: updates.actions?.map(action => ({
@@ -184,8 +179,8 @@ export class GitHubHelpers {
         id: data.id,
         name: data.name,
         headSha: data.head_sha,
-        status: data.status as any,
-        conclusion: data.conclusion as any,
+        status: data.status as 'queued' | 'in_progress' | 'completed',
+        conclusion: data.conclusion as 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | 'skipped' | null,
         startedAt: data.started_at,
         completedAt: data.completed_at,
         output: {
@@ -193,7 +188,7 @@ export class GitHubHelpers {
           summary: data.output?.summary || '',
           text: data.output?.text,
         },
-        actions: data.actions?.map(action => ({
+        actions: data.actions?.map((action: { label: string; description: string; identifier: string }) => ({
           label: action.label,
           description: action.description,
           identifier: action.identifier as CheckRunAction,
@@ -210,19 +205,19 @@ export class GitHubHelpers {
 
       return { success: true, data: checkRun };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to update check run', {
         owner,
         repo,
         checkRunId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
 
       return {
         success: false,
         error: {
           code: this.mapGitHubErrorCode(error),
-          message: error.message || ERROR_MESSAGES.GITHUB_API_ERROR,
+          message: error instanceof Error ? error.message : ERROR_MESSAGES.GITHUB_API_ERROR,
         },
       };
     }
@@ -386,7 +381,11 @@ export class GitHubHelpers {
     }
 
     const conclusion = summary.totalFlaky > 0 ? 'neutral' : 'success';
-    const actions: any[] = [];
+    const actions: Array<{
+      label: string;
+      description: string;
+      identifier: string;
+    }> = [];
 
     if (hasFailures) {
       actions.push({
@@ -456,14 +455,14 @@ export class GitHubHelpers {
         runId,
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to rerun workflow', {
         owner,
         repo,
         runId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new Error(`Failed to rerun workflow: ${error.message}`);
+      throw new Error(`Failed to rerun workflow: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -501,14 +500,14 @@ export class GitHubHelpers {
         runId,
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to rerun failed jobs', {
         owner,
         repo,
         runId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new Error(`Failed to rerun failed jobs: ${error.message}`);
+      throw new Error(`Failed to rerun failed jobs: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -541,14 +540,14 @@ export class GitHubHelpers {
         message: 'Workflow cancelled successfully',
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to cancel workflow', {
         owner,
         repo,
         runId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new Error(`Failed to cancel workflow: ${error.message}`);
+      throw new Error(`Failed to cancel workflow: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -560,7 +559,29 @@ export class GitHubHelpers {
     repo: string,
     runId: number,
     installationId: number
-  ): Promise<any[]> {
+  ): Promise<Array<{
+    id: number;
+    run_id: number;
+    workflow_name: string;
+    head_branch: string;
+    run_url: string;
+    run_attempt: number;
+    node_id: string;
+    head_sha: string;
+    url: string;
+    html_url: string;
+    status: string;
+    conclusion: string | null;
+    started_at: string;
+    completed_at: string | null;
+    name: string;
+    check_run_url: string;
+    labels: string[];
+    runner_id: number | null;
+    runner_name: string | null;
+    runner_group_id: number | null;
+    runner_group_name: string | null;
+  }>> {
     try {
       const client = await this.authManager.getInstallationClient(installationId);
       
@@ -572,14 +593,14 @@ export class GitHubHelpers {
 
       return data.jobs;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to get workflow jobs', {
         owner,
         repo,
         runId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new Error(`Failed to get workflow jobs: ${error.message}`);
+      throw new Error(`Failed to get workflow jobs: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -626,14 +647,14 @@ export class GitHubHelpers {
         updatedAt: artifact.updated_at,
       }));
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to list artifacts', {
         owner,
         repo,
         runId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new Error(`Failed to list artifacts: ${error.message}`);
+      throw new Error(`Failed to list artifacts: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -671,14 +692,14 @@ export class GitHubHelpers {
         sizeInBytes: artifact.size_in_bytes,
       };
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to generate artifact download URL', {
         owner,
         repo,
         artifactId,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new Error(`Failed to generate download URL: ${error.message}`);
+      throw new Error(`Failed to generate download URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -741,14 +762,14 @@ export class GitHubHelpers {
         title,
       });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to create flake issue', {
         owner,
         repo,
         testName: params.testName,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
-      throw new Error(`Failed to create issue: ${error.message}`);
+      throw new Error(`Failed to create issue: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -806,13 +827,14 @@ export class GitHubHelpers {
     return 'other';
   }
 
-  private mapGitHubErrorCode(error: any): ErrorCode {
-    if (error.status === 401) return ErrorCode.UNAUTHORIZED;
-    if (error.status === 403) return ErrorCode.FORBIDDEN;
-    if (error.status === 404) return ErrorCode.RESOURCE_NOT_FOUND;
-    if (error.status === 422) return ErrorCode.VALIDATION_ERROR;
-    if (error.status === 429) return ErrorCode.GITHUB_RATE_LIMITED;
-    if (error.status >= 500) return ErrorCode.GITHUB_SERVICE_UNAVAILABLE;
+  private mapGitHubErrorCode(error: unknown): ErrorCode {
+    const status = error && typeof error === 'object' && 'status' in error ? (error as { status: unknown }).status : undefined;
+    if (status === 401) return ErrorCode.UNAUTHORIZED;
+    if (status === 403) return ErrorCode.FORBIDDEN;
+    if (status === 404) return ErrorCode.RESOURCE_NOT_FOUND;
+    if (status === 422) return ErrorCode.VALIDATION_ERROR;
+    if (status === 429) return ErrorCode.GITHUB_RATE_LIMITED;
+    if (typeof status === 'number' && status >= 500) return ErrorCode.GITHUB_SERVICE_UNAVAILABLE;
     
     return ErrorCode.GITHUB_API_ERROR;
   }

@@ -14,6 +14,7 @@ import { type FullConfig } from '@playwright/test';
 let dockerProcess: ChildProcess | null = null;
 
 async function globalSetup(_config: FullConfig) {
+  // eslint-disable-next-line no-console
   console.log('🚀 Starting E2E test environment...');
 
   const projectRoot = path.resolve(__dirname, '../../../../..');
@@ -26,6 +27,7 @@ async function globalSetup(_config: FullConfig) {
 
   try {
     // Clean up any existing test containers
+    // eslint-disable-next-line no-console
     console.log('🧹 Cleaning up existing test containers...');
     try {
       execSync('docker-compose -f docker-compose.test.yml down -v', {
@@ -34,10 +36,12 @@ async function globalSetup(_config: FullConfig) {
         timeout: 30000,
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.log('No existing containers to clean up');
     }
 
     // Start the test environment
+    // eslint-disable-next-line no-console
     console.log('📦 Starting Docker Compose services...');
     dockerProcess = spawn('docker-compose', ['-f', 'docker-compose.test.yml', 'up', '--build'], {
       cwd: projectRoot,
@@ -45,32 +49,37 @@ async function globalSetup(_config: FullConfig) {
     });
 
     // Handle Docker Compose output
-    dockerProcess.stdout?.on('data', (data) => {
+    dockerProcess.stdout?.on('data', (data: Buffer) => {
       const output = data.toString();
       if (output.includes('error') || output.includes('Error')) {
         console.error('Docker Compose error:', output);
       }
     });
 
-    dockerProcess.stderr?.on('data', (data) => {
+    dockerProcess.stderr?.on('data', (data: Buffer) => {
       console.error('Docker Compose stderr:', data.toString());
     });
 
     // Wait for services to be healthy
+    // eslint-disable-next-line no-console
     console.log('⏳ Waiting for services to be ready...');
     await waitForServicesHealthy(projectRoot);
 
     // Seed test data
+    // eslint-disable-next-line no-console
     console.log('🌱 Seeding test data...');
     await seedTestData(projectRoot);
 
     // Verify services are accessible
+    // eslint-disable-next-line no-console
     console.log('✅ Verifying service accessibility...');
     await verifyServices();
 
+    // eslint-disable-next-line no-console
     console.log('✨ E2E test environment ready!');
 
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('❌ Failed to start E2E test environment:', error);
     
     // Cleanup on failure
@@ -84,6 +93,7 @@ async function globalSetup(_config: FullConfig) {
         stdio: 'inherit',
       });
     } catch (cleanupError) {
+      // eslint-disable-next-line no-console
       console.error('Failed to cleanup:', cleanupError);
     }
     
@@ -102,9 +112,9 @@ async function waitForServicesHealthy(projectRoot: string, maxWaitTime = 120000)
         encoding: 'utf8',
       });
 
-      const services = result.trim().split('\n')
+      const services: Array<{ Service: string; State: string; Health?: string }> = result.trim().split('\n')
         .filter(line => line.trim())
-        .map(line => JSON.parse(line));
+        .map(line => JSON.parse(line) as { Service: string; State: string; Health?: string });
 
       const requiredServices = ['postgres-test', 'redis-test', 'api-test', 'web-test'];
       const healthyServices = services.filter(service => 
@@ -113,13 +123,16 @@ async function waitForServicesHealthy(projectRoot: string, maxWaitTime = 120000)
       );
 
       if (healthyServices.length === requiredServices.length) {
+        // eslint-disable-next-line no-console
         console.log('✅ All required services are healthy');
         return;
       }
 
+      // eslint-disable-next-line no-console
       console.log(`⏳ Waiting for services... (${healthyServices.length}/${requiredServices.length} healthy)`);
       
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.log('⏳ Still waiting for services to start...');
     }
 
@@ -137,6 +150,7 @@ async function seedTestData(projectRoot: string) {
       timeout: 60000,
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.warn('Test data seeding failed or partially failed:', error);
     // Don't fail the setup if seeding fails
   }
@@ -156,6 +170,7 @@ async function verifyServices() {
       try {
         const response = await fetch(service.url);
         if (response.ok) {
+          // eslint-disable-next-line no-console
           console.log(`✅ ${service.name} service is accessible`);
           success = true;
           break;

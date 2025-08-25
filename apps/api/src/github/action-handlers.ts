@@ -9,16 +9,12 @@
  */
 
 import type { Octokit } from '@octokit/rest';
-import type { PrismaClient } from '@prisma/client';
 
 import { logger } from '../utils/logger.js';
 
 import { ErrorCode } from './api-spec.js';
-import { ERROR_MESSAGES } from './constants.js';
 import type {
   CheckRunAction,
-  RepositoryInfo,
-  ApiResponse,
 } from './types.js';
 
 /**

@@ -105,6 +105,9 @@ importers:
       '@prisma/client':
         specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
+      '@sinclair/typebox':
+        specifier: ^0.34.40
+        version: 0.34.40
       '@slack/bolt':
         specifier: ^3.22.0
         version: 3.22.0
@@ -126,6 +129,9 @@ importers:
       ioredis:
         specifier: ^5.7.0
         version: 5.7.0
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       minimatch:
         specifier: ^9.0.5
         version: 9.0.5
@@ -160,6 +166,9 @@ importers:
       '@testcontainers/redis':
         specifier: ^10.28.0
         version: 10.28.0
+      '@types/jsonwebtoken':
+        specifier: ^9.0.10
+        version: 9.0.10
       '@types/node':
         specifier: ^20.19.11
         version: 20.19.11
@@ -229,9 +238,15 @@ importers:
       '@mdx-js/react':
         specifier: ^3.1.0
         version: 3.1.0(@types/react@18.3.24)(react@19.1.1)
+      '@types/jsonwebtoken':
+        specifier: ^9.0.7
+        version: 9.0.10
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       prism-react-renderer:
         specifier: ^2.4.1
         version: 2.4.1(react@19.1.1)
@@ -269,12 +284,18 @@ importers:
       '@tanstack/react-query-devtools':
         specifier: ^5.85.5
         version: 5.85.5(@tanstack/react-query@5.85.5(react@18.3.1))(react@18.3.1)
+      '@types/jsonwebtoken':
+        specifier: ^9.0.7
+        version: 9.0.10
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
       date-fns:
         specifier: ^3.6.0
         version: 3.6.0
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       lucide-react:
         specifier: ^0.314.0
         version: 0.314.0(react@18.3.1)
@@ -369,6 +390,9 @@ importers:
       '@prisma/client':
         specifier: ^5.22.0
         version: 5.22.0(prisma@5.22.0)
+      '@types/jsonwebtoken':
+        specifier: ^9.0.7
+        version: 9.0.10
       bullmq:
         specifier: ^5.58.1
         version: 5.58.1
@@ -378,6 +402,9 @@ importers:
       ioredis:
         specifier: ^5.7.0
         version: 5.7.0
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       node-stream-zip:
         specifier: ^1.15.0
         version: 1.15.0
@@ -424,6 +451,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@types/jsonwebtoken':
+        specifier: ^9.0.7
+        version: 9.0.10
       axios:
         specifier: ^1.11.0
         version: 1.11.0
@@ -451,6 +481,9 @@ importers:
       joi:
         specifier: ^17.13.3
         version: 17.13.3
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       listr2:
         specifier: ^7.0.2
         version: 7.0.2
@@ -512,6 +545,12 @@ importers:
       '@octokit/webhooks-types':
         specifier: ^7.6.1
         version: 7.6.1
+      '@types/jsonwebtoken':
+        specifier: ^9.0.7
+        version: 9.0.10
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.2
       pino:
         specifier: ^8.21.0
         version: 8.21.0
@@ -2942,6 +2981,9 @@ packages:
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
+
+  '@sinclair/typebox@0.34.40':
+    resolution: {integrity: sha512-gwBNIP8ZAYev/ORDWW0QvxdwPXwxBtLsdsJgSc7eDIRt8ubP+rxUBzPsrwnu16fgEF8Bx4lh/+mvQvJzcTM6Kw==}
 
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
@@ -13372,6 +13414,8 @@ snapshots:
   '@sideway/pinpoint@2.0.0': {}
 
   '@sinclair/typebox@0.27.8': {}
+
+  '@sinclair/typebox@0.34.40': {}
 
   '@sindresorhus/is@4.6.0': {}
 

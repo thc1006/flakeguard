@@ -81,7 +81,7 @@ async function slackPlugin(
       
       fastify.log.info({
         port: slackConfig.port,
-        signingSecret: (slackConfig.signingSecret as string).substring(0, 8) + '...',
+        signingSecret: (slackConfig.signingSecret).substring(0, 8) + '...',
       }, 'FlakeGuard Slack app started successfully');
 
       // Graceful shutdown handler

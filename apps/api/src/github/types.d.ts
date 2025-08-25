@@ -233,6 +233,24 @@ export interface InstallationToken {
         readonly fullName: string;
     }>;
 }
+export interface GitHubAppAuth {
+    generateJWT(): Promise<string>;
+    getInstallationToken(installationId: number): Promise<InstallationToken>;
+    validateInstallationAccess(installationId: number, owner: string, repo?: string): Promise<boolean>;
+    getInstallationClient(installationId: number): Promise<any>;
+    getAuthenticatedContext(installationId: number): Promise<AuthenticatedContext>;
+    verifyWebhookSignature(payload: string, signature: string): Promise<boolean>;
+    getInstallation(installationId: number): Promise<AppInstallation>;
+}
+export interface AuthenticatedContext {
+    readonly installationId: number;
+    readonly permissions: Record<string, 'read' | 'write' | 'admin'>;
+    readonly repositories: ReadonlyArray<{
+        readonly id: number;
+        readonly name: string;
+        readonly fullName: string;
+    }> | 'all';
+}
 export declare class GitHubApiError extends Error {
     readonly status: number;
     readonly response?: Record<string, unknown> | undefined;

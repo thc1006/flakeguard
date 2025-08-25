@@ -9,6 +9,7 @@
  * - Message formatting and response validation
  */
 
+import { TestCrypto } from '@flakeguard/shared/utils';
 import { PrismaClient } from '@prisma/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
@@ -16,10 +17,11 @@ import { FlakinessScorer } from '../../analytics/flakiness.js';
 import { GitHubAuthManager } from '../../github/auth.js';
 import { CheckRunHandler } from '../../github/handlers.js';
 import { FlakeGuardSlackApp, createFlakeGuardSlackApp } from '../app.js';
-import { TestCrypto } from '@flakeguard/shared/utils';
 
 // Mock all dependencies
-vi.mock('@slack/bolt');
+vi.mock('@slack/bolt', () => ({
+  App: vi.fn()
+}));
 vi.mock('@prisma/client');
 vi.mock('../../github/auth.js');
 vi.mock('../../github/handlers.js');
@@ -57,7 +59,7 @@ describe('FlakeGuardSlackApp', () => {
     text: ''
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset all mocks
     vi.clearAllMocks();
 
@@ -109,8 +111,8 @@ describe('FlakeGuardSlackApp', () => {
     mockAck = vi.fn();
 
     // Mock @slack/bolt App constructor
-    const { App } = require('@slack/bolt');
-    App.mockImplementation(() => mockSlackApp);
+    const { App } = await import('@slack/bolt');
+    vi.mocked(App).mockImplementation(() => mockSlackApp);
 
     // Create app instance
     app = new FlakeGuardSlackApp(mockConfig, {

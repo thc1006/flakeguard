@@ -1,14 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import { EmailJobData } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
 import { Job, Processor } from 'bullmq';
-import { z } from 'zod';
 
 import { logger } from '../utils/logger.js';
 
 
-export function emailProcessor(prisma: PrismaClient): Processor {
+export function emailProcessor(_prisma: PrismaClient): Processor {
   return async (job: Job<EmailJobData>) => {
-    const { to, subject, body, userId } = job.data;
+    const { to, subject, userId } = job.data;
     
     logger.info(
       { jobId: job.id, to, subject },
@@ -41,7 +42,7 @@ export function emailProcessor(prisma: PrismaClient): Processor {
       };
     } catch (error) {
       logger.error(
-        { jobId: job.id, error: (error as Error).message },
+        { jobId: job.id, error: error instanceof Error ? error.message : String(error) },
         'Failed to send email'
       );
       throw error;

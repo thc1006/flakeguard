@@ -25,11 +25,10 @@ import type {
   TestCaseStatus,
   JUnitFormat,
   FormatDetectionResult,
-  FormatSpecificConfig,
   StreamProcessingOptions
 } from './types.js';
 import { ParsingFailedException } from './types.js';
-import { detectFormatFromPath, createIngestionError } from './utils.js';
+import { detectFormatFromPath } from './utils.js';
 
 // ============================================================================
 // Core JUnit Test Case Interface (as specified in requirements)
@@ -58,7 +57,6 @@ interface JUnitTestCase {
   file?: string;
 }
 
-const pipelineAsync = promisify(pipeline);
 
 // ============================================================================
 // Advanced TypeScript Utility Types and Type-Level Programming
@@ -69,7 +67,7 @@ const pipelineAsync = promisify(pipeline);
  */
 type DeepReadonly<T> = {
   readonly [P in keyof T]: T[P] extends object 
-    ? T[P] extends Function 
+    ? T[P] extends (...args: unknown[]) => unknown
       ? T[P] 
       : DeepReadonly<T[P]>
     : T[P];
@@ -195,21 +193,6 @@ interface GenericConfig {
 /**
  * Parser state management with immutable design patterns
  */
-interface ParserState {
-  readonly format: JUnitFormat;
-  readonly currentPath: readonly string[];
-  readonly testSuites: TestSuites;
-  readonly currentSuite?: TestSuite;
-  readonly currentTestCase?: TestCase;
-  readonly currentElement?: {
-    readonly name: string;
-    readonly attributes: Readonly<Record<string, string>>;
-    text: string;
-  };
-  readonly warnings: readonly string[];
-  readonly processingTimeMs: number;
-  readonly byteCount: number;
-}
 
 /**
  * Mutable parser state for internal operations
@@ -356,7 +339,7 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
       clearInterval(memoryMonitorInterval);
     };
 
-    parser.on('opentag', (node: any) => {
+    parser.on('opentag', (node: { name: string; attributes: Record<string, string> }) => {
       try {
         elementsProcessed++;
         state.elementDepth++;
@@ -370,10 +353,10 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
         // Backpressure handling for large documents
         if (elementsProcessed % 10000 === 0) {
           setImmediate(() => {
-            this.handleOpenTag(state, node.name, node.attributes as Record<string, string>, context);
+            this.handleOpenTag(state, node.name, node.attributes, context);
           });
         } else {
-          this.handleOpenTag(state, node.name, node.attributes as Record<string, string>, context);
+          this.handleOpenTag(state, node.name, node.attributes, context);
         }
       } catch (error) {
         cleanup();
@@ -421,8 +404,8 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
         state.processingTimeMs = Date.now() - context.startTime;
         
         // Add processing statistics to state
-        (state as any).elementsProcessed = elementsProcessed;
-        (state as any).memoryPeakMB = memoryPeakMB;
+        (state as MutableParserState & { elementsProcessed: number; memoryPeakMB: number }).elementsProcessed = elementsProcessed;
+        (state as MutableParserState & { elementsProcessed: number; memoryPeakMB: number }).memoryPeakMB = memoryPeakMB;
         
         const result = this.finalizeResult(state);
         resolve(result);
@@ -1247,9 +1230,9 @@ export async function parseJUnitXMLAdvanced<T extends JUnitFormat = JUnitFormat>
     metadata,
     processingStats: {
       bytesParsed: parseResult.byteCount,
-      elementsProcessed: (parseResult as any).elementsProcessed || 0,
+      elementsProcessed: (parseResult as { elementsProcessed?: number }).elementsProcessed || 0,
       parsingTimeMs: parseResult.processingTimeMs,
-      memoryPeakMB: (parseResult as any).memoryPeakMB || 0,
+      memoryPeakMB: (parseResult as { memoryPeakMB?: number }).memoryPeakMB || 0,
     },
     warnings: parseResult.warnings,
   };

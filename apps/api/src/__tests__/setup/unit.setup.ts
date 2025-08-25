@@ -4,8 +4,29 @@
  * Configures the test environment for isolated unit tests
  */
 
-import { beforeEach, afterEach, vi } from 'vitest';
+import { beforeEach, afterEach, beforeAll, vi } from 'vitest';
 // import type { MockedFunction } from 'vitest'; // unused for now
+
+// Set up environment variables BEFORE any imports that use config
+beforeAll(() => {
+  // Set environment variables for test
+  process.env.NODE_ENV = 'test';
+  process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/flakeguard_test';
+  process.env.REDIS_URL = 'redis://localhost:6379';
+  process.env.JWT_SECRET = 'test-jwt-secret-32-chars-minimum-length';
+  process.env.API_KEY = 'test-api-key-16-chars';
+  process.env.GITHUB_APP_ID = '12345';
+  process.env.GITHUB_PRIVATE_KEY = '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA4f5wg5l2hKsTeNem/V41fGnJm6gOdrj8ym3rFkEjWT2JjSBP\n-----END RSA PRIVATE KEY-----';
+  process.env.GITHUB_WEBHOOK_SECRET = 'test-webhook-secret';
+  process.env.GITHUB_CLIENT_ID = 'test-github-client-id';
+  process.env.GITHUB_CLIENT_SECRET = 'test-github-client-secret';
+  process.env.SLACK_BOT_TOKEN = 'xoxb-test-token';
+  process.env.SLACK_SIGNING_SECRET = 'test-signing-secret';
+  
+  // Optional environment variables
+  process.env.ENABLE_SLACK_APP = 'false';
+  process.env.LOG_LEVEL = 'error';
+});
 
 // Mock external dependencies at module level
 vi.mock('@octokit/rest', () => ({
@@ -78,18 +99,50 @@ vi.mock('pino', () => ({
   })),
 }));
 
-// Mock environment variables
-vi.mock('process', () => ({
-  env: {
-    NODE_ENV: 'test',
-    DATABASE_URL: 'postgresql://test:test@localhost:5432/flakeguard_test',
-    REDIS_URL: 'redis://localhost:6379',
-    GITHUB_APP_ID: 'test-app-id',
-    GITHUB_PRIVATE_KEY: 'test-private-key',
-    GITHUB_WEBHOOK_SECRET: 'test-webhook-secret',
-    SLACK_BOT_TOKEN: 'xoxb-test-token',
-    SLACK_SIGNING_SECRET: 'test-signing-secret',
-  },
+// Mock BullMQ
+vi.mock('bullmq', () => ({
+  Queue: vi.fn().mockImplementation(() => ({
+    add: vi.fn(),
+    close: vi.fn(),
+  })),
+  Worker: vi.fn().mockImplementation(() => ({
+    run: vi.fn(),
+    close: vi.fn(),
+  })),
+}));
+
+// Mock IORedis
+vi.mock('ioredis', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
+    disconnect: vi.fn(),
+  })),
+}));
+
+// Mock the config module to use test configuration
+vi.mock('../config/index.js', async () => {
+  const { testConfig } = await import('../../config/test-config.js');
+  return {
+    config: testConfig,
+  };
+});
+
+// Mock filesystem operations for tests that don't need actual files
+vi.mock('fs', () => ({
+  readFileSync: vi.fn().mockReturnValue('test-file-content'),
+  writeFileSync: vi.fn(),
+  existsSync: vi.fn().mockReturnValue(true),
+}));
+
+// Mock node-stream-zip for artifact processing
+vi.mock('node-stream-zip', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    entries: {},
+    entryDataSync: vi.fn().mockReturnValue(Buffer.from('test content')),
+    close: vi.fn(),
+  })),
 }));
 
 // Global test setup

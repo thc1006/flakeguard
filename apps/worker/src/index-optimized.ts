@@ -3,7 +3,6 @@
  */
 import { QueueNames } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
-import { Worker } from 'bullmq';
 
 import { OptimizedWorkerManager } from '../../api/src/performance/worker-optimizations.js';
 
@@ -94,7 +93,7 @@ async function start() {
         logger.info('Job completed successfully', {
           jobId: job.id,
           queue: queueName,
-          processingTime: Date.now() - job.processedOn!,
+          processingTime: job.processedOn ? Date.now() - job.processedOn : 0,
         });
       });
 
@@ -165,14 +164,18 @@ async function start() {
       await Promise.all(shutdownPromises);
       
       await prisma.$disconnect();
-      await connection.quit();
+      await (connection as import('ioredis').default).quit();
       
       logger.info('Graceful shutdown completed');
       process.exit(0);
     };
 
-    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+    process.on('SIGTERM', () => {
+      void gracefulShutdown('SIGTERM');
+    });
+    process.on('SIGINT', () => {
+      void gracefulShutdown('SIGINT');
+    });
 
   } catch (error) {
     logger.error(error, 'Failed to start optimized workers');
@@ -180,4 +183,4 @@ async function start() {
   }
 }
 
-start();
+void start();

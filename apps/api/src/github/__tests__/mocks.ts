@@ -546,7 +546,13 @@ export function createMockFlakeDetector(): FlakeDetector {
 // COMPREHENSIVE TEST MOCK FACTORY
 // =============================================================================
 
-export function createTestMocks() {
+export function createTestMocks(): {
+  authManager: any;
+  helpers: any;
+  flakeDetector: any;
+  prisma: any;
+  octokit: any;
+} {
   const authManager = createMockAuthManager();
   const helpers = createMockHelpers();
   const flakeDetector = createMockFlakeDetector();
@@ -922,7 +928,6 @@ export function mockEnvironmentVariables(vars: Record<string, string>) {
 // =============================================================================
 
 export {
-  type DatabaseTestFixture,
   type CheckRunWebhookPayload,
   type WorkflowRunWebhookPayload,
   type InstallationWebhookPayload,

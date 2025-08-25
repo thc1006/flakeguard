@@ -33,7 +33,7 @@ export const jobProcessingDuration = new Histogram({
   name: 'flakeguard_worker_job_processing_duration_seconds',
   help: 'Time spent processing jobs',
   labelNames: ['queue', 'status'],
-  buckets: METRICS_CONFIG.HISTOGRAM_BUCKETS,
+  buckets: [...METRICS_CONFIG.HISTOGRAM_BUCKETS],
 });
 
 export const jobsInProgress = new Gauge({
@@ -156,7 +156,7 @@ export const analysisProcessingTime = new Histogram({
   name: 'flakeguard_worker_analysis_processing_time_seconds',
   help: 'Time spent processing flakiness analysis',
   labelNames: ['repository'],
-  buckets: METRICS_CONFIG.HISTOGRAM_BUCKETS,
+  buckets: [...METRICS_CONFIG.HISTOGRAM_BUCKETS],
 });
 
 // ============================================================================
@@ -203,7 +203,7 @@ export const artifactProcessingTime = new Histogram({
   name: 'flakeguard_worker_artifact_processing_time_seconds',
   help: 'Time spent processing artifacts',
   labelNames: ['artifact_type'],
-  buckets: METRICS_CONFIG.HISTOGRAM_BUCKETS,
+  buckets: [...METRICS_CONFIG.HISTOGRAM_BUCKETS],
 });
 
 export const testResultsParsed = new Counter({

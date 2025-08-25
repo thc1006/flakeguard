@@ -45,7 +45,7 @@ export interface ArtifactSourceInfo {
 /**
  * Repository context for ingestion
  */
-export interface RepositoryInfo {
+export interface IngestionRepositoryInfo {
   readonly owner: string;
   readonly repo: string;
   readonly installationId: number;
@@ -71,7 +71,7 @@ export interface ArtifactFilterCriteria {
  */
 export interface IngestionJobConfig {
   readonly workflowRunId: number;
-  readonly repository: RepositoryInfo;
+  readonly repository: IngestionRepositoryInfo;
   readonly filter?: ArtifactFilterCriteria;
   readonly priority?: IngestionJobPriority;
   readonly correlationId?: string;
@@ -114,7 +114,7 @@ export interface IngestionJobInfo {
   readonly status: IngestionJobStatus;
   readonly priority: IngestionJobPriority;
   readonly workflowRunId: number;
-  readonly repository: RepositoryInfo;
+  readonly repository: IngestionRepositoryInfo;
   readonly progress?: JobProgressInfo;
   readonly result?: JobExecutionResult;
   readonly createdAt: string; // ISO date string
@@ -372,7 +372,7 @@ export function isIngestionPhase(value: unknown): value is IngestionPhase {
 /**
  * Validate repository info
  */
-export function isValidRepositoryInfo(value: unknown): value is RepositoryInfo {
+export function isValidRepositoryInfo(value: unknown): value is IngestionRepositoryInfo {
   if (typeof value !== 'object' || value === null) return false;
   
   const repo = value as Record<string, unknown>;

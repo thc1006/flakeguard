@@ -8,6 +8,7 @@ import Fastify, { FastifyInstance } from 'fastify';
 import { config } from './config/index.js';
 import githubAppPlugin from './github/index.js';
 import bullmqPlugin from './plugins/bullmq.js';
+import databaseMonitoringPlugin from './plugins/database-monitoring.js';
 import errorHandler from './plugins/error-handler.js';
 import metricsPlugin from './plugins/metrics.js';
 import policyPlugin from './plugins/policy.js';
@@ -15,6 +16,7 @@ import prismaPlugin from './plugins/prisma.js';
 import securityPlugin from './plugins/security.js';
 import tenantIsolationPlugin from './plugins/tenant-isolation.js';
 import adminRoutes from './routes/admin.js';
+import { databaseMonitoringRoutes } from './routes/database-monitoring.js';
 import { githubWebhookRoutes } from './routes/github-webhook.js';
 import { healthRoutes } from './routes/health.js';
 import { ingestionRoutes } from './routes/ingestion.js';
@@ -86,6 +88,15 @@ export async function buildApp(): Promise<FastifyInstance> {
   // Register custom plugins
   await app.register(errorHandler);
   await app.register(prismaPlugin);
+  await app.register(databaseMonitoringPlugin, {
+    enabled: config.env !== 'test',
+    healthCheckInterval: 30000, // 30 seconds
+    performanceThresholds: {
+      slowQueryMs: 1000,
+      connectionUtilizationWarning: 70,
+      connectionUtilizationCritical: 85,
+    },
+  });
   await app.register(metricsPlugin, {
     enabled: config.env !== 'test',
     excludeRoutes: ['/health', '/metrics', '/documentation'],
@@ -141,6 +152,9 @@ export async function buildApp(): Promise<FastifyInstance> {
     logger.info('GitHub webhook routes registered');
   }
   
+  // Database monitoring routes  
+  await app.register(databaseMonitoringRoutes, { prefix: '/api/database' });
+  
   // Multi-tenant routes
   await app.register(organizationRoutes);
   await app.register(adminRoutes);
@@ -158,7 +172,7 @@ export async function buildApp(): Promise<FastifyInstance> {
         slack: config.features.slackApp ? 'enabled' : 'disabled',
         quarantine: config.features.quarantineActions ? 'enabled' : 'disabled',
         policy: 'enabled',
-        queue: config.features.githubWebhooks && app.queue ? 'healthy' : 'disabled',
+        queue: config.features.githubWebhooks && 'queue' in app && (app as any).queue ? 'healthy' : 'disabled',
       },
       features: config.features,
     };
@@ -176,7 +190,7 @@ export async function buildApp(): Promise<FastifyInstance> {
     if (config.features.slackApp && app.slackApp) {
       try {
         // Simple check to see if Slack app is initialized
-        health.components.slack = app.slackApp ? 'healthy' : 'unhealthy';
+        health.components.slack = 'slackApp' in app && (app as any).slackApp ? 'healthy' : 'unhealthy';
       } catch (error) {
         health.components.slack = 'unhealthy';
         health.status = 'degraded';

@@ -8,8 +8,34 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
+      "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./utils": {
+      "development": "./src/utils/index.ts",
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js",
+      "default": "./dist/utils/index.js"
+    },
+    "./types": {
+      "development": "./src/types/index.ts",
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js",
+      "default": "./dist/types/index.js"
+    },
+    "./github": {
+      "development": "./src/github/index.ts",
+      "types": "./dist/github/index.d.ts",
+      "import": "./dist/github/index.js",
+      "default": "./dist/github/index.js"
+    },
+    "./schemas": {
+      "development": "./src/schemas/index.ts",
+      "types": "./dist/schemas/index.d.ts",
+      "import": "./dist/schemas/index.js",
+      "default": "./dist/schemas/index.js"
     }
   },
   "scripts": {
@@ -24,6 +50,8 @@
     "@octokit/request-error": "^5.1.1",
     "@octokit/rest": "^20.1.2",
     "@octokit/webhooks-types": "^7.6.1",
+    "@types/jsonwebtoken": "^9.0.7",
+    "jsonwebtoken": "^9.0.2",
     "pino": "^8.21.0",
     "zod": "^3.25.76"
   },

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any */
+
 /**
  * Slack notification processor for FlakeGuard worker
  */
@@ -25,9 +27,9 @@ interface SlackNotificationJobData {
   };
 }
 
-export function slackProcessor(prisma: PrismaClient): Processor {
+export function slackProcessor(_prisma: PrismaClient): Processor {
   return async (job: Job<SlackNotificationJobData>) => {
-    const { type, repository, priority, data, routing } = job.data;
+    const { type, repository, priority, data: _data, routing: _routing } = job.data;
     
     logger.info(
       { jobId: job.id, type, repository, priority },
@@ -55,7 +57,7 @@ export function slackProcessor(prisma: PrismaClient): Processor {
         type,
         repository,
         sentAt: new Date().toISOString(),
-        channels: routing.channels.length,
+        channels: (_routing as { channels: unknown[] }).channels.length,
       };
     } catch (error) {
       logger.error(

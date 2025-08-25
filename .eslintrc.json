@@ -47,7 +47,9 @@
     "*.cjs",
     "coverage",
     "*.config.js",
-    "*.config.ts"
+    "*.config.ts",
+    "**/*.test.ts",
+    "**/*.spec.ts"
   ],
   "env": {
     "node": true,

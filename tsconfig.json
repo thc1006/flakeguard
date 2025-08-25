@@ -27,7 +27,8 @@
     "paths": {
       "@flakeguard/shared": ["./packages/shared/src"],
       "@flakeguard/shared/*": ["./packages/shared/src/*"]
-    }
+    },
+    "customConditions": ["development"]
   },
   "exclude": ["node_modules", "dist", "build", ".turbo"]
 }

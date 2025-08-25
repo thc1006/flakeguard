@@ -1,0 +1,305 @@
+# Custom PostgreSQL Queries for FlakeGuard Monitoring
+#
+# Extended monitoring queries for multi-tenant database performance,
+# connection pool health, and FlakeGuard-specific metrics
+
+pg_replication:
+  query: |
+    SELECT EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp())) as lag
+  master: true
+  metrics:
+    - lag:
+        usage: "GAUGE"
+        description: "Replication lag behind master in seconds"
+
+pg_postmaster:
+  query: |
+    SELECT pg_postmaster_start_time as start_time_seconds
+  master: true
+  metrics:
+    - start_time_seconds:
+        usage: "GAUGE"
+        description: "Time at which postmaster started"
+
+# FlakeGuard-specific database metrics
+flakeguard_tenant_stats:
+  query: |
+    SELECT 
+      count(*) as total_organizations,
+      count(*) FILTER (WHERE status = 'active') as active_organizations,
+      count(*) FILTER (WHERE plan = 'enterprise') as enterprise_organizations
+    FROM "Organization"
+  master: true
+  metrics:
+    - total_organizations:
+        usage: "GAUGE"
+        description: "Total number of organizations"
+    - active_organizations:
+        usage: "GAUGE"
+        description: "Number of active organizations"
+    - enterprise_organizations:
+        usage: "GAUGE"
+        description: "Number of enterprise organizations"
+
+flakeguard_test_activity:
+  query: |
+    SELECT 
+      count(*) as total_tests,
+      count(*) FILTER (WHERE created_at > now() - interval '24 hours') as tests_last_24h,
+      count(*) FILTER (WHERE created_at > now() - interval '1 hour') as tests_last_hour
+    FROM "FGOccurrence"
+  master: true
+  metrics:
+    - total_tests:
+        usage: "GAUGE"
+        description: "Total number of test occurrences"
+    - tests_last_24h:
+        usage: "GAUGE"
+        description: "Test occurrences in last 24 hours"
+    - tests_last_hour:
+        usage: "GAUGE"
+        description: "Test occurrences in last hour"
+
+flakeguard_flake_stats:
+  query: |
+    SELECT 
+      count(*) as total_flake_scores,
+      count(*) FILTER (WHERE score > 0.3) as warning_flakes,
+      count(*) FILTER (WHERE score > 0.6) as critical_flakes,
+      avg(score) as avg_flake_score
+    FROM "FGFlakeScore"
+  master: true
+  metrics:
+    - total_flake_scores:
+        usage: "GAUGE"
+        description: "Total number of tests with flake scores"
+    - warning_flakes:
+        usage: "GAUGE"
+        description: "Number of tests with warning-level flakiness"
+    - critical_flakes:
+        usage: "GAUGE"
+        description: "Number of tests with critical-level flakiness"
+    - avg_flake_score:
+        usage: "GAUGE"
+        description: "Average flakiness score across all tests"
+
+flakeguard_quarantine_stats:
+  query: |
+    SELECT 
+      count(*) as total_quarantine_decisions,
+      count(*) FILTER (WHERE state = 'ACTIVE') as active_quarantines,
+      count(*) FILTER (WHERE state = 'PROPOSED') as proposed_quarantines,
+      count(*) FILTER (WHERE created_at > now() - interval '24 hours') as decisions_last_24h
+    FROM "FGQuarantineDecision"
+  master: true
+  metrics:
+    - total_quarantine_decisions:
+        usage: "GAUGE"
+        description: "Total number of quarantine decisions"
+    - active_quarantines:
+        usage: "GAUGE"
+        description: "Number of active quarantines"
+    - proposed_quarantines:
+        usage: "GAUGE"
+        description: "Number of proposed quarantines"
+    - decisions_last_24h:
+        usage: "GAUGE"
+        description: "Quarantine decisions in last 24 hours"
+
+# Connection and performance monitoring
+pg_connections_detailed:
+  query: |
+    SELECT 
+      tmp.state,
+      COALESCE(count, 0) as count
+    FROM 
+      (VALUES ('active'), ('idle'), ('idle in transaction'), ('idle in transaction (aborted)'), ('fastpath function call'), ('disabled')) AS tmp(state) 
+    LEFT JOIN 
+      (SELECT state, count(*) AS count FROM pg_stat_activity WHERE datname = current_database() GROUP BY state) AS tmp2 
+    ON tmp.state = tmp2.state
+  master: true
+  metrics:
+    - count:
+        usage: "GAUGE"
+        description: "Number of connections in this state"
+        labels:
+          - state
+
+pg_locks_detailed:
+  query: |
+    SELECT 
+      pg_database.datname,
+      tmp.mode,
+      COALESCE(count, 0) as count
+    FROM
+      (VALUES ('accesssharelock'), ('rowsharelock'), ('rowexclusivelock'), ('shareupdateexclusivelock'), ('sharelock'), ('sharerowexclusivelock'), ('exclusivelock'), ('accessexclusivelock')) AS tmp(mode) 
+    CROSS JOIN pg_database
+    LEFT JOIN 
+      (SELECT database, lower(mode) AS mode, count(*) AS count FROM pg_locks WHERE database IS NOT NULL GROUP BY database, lower(mode)) AS tmp2 
+    ON tmp.mode = tmp2.mode AND pg_database.oid = tmp2.database 
+    WHERE pg_database.datname = current_database()
+  master: true
+  metrics:
+    - count:
+        usage: "GAUGE"
+        description: "Number of locks in this mode"
+        labels:
+          - datname
+          - mode
+
+# Table and index statistics for FlakeGuard tables
+flakeguard_table_stats:
+  query: |
+    SELECT 
+      schemaname,
+      tablename,
+      n_tup_ins,
+      n_tup_upd,
+      n_tup_del,
+      n_dead_tup,
+      last_vacuum,
+      last_autovacuum,
+      last_analyze,
+      last_autoanalyze
+    FROM pg_stat_user_tables 
+    WHERE tablename IN ('Organization', 'FGRepository', 'FGTestCase', 'FGOccurrence', 'FGFlakeScore', 'FGQuarantineDecision')
+  master: true
+  metrics:
+    - n_tup_ins:
+        usage: "COUNTER"
+        description: "Number of tuples inserted"
+        labels:
+          - schemaname
+          - tablename
+    - n_tup_upd:
+        usage: "COUNTER"
+        description: "Number of tuples updated"
+        labels:
+          - schemaname
+          - tablename
+    - n_tup_del:
+        usage: "COUNTER"
+        description: "Number of tuples deleted"
+        labels:
+          - schemaname
+          - tablename
+    - n_dead_tup:
+        usage: "GAUGE"
+        description: "Number of dead tuples"
+        labels:
+          - schemaname
+          - tablename
+
+# Multi-tenant data isolation monitoring  
+flakeguard_tenant_isolation_check:
+  query: |
+    WITH tenant_counts AS (
+      SELECT 
+        'FGRepository' as table_name,
+        "orgId",
+        count(*) as row_count
+      FROM "FGRepository" 
+      GROUP BY "orgId"
+      UNION ALL
+      SELECT 
+        'FGTestCase' as table_name,
+        "orgId",
+        count(*) as row_count
+      FROM "FGTestCase"
+      GROUP BY "orgId"
+      UNION ALL
+      SELECT 
+        'FGOccurrence' as table_name, 
+        "orgId",
+        count(*) as row_count
+      FROM "FGOccurrence"
+      GROUP BY "orgId"
+    )
+    SELECT 
+      table_name,
+      count(DISTINCT "orgId") as tenant_count,
+      sum(row_count) as total_rows,
+      avg(row_count) as avg_rows_per_tenant,
+      max(row_count) as max_rows_per_tenant
+    FROM tenant_counts
+    GROUP BY table_name
+  master: true
+  metrics:
+    - tenant_count:
+        usage: "GAUGE"
+        description: "Number of tenants with data in this table"
+        labels:
+          - table_name
+    - total_rows:
+        usage: "GAUGE"
+        description: "Total rows across all tenants"
+        labels:
+          - table_name
+    - avg_rows_per_tenant:
+        usage: "GAUGE"
+        description: "Average rows per tenant"
+        labels:
+          - table_name
+    - max_rows_per_tenant:
+        usage: "GAUGE"
+        description: "Maximum rows for any single tenant"
+        labels:
+          - table_name
+
+# Database bloat monitoring
+pg_table_bloat:
+  query: |
+    SELECT 
+      schemaname, 
+      tablename, 
+      ROUND(CASE WHEN otta=0 THEN 0.0 ELSE sml.relpages/otta::numeric END,1) AS tbloat,
+      CASE WHEN relpages < otta THEN 0 ELSE bs*(sml.relpages-otta)::bigint END AS wastedbytes
+    FROM (
+      SELECT
+        schemaname, tablename, cc.reltuples, cc.relpages, bs,
+        CEIL((cc.reltuples*((datahdr+ma-
+          (CASE WHEN datahdr%ma=0 THEN ma ELSE datahdr%ma END))+nullhdr2+4))/(bs-20::float)) AS otta
+      FROM (
+        SELECT
+          ma,bs,schemaname,tablename,
+          (datawidth+(hdr+ma-(case when hdr%ma=0 THEN ma ELSE hdr%ma END)))::numeric AS datahdr,
+          (maxfracsum*(nullhdr+ma-(case when nullhdr%ma=0 THEN ma ELSE nullhdr%ma END))) AS nullhdr2
+        FROM (
+          SELECT
+            schemaname, tablename, hdr, ma, bs,
+            SUM((1-null_frac)*avg_width) AS datawidth,
+            MAX(null_frac) AS maxfracsum,
+            hdr+(
+              SELECT 1+count(*)/8
+              FROM pg_stats s2
+              WHERE null_frac<>0 AND s2.schemaname = s.schemaname AND s2.tablename = s.tablename
+            ) AS nullhdr
+          FROM pg_stats s, (
+            SELECT
+              (SELECT current_setting('block_size')::numeric) AS bs,
+              CASE WHEN substring(version(),12,3) IN ('8.0','8.1','8.2') THEN 27 ELSE 23 END AS hdr,
+              CASE WHEN version() ~ 'mingw32' THEN 8 ELSE 4 END AS ma
+          ) AS constants
+          GROUP BY 1,2,3,4,5
+        ) AS foo
+      ) AS rs
+      JOIN pg_class cc ON cc.relname = rs.tablename
+      JOIN pg_namespace nn ON cc.relnamespace = nn.oid AND nn.nspname = rs.schemaname AND nn.nspname <> 'information_schema'
+    ) AS sml
+    WHERE schemaname = 'public'
+    AND tablename IN ('Organization', 'FGRepository', 'FGTestCase', 'FGOccurrence')
+    ORDER BY wastedbytes DESC
+  master: true
+  metrics:
+    - tbloat:
+        usage: "GAUGE"
+        description: "Table bloat ratio"
+        labels:
+          - schemaname
+          - tablename
+    - wastedbytes:
+        usage: "GAUGE"
+        description: "Wasted bytes due to bloat"
+        labels:
+          - schemaname
+          - tablename

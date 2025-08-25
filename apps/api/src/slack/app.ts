@@ -9,14 +9,17 @@
  * - Secure request verification
  */
 
-import type { TestRun, QuarantineCandidate } from '@flakeguard/shared';
+import type { QuarantineCandidate, TestRun } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
-import { App, BlockAction, SlashCommand, ButtonAction } from '@slack/bolt';
+import bolt from '@slack/bolt';
+
 
 import { FlakinessScorer } from '../analytics/flakiness.js';
 import { GitHubAuthManager } from '../github/auth.js';
 import { CheckRunHandler } from '../github/handlers.js';
 import { logger } from '../utils/logger.js';
+
+const { App } = bolt;
 
 
 /**

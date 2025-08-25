@@ -174,17 +174,14 @@ export const testRedis = {
     throw new Error('Redis not configured');
   },
   
-  async set(key: string, value: any, ttl?: number) {
-    const serialized = JSON.stringify(value);
+  async set(_key: string, _value: any, ttl?: number) {
     if (ttl) {
-      // return redis.setex(key, ttl, serialized);
       throw new Error('Redis not configured');
     }
-    // return redis.set(key, serialized);
     throw new Error('Redis not configured');
   },
   
-  async get(key: string) {
+  async get(_key: string) {
     // const value = await redis.get(key);
     // return value ? JSON.parse(value) : null;
     throw new Error('Redis not configured');

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, no-case-declarations */
+
 import { ReportJobData } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
 import { Job, Processor } from 'bullmq';

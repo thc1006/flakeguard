@@ -90,7 +90,7 @@ export interface FlakeAnalysis {
   readonly suggestedAction: CheckRunAction | null;
 }
 
-export interface TestResult {
+export interface GitHubTestResult {
   readonly name: string;
   readonly status: 'passed' | 'failed' | 'skipped';
   readonly duration?: number;
@@ -318,9 +318,9 @@ export interface RequestedAction {
 }
 
 /**
- * Action handler result interface
+ * GitHub Action handler result interface
  */
-export interface ActionResult {
+export interface GitHubActionResult {
   readonly success: boolean;
   readonly message: string;
   readonly details?: Record<string, unknown>;
@@ -329,39 +329,6 @@ export interface ActionResult {
     readonly message: string;
     readonly recoverable: boolean;
   };
-}
-
-/**
- * Action handler type definition
- */
-export type ActionHandler = (
-  test: TestInfo,
-  repository: RepositoryContext,
-  metadata?: Record<string, unknown>
-) => Promise<ActionResult>;
-
-/**
- * Test information for action handling
- */
-export interface TestInfo {
-  readonly name: string;
-  readonly confidence: number;
-  readonly failureRate: number;
-  readonly failurePattern: string | null;
-  readonly lastFailureAt: string | null;
-  readonly totalRuns: number;
-  readonly historicalFailures: number;
-}
-
-/**
- * Repository context for action handling
- */
-export interface RepositoryContext {
-  readonly owner: string;
-  readonly repo: string;
-  readonly fullName: string;
-  readonly installationId: number;
-  readonly defaultBranch: string;
 }
 
 // =============================================================================

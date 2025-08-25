@@ -1,8 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
+import { checkDatabaseHealth, checkConnectionPool, checkMigrationStatus, validateTenantIsolation, checkQueryPerformance } from '../utils/database-health.js';
 import { logger } from '../utils/logger.js';
-import { activeRepositories, databaseConnections, queueConnectionHealth } from '../utils/metrics.js';
+import { activeRepositories, databaseConnections, queueConnectionHealth, recordDatabaseQuery } from '../utils/metrics.js';
 
 const healthResponseSchema = z.object({
   status: z.literal('ok'),
@@ -120,6 +121,126 @@ export async function healthRoutes(fastify: FastifyInstance) {
       alive: true, 
       uptime: process.uptime() 
     });
+  });
+
+  // Database-specific comprehensive health check
+  fastify.get('/database', {
+    schema: {
+      description: 'Comprehensive database health check with multi-tenant isolation validation',
+      tags: ['Health'],
+      response: {
+        200: z.object({
+          status: z.enum(['healthy', 'degraded', 'unhealthy']),
+          timestamp: z.string(),
+          checks: z.object({
+            connectivity: z.object({
+              status: z.enum(['healthy', 'degraded', 'unhealthy']),
+              message: z.string(),
+              responseTime: z.number(),
+            }),
+            connectionPool: z.object({
+              status: z.enum(['healthy', 'degraded', 'unhealthy']),
+              message: z.string(),
+              active: z.number(),
+              idle: z.number(),
+              total: z.number(),
+              utilization: z.number(),
+            }),
+            migrations: z.object({
+              status: z.enum(['healthy', 'degraded', 'unhealthy']),
+              message: z.string(),
+              applied: z.number(),
+              pending: z.number(),
+            }),
+            tenantIsolation: z.object({
+              status: z.enum(['healthy', 'degraded', 'unhealthy']),
+              message: z.string(),
+              tenantsChecked: z.number(),
+              isolationViolations: z.number(),
+            }),
+            performance: z.object({
+              status: z.enum(['healthy', 'degraded', 'unhealthy']),
+              message: z.string(),
+              queryPerformance: z.object({
+                avgResponseTime: z.number(),
+                slowQueries: z.number(),
+                deadlocks: z.number(),
+              }),
+            }),
+          }),
+          metrics: z.object({
+            totalConnections: z.number(),
+            activeQueries: z.number(),
+            cacheHitRatio: z.number(),
+            diskUsage: z.object({
+              total: z.string(),
+              used: z.string(),
+              available: z.string(),
+              usagePercent: z.number(),
+            }).optional(),
+          }),
+        }),
+        503: z.object({
+          status: z.literal('unhealthy'),
+          timestamp: z.string(),
+          error: z.string(),
+        }),
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const startTime = Date.now();
+      
+      // Run all database health checks in parallel
+      const [connectivity, connectionPool, migrations, tenantIsolation, performance] = await Promise.allSettled([
+        checkDatabaseHealth(fastify),
+        checkConnectionPool(fastify),
+        checkMigrationStatus(fastify),
+        validateTenantIsolation(fastify),
+        checkQueryPerformance(fastify),
+      ]);
+      
+      const checks = {
+        connectivity: getHealthResult(connectivity, 'Database connectivity check failed'),
+        connectionPool: getHealthResult(connectionPool, 'Connection pool check failed'),
+        migrations: getHealthResult(migrations, 'Migration status check failed'),
+        tenantIsolation: getHealthResult(tenantIsolation, 'Tenant isolation check failed'),
+        performance: getHealthResult(performance, 'Performance check failed'),
+      };
+      
+      // Determine overall database health status
+      const healthyCount = Object.values(checks).filter(check => check.status === 'healthy').length;
+      const unhealthyCount = Object.values(checks).filter(check => check.status === 'unhealthy').length;
+      
+      let overallStatus: 'healthy' | 'degraded' | 'unhealthy';
+      if (unhealthyCount === 0) {
+        overallStatus = 'healthy';
+      } else if (healthyCount > unhealthyCount) {
+        overallStatus = 'degraded';
+      } else {
+        overallStatus = 'unhealthy';
+      }
+      
+      // Collect database metrics
+      const metrics = await collectDatabaseMetrics(fastify);
+      
+      const response = {
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        checks,
+        metrics,
+      };
+      
+      const statusCode = overallStatus === 'healthy' ? 200 : 503;
+      return reply.status(statusCode).send(response);
+    } catch (error) {
+      logger.error({ error }, 'Database health check failed');
+      return reply.status(503).send({
+        status: 'unhealthy' as const,
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown database health check error',
+      });
+    }
   });
 
   // Comprehensive health check with all dependencies
@@ -276,10 +397,10 @@ export async function healthRoutes(fastify: FastifyInstance) {
    */
   async function collectBusinessMetrics(fastify: FastifyInstance) {
     try {
-      // Count active repositories (repositories with activity in last 7 days)
+      // Count active repositories using the new schema
       const activeRepoCount = await fastify.prisma.$queryRaw<[{ count: bigint }]>`
-        SELECT COUNT(DISTINCT repository_id) as count
-        FROM test_runs
+        SELECT COUNT(DISTINCT repo_id) as count
+        FROM "FGWorkflowRun"
         WHERE created_at > NOW() - INTERVAL '7 days'
       `;
       
@@ -299,6 +420,43 @@ export async function healthRoutes(fastify: FastifyInstance) {
         activeRepositories: 0,
         totalRequests: 0,
         errorRate: 0,
+      };
+    }
+  }
+
+  /**
+   * Collect database-specific metrics
+   */
+  async function collectDatabaseMetrics(fastify: FastifyInstance) {
+    try {
+      // Get database size and connection stats
+      const dbStats = await fastify.prisma.$queryRaw<[{
+        total_connections: bigint;
+        active_queries: bigint;
+        cache_hit_ratio: number;
+        database_size?: string;
+        index_hit_ratio?: number;
+      }]>`
+        SELECT 
+          (SELECT count(*) FROM pg_stat_activity) as total_connections,
+          (SELECT count(*) FROM pg_stat_activity WHERE state = 'active') as active_queries,
+          (SELECT round((sum(blks_hit) * 100.0 / sum(blks_hit + blks_read))::numeric, 2) 
+           FROM pg_stat_database WHERE datname = current_database()) as cache_hit_ratio
+      `;
+      
+      const stats = dbStats[0];
+      
+      return {
+        totalConnections: Number(stats?.total_connections || 0),
+        activeQueries: Number(stats?.active_queries || 0),
+        cacheHitRatio: stats?.cache_hit_ratio || 0,
+      };
+    } catch (error) {
+      logger.warn({ error }, 'Failed to collect database metrics');
+      return {
+        totalConnections: 0,
+        activeQueries: 0,
+        cacheHitRatio: 0,
       };
     }
   }

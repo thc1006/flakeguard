@@ -9,13 +9,13 @@
  * - Error handling and validation
  */
 
+import { TestCrypto } from '@flakeguard/shared/utils';
 import { PrismaClient } from '@prisma/client';
 import Fastify, { type FastifyInstance } from 'fastify';
 import nock from 'nock';
 import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
 
 import githubAppPlugin from '../index.js';
-import { TestCrypto } from '@flakeguard/shared/utils';
 
 import { createTestMocks ,
   createMockCheckRunPayload,

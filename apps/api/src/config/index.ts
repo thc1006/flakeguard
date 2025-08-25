@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
-import dotenv from 'dotenv';
 
+import dotenv from 'dotenv';
 import { z } from 'zod';
 
 // Load environment variables from .env file

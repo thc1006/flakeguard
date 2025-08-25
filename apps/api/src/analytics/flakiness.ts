@@ -1,14 +1,14 @@
-import type {
-  TestRun,
-  FlakeScore,
-  FlakeFeatures,
-  QuarantinePolicy,
-  QuarantineRecommendation,
-  TestStabilityMetrics,
-  MessageSignature,
-  FailureCluster,
+import {
+  DEFAULT_QUARANTINE_POLICY,
+  type FailureCluster,
+  type FlakeFeatures,
+  type FlakeScore,
+  type MessageSignature,
+  type QuarantinePolicy,
+  type QuarantineRecommendation,
+  type TestRun,
+  type TestStabilityMetrics,
 } from '@flakeguard/shared';
-import { DEFAULT_QUARANTINE_POLICY } from '@flakeguard/shared';
 
 /**
  * Comprehensive flakiness scoring engine with rolling window algorithm
@@ -127,7 +127,10 @@ export class FlakinessScorer {
       if (!groupedByRunId.has(run.runId)) {
         groupedByRunId.set(run.runId, []);
       }
-      groupedByRunId.get(run.runId)!.push(run);
+      const runGroup = groupedByRunId.get(run.runId);
+      if (runGroup) {
+        runGroup.push(run);
+      }
     }
 
     let totalRetries = 0;
@@ -184,7 +187,7 @@ export class FlakinessScorer {
    * This weighs alternating pass/fail patterns heavily
    */
   private calculateIntermittencyScore(runs: readonly TestRun[]): number {
-    if (runs.length < 3) {
+    if (runs.length < 2) {
       return 0;
     }
 
@@ -225,7 +228,7 @@ export class FlakinessScorer {
 
     const normalizedMessages = failedRuns
       .filter(run => run.message)
-      .map(run => this.normalizeMessage(run.message!));
+      .map(run => this.normalizeMessage(run.message || ''));
 
     const uniqueMessages = new Set(normalizedMessages);
     return uniqueMessages.size / normalizedMessages.length;
@@ -236,48 +239,47 @@ export class FlakinessScorer {
    * This helps identify flaky tests that fail with similar but not identical messages
    */
   public normalizeMessage(message: string): string {
-    return message
-      // Remove timestamps (various formats)
-      .replace(/\d{4}-\d{2}-\d{2}[\s\T]\d{2}:\d{2}:\d{2}[.\d]*[Z]?/g, '[TIMESTAMP]')
-      .replace(/\d{2}:\d{2}:\d{2}[.\d]*/g, '[TIME]')
-      
-      // Remove file paths
-      .replace(/[\/\\][\w\-\.\/\\]+\.(js|ts|py|java|cs|rb|go|php|cpp|c|h):\d+/g, '[FILE:LINE]')
-      .replace(/[\/\\][\w\-\.\/\\]+/g, '[PATH]')
-      
-      // Remove line numbers and column numbers  
-      .replace(/:\d+:\d+/g, ':[LINE:COL]')
-      .replace(/line\s+\d+/gi, 'line [NUM]')
-      
-      // Remove memory addresses and hex values
-      .replace(/0x[0-9a-fA-F]+/g, '[HEX]')
-      
-      // Remove process IDs and thread IDs
-      .replace(/\b(?:pid|thread|tid)[\s=:]+\d+/gi, '[PID]')
-      
-      // Remove port numbers
-      .replace(/:\d{4,5}\b/g, ':[PORT]')
-      
-      // Remove UUIDs and similar identifiers
-      .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '[UUID]')
-      .replace(/\b[0-9a-f]{32}\b/gi, '[HASH]')
-      
-      // Remove numbers that appear to be variable (timeouts, sizes, etc)
-      .replace(/\b\d+\s*(ms|seconds?|minutes?|bytes?|kb|mb|gb)\b/gi, '[NUM] $1')
-      .replace(/timeout\s+\d+/gi, 'timeout [NUM]')
-      .replace(/after\s+\d+/gi, 'after [NUM]')
-      
-      // Normalize common assertion patterns
-      .replace(/expected:?\s*[^\n,]+/gi, 'expected: [VALUE]')
-      .replace(/actual:?\s*[^\n,]+/gi, 'actual: [VALUE]')
-      .replace(/got:?\s*[^\n,]+/gi, 'got: [VALUE]')
-      
-      // Remove stack trace noise
-      .replace(/\s+at\s+[^\n]+/g, ' [STACK]')
-      
-      // Normalize whitespace
-      .replace(/\s+/g, ' ')
-      .trim();
+    let normalized = message;
+    
+    // Remove timestamps (various formats)
+    normalized = normalized.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z?/g, '[TIMESTAMP]');
+    normalized = normalized.replace(/\d{2}:\d{2}:\d{2}[.\d]*/g, '[TIME]');
+    
+    // Remove file paths with line numbers first (more specific)
+    normalized = normalized.replace(/[/\\]?[\w\-. /\\]*[/\\][\w\-.]+\.(?:js|ts|py|java|cs|rb|go|php|cpp|c|h):\d+(?::\d+)?/g, '[FILE:LINE]');
+    
+    // Remove memory addresses and hex values  
+    normalized = normalized.replace(/0x[0-9a-fA-F]+/g, '[HEX]');
+    
+    // Remove process IDs and thread IDs - be more specific
+    normalized = normalized.replace(/\bPID\s+\d+/gi, '[PID]');
+    normalized = normalized.replace(/\b(?:thread|tid)[\s=:]+\d+/gi, '[PID]');
+    
+    // Remove port numbers
+    normalized = normalized.replace(/:\d{4,5}\b/g, ':[PORT]');
+    
+    // Remove UUIDs and similar identifiers
+    normalized = normalized.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '[UUID]');
+    normalized = normalized.replace(/\b[0-9a-f]{32}\b/gi, '[HASH]');
+    
+    // Remove numbers that appear to be variable (timeouts, sizes, etc)
+    normalized = normalized.replace(/\b\d+\s*(ms|seconds?|minutes?|bytes?|kb|mb|gb)\b/gi, '[NUM] $1');
+    normalized = normalized.replace(/timeout\s+\d+/gi, 'timeout [NUM]');
+    normalized = normalized.replace(/after\s+\d+/gi, 'after [NUM]');
+    normalized = normalized.replace(/line\s+\d+/gi, 'line [NUM]');
+    
+    // Normalize common assertion patterns - be more specific
+    normalized = normalized.replace(/expected[:=]\s*[^\n,]+/gi, 'expected: [VALUE]');
+    normalized = normalized.replace(/actual[:=]\s*[^\n,]+/gi, 'actual: [VALUE]');
+    normalized = normalized.replace(/got[:=]\s*[^\n,]+/gi, 'got: [VALUE]');
+    
+    // Remove stack trace noise - only multi-line stack traces
+    normalized = normalized.replace(/\n\s*at\s+[^\n]+/g, ' [STACK]');
+    
+    // Normalize whitespace
+    normalized = normalized.replace(/\s+/g, ' ').trim();
+    
+    return normalized;
   }
 
   /**
@@ -449,6 +451,16 @@ export class FlakinessScorer {
       maxConsecutiveFailures,
       totalRuns,
     } = features;
+
+    // For single test runs, no flakiness can be determined
+    if (totalRuns === 1) {
+      return 0;
+    }
+
+    // For tests with only passes or only failures, score is 0 (not flaky)
+    if (failSuccessRatio === 0 || failSuccessRatio === Infinity) {
+      return 0;
+    }
 
     // Weight factors - intermittency and re-run pass rate are most important for flaky detection
     const intermittencyWeight = 0.30;
@@ -665,7 +677,10 @@ export class FlakinessScorer {
       if (!messageGroups.has(normalized)) {
         messageGroups.set(normalized, []);
       }
-      messageGroups.get(normalized)!.push(run);
+      const messageGroup = messageGroups.get(normalized);
+      if (messageGroup) {
+        messageGroup.push(run);
+      }
     }
     
     return Array.from(messageGroups.entries()).map(([normalized, runsWithMessage]) => {

@@ -9,7 +9,6 @@ import { renderCheckRunOutput } from '../check-runs.js';
 import {
   benchmarkMarkdownGeneration,
   generateBenchmarkTestCandidates,
-  renderOptimizedCheckRunOutput,
   clearFormattingCache,
   getFormattingCacheStats,
   GITHUB_CHECK_RUN_TEXT_LIMIT,
@@ -73,12 +72,15 @@ async function runBenchmark(): Promise<void> {
     // Show immediate comparison
     const originalEntry = results[results.length - 2];
     const optimizedEntry = results[results.length - 1];
-    const speedup = originalEntry.renderTime / optimizedEntry.renderTime;
-    const memorySavings = ((originalEntry.memoryUsed - optimizedEntry.memoryUsed) / originalEntry.memoryUsed) * 100;
     
-    console.log(`  Original:  ${originalEntry.renderTime.toFixed(2)}ms, ${(originalEntry.memoryUsed / 1024).toFixed(0)}KB, ${originalEntry.charactersGenerated} chars`);
-    console.log(`  Optimized: ${optimizedEntry.renderTime.toFixed(2)}ms, ${(optimizedEntry.memoryUsed / 1024).toFixed(0)}KB, ${optimizedEntry.charactersGenerated} chars`);
-    console.log(`  Speedup: ${speedup.toFixed(2)}x, Memory: ${memorySavings > 0 ? '-' : '+'}${Math.abs(memorySavings).toFixed(1)}%`);
+    if (originalEntry && optimizedEntry) {
+      const speedup = originalEntry.renderTime / optimizedEntry.renderTime;
+      const memorySavings = ((originalEntry.memoryUsed - optimizedEntry.memoryUsed) / originalEntry.memoryUsed) * 100;
+      
+      console.log(`  Original:  ${originalEntry.renderTime.toFixed(2)}ms, ${(originalEntry.memoryUsed / 1024).toFixed(0)}KB, ${originalEntry.charactersGenerated} chars`);
+      console.log(`  Optimized: ${optimizedEntry.renderTime.toFixed(2)}ms, ${(optimizedEntry.memoryUsed / 1024).toFixed(0)}KB, ${optimizedEntry.charactersGenerated} chars`);
+      console.log(`  Speedup: ${speedup.toFixed(2)}x, Memory: ${memorySavings > 0 ? '-' : '+'}${Math.abs(memorySavings).toFixed(1)}%`);
+    }
     console.log();
   }
 
@@ -121,7 +123,10 @@ async function runBenchmark(): Promise<void> {
   
   const avgSpeedup = results
     .filter((_, i) => i % 2 === 1) // Only optimized results
-    .map((opt, i) => results[i * 2].renderTime / opt.renderTime)
+    .map((opt, i) => {
+      const orig = results[i * 2];
+      return orig ? orig.renderTime / opt.renderTime : 1;
+    })
     .reduce((a, b) => a + b, 0) / (results.length / 2);
   
   console.log(`✅ Average speedup: ${avgSpeedup.toFixed(2)}x improvement`);

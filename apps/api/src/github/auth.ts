@@ -17,23 +17,22 @@ import type { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
 import { logger } from '../utils/logger.js';
-
 import { ErrorCode } from './api-spec.js';
 import {
-  GITHUB_API,
-  TIMEOUTS,
-  RATE_LIMITS,
   CACHE_KEYS,
   CACHE_TTL,
   ERROR_MESSAGES,
+  GITHUB_API,
+  RATE_LIMITS,
+  TIMEOUTS,
 } from './constants.js';
 import type {
+  AppInstallation,
+  AuthenticatedContext,
+  GitHubAppAuth,
   GitHubAppConfig,
   GitHubAppCredentials,
   InstallationToken,
-  GitHubAppAuth,
-  AuthenticatedContext,
-  AppInstallation,
   RepositoryInfo,
 } from './types.js';
 
@@ -47,7 +46,7 @@ const OctokitWithPlugins = Octokit.plugin(throttling, retry);
 export class GitHubAuthManager implements GitHubAppAuth {
   private readonly config: GitHubAppConfig;
   private readonly prisma: PrismaClient;
-  private readonly cache: Map<string, { data: any; expiresAt: number }>;
+  private readonly cache: Map<string, { data: InstallationToken; expiresAt: number }>;
   private readonly clients: Map<number, Octokit>;
 
   constructor(options: {
@@ -314,7 +313,7 @@ export class GitHubAuthManager implements GitHubAppAuth {
   /**
    * Handle GitHub API rate limiting
    */
-  private handleRateLimit(retryAfter: number, options: any, octokit: Octokit, retryCount: number): boolean {
+  private handleRateLimit(retryAfter: number, options: any, octokit: any, retryCount: number): boolean {
     logger.warn('GitHub API rate limit hit', {
       retryAfter,
       retryCount,
@@ -334,7 +333,7 @@ export class GitHubAuthManager implements GitHubAppAuth {
   /**
    * Handle GitHub API secondary rate limiting
    */
-  private handleSecondaryRateLimit(retryAfter: number, options: any, octokit: Octokit): boolean {
+  private handleSecondaryRateLimit(retryAfter: number, options: any, octokit: any): boolean {
     logger.warn('GitHub API secondary rate limit hit', {
       retryAfter,
       endpoint: options.url,

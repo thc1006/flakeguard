@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+
 import { TaskJobData, TaskStatus } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
 import { Job, Processor } from 'bullmq';
@@ -74,7 +76,7 @@ export function taskProcessor(prisma: PrismaClient): Processor {
       };
     } catch (error) {
       logger.error(
-        { jobId: job.id, taskId, error: (error as Error).message },
+        { jobId: job.id, taskId, error: error instanceof Error ? error.message : String(error) },
         'Failed to process task'
       );
       

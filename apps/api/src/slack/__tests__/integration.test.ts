@@ -9,6 +9,7 @@
  * - Error scenarios and recovery
  */
 
+import { TestCrypto } from '@flakeguard/shared/utils';
 import { PrismaClient } from '@prisma/client';
 import nock from 'nock';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
@@ -17,7 +18,6 @@ import { FlakinessScorer } from '../../analytics/flakiness.js';
 import { GitHubAuthManager } from '../../github/auth.js';
 import { CheckRunHandler } from '../../github/handlers.js';
 import { FlakeGuardSlackApp } from '../app.js';
-import { TestCrypto } from '@flakeguard/shared/utils';
 
 
 // Mock external services

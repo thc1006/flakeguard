@@ -57,7 +57,7 @@ export class GitHubHelpers {
                     summary: data.output?.summary || '',
                     text: data.output?.text,
                 },
-                actions: data.actions?.map(action => ({
+                actions: data.actions?.map((action) => ({
                     label: action.label,
                     description: action.description,
                     identifier: action.identifier,
@@ -76,14 +76,14 @@ export class GitHubHelpers {
                 owner,
                 repo,
                 name: params.name,
-                error: error.message,
-                status: error.status,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                status: error && typeof error === 'object' && 'status' in error ? error.status : undefined,
             });
             return {
                 success: false,
                 error: {
                     code: this.mapGitHubErrorCode(error),
-                    message: error.message || ERROR_MESSAGES.GITHUB_API_ERROR,
+                    message: error instanceof Error ? error.message : ERROR_MESSAGES.GITHUB_API_ERROR,
                 },
             };
         }
@@ -121,7 +121,7 @@ export class GitHubHelpers {
                     summary: data.output?.summary || '',
                     text: data.output?.text,
                 },
-                actions: data.actions?.map(action => ({
+                actions: data.actions?.map((action) => ({
                     label: action.label,
                     description: action.description,
                     identifier: action.identifier,
@@ -141,13 +141,13 @@ export class GitHubHelpers {
                 owner,
                 repo,
                 checkRunId,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
             return {
                 success: false,
                 error: {
                     code: this.mapGitHubErrorCode(error),
-                    message: error.message || ERROR_MESSAGES.GITHUB_API_ERROR,
+                    message: error instanceof Error ? error.message : ERROR_MESSAGES.GITHUB_API_ERROR,
                 },
             };
         }
@@ -319,9 +319,9 @@ export class GitHubHelpers {
                 owner,
                 repo,
                 runId,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
-            throw new Error(`Failed to rerun workflow: ${error.message}`);
+            throw new Error(`Failed to rerun workflow: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
     /**
@@ -352,9 +352,9 @@ export class GitHubHelpers {
                 owner,
                 repo,
                 runId,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
-            throw new Error(`Failed to rerun failed jobs: ${error.message}`);
+            throw new Error(`Failed to rerun failed jobs: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
     /**
@@ -383,9 +383,9 @@ export class GitHubHelpers {
                 owner,
                 repo,
                 runId,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
-            throw new Error(`Failed to cancel workflow: ${error.message}`);
+            throw new Error(`Failed to cancel workflow: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
     /**
@@ -406,9 +406,9 @@ export class GitHubHelpers {
                 owner,
                 repo,
                 runId,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
-            throw new Error(`Failed to get workflow jobs: ${error.message}`);
+            throw new Error(`Failed to get workflow jobs: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
     // =============================================================================
@@ -446,9 +446,9 @@ export class GitHubHelpers {
                 owner,
                 repo,
                 runId,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
-            throw new Error(`Failed to list artifacts: ${error.message}`);
+            throw new Error(`Failed to list artifacts: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
     /**
@@ -478,9 +478,9 @@ export class GitHubHelpers {
                 owner,
                 repo,
                 artifactId,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
-            throw new Error(`Failed to generate download URL: ${error.message}`);
+            throw new Error(`Failed to generate download URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
     // =============================================================================
@@ -536,9 +536,9 @@ export class GitHubHelpers {
                 owner,
                 repo,
                 testName: params.testName,
-                error: error.message,
+                error: error instanceof Error ? error.message : 'Unknown error',
             });
-            throw new Error(`Failed to create issue: ${error.message}`);
+            throw new Error(`Failed to create issue: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
     }
     // =============================================================================
@@ -587,17 +587,18 @@ export class GitHubHelpers {
         return 'other';
     }
     mapGitHubErrorCode(error) {
-        if (error.status === 401)
+        const status = error && typeof error === 'object' && 'status' in error ? error.status : undefined;
+        if (status === 401)
             return "UNAUTHORIZED" /* ErrorCode.UNAUTHORIZED */;
-        if (error.status === 403)
+        if (status === 403)
             return "FORBIDDEN" /* ErrorCode.FORBIDDEN */;
-        if (error.status === 404)
+        if (status === 404)
             return "RESOURCE_NOT_FOUND" /* ErrorCode.RESOURCE_NOT_FOUND */;
-        if (error.status === 422)
+        if (status === 422)
             return "VALIDATION_ERROR" /* ErrorCode.VALIDATION_ERROR */;
-        if (error.status === 429)
+        if (status === 429)
             return "GITHUB_RATE_LIMITED" /* ErrorCode.GITHUB_RATE_LIMITED */;
-        if (error.status >= 500)
+        if (typeof status === 'number' && status >= 500)
             return "GITHUB_SERVICE_UNAVAILABLE" /* ErrorCode.GITHUB_SERVICE_UNAVAILABLE */;
         return "GITHUB_API_ERROR" /* ErrorCode.GITHUB_API_ERROR */;
     }

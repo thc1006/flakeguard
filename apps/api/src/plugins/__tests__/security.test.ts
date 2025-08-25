@@ -15,12 +15,12 @@ import fs from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 
+import { TestCrypto } from '@flakeguard/shared/utils';
 import { FastifyInstance } from 'fastify';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { buildApp } from '../../app.js';
 import { SecretsManager } from '../security.js';
-import { TestCrypto } from '@flakeguard/shared/utils';
 
 
 // Generate test secrets once for the entire test suite
