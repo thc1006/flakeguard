@@ -9,7 +9,16 @@
  * - Integration with FlakeScore and stability metrics
  */
 
+import type {
+  FlakeScore,
+  FlakeFeatures,
+  QuarantineRecommendation,
+  TestStabilityMetrics,
+  MessageSignature,
+  FailureCluster,
+} from '@flakeguard/shared';
 import { describe, it, expect, beforeEach } from 'vitest';
+
 import {
   renderCheckRunOutput,
   formatTestName,
@@ -23,14 +32,6 @@ import {
   type CheckRunOutput,
   type SeverityLevel,
 } from '../check-run-renderer.js';
-import type {
-  FlakeScore,
-  FlakeFeatures,
-  QuarantineRecommendation,
-  TestStabilityMetrics,
-  MessageSignature,
-  FailureCluster,
-} from '@flakeguard/shared';
 
 describe('Check Run Renderer', () => {
   let mockRepository: Repository;

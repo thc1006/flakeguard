@@ -6,11 +6,12 @@
  * test results against policies.
  */
 
+import type { TestResult } from '@flakeguard/shared';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import type { TestResult } from '@flakeguard/shared';
-import { PolicyService } from '../policy/service.js';
+
 import { validatePolicyConfig, createPolicyConfig } from '../policy/engine.js';
+import { PolicyService } from '../policy/service.js';
 // Helper to extract installation ID from request
 function extractInstallationIdFromRequest(request: FastifyRequest): number | null {
   // Try to get installation ID from headers (for GitHub App requests)
@@ -83,7 +84,7 @@ const invalidateCacheRequestSchema = z.object({
  * Register policy routes
  */
 export async function policyRoutes(fastify: FastifyInstance) {
-  const policyService = fastify.policyService as PolicyService;
+  const policyService = fastify.policyService;
 
   /**
    * POST /api/v1/policy/evaluate

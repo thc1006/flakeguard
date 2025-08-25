@@ -1,5 +1,7 @@
 import IORedis, { Cluster, ClusterOptions, RedisOptions } from 'ioredis';
+
 import { config } from '../config/index.js';
+
 import { logger } from './logger.js';
 
 /**

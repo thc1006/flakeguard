@@ -2,6 +2,7 @@
  * FlakeGuard Performance Benchmark Suite Runner
  */
 import { PrismaClient } from "@prisma/client";
+
 import { runDatabaseBenchmarks } from "./database-benchmark.js";
 import { runParserBenchmarks } from "./parser-benchmark.js";
 import { runScoringBenchmarks } from "./scoring-benchmark.js";

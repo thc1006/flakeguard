@@ -11,21 +11,23 @@
 
 import type { Octokit } from '@octokit/rest';
 import type { PrismaClient } from '@prisma/client';
+
+import { GitHubAuthManager } from '../github/auth.js';
+import { GitHubHelpers } from '../github/helpers.js';
+import { logger } from '../utils/logger.js';
+
+import { JUnitIngestionService } from './junit.js';
 import type {
   ArtifactSource,
   RepositoryContext,
   IngestionParameters,
   IngestionResult
 } from './types.js';
-import { GitHubAuthManager } from '../github/auth.js';
-import { GitHubHelpers } from '../github/helpers.js';
-import { JUnitIngestionService } from './junit.js';
 import {
   validateUrl,
   sanitizeFileName,
   generateCorrelationId
 } from './utils.js';
-import { logger } from '../utils/logger.js';
 
 // ============================================================================
 // Types and Interfaces
@@ -365,7 +367,7 @@ export class GitHubArtifactsIntegration {
   private createBatches<T>(items: readonly T[], batchSize: number): T[][] {
     const batches: T[][] = [];
     for (let i = 0; i < items.length; i += batchSize) {
-      batches.push(items.slice(i, i + batchSize) as T[]);
+      batches.push(items.slice(i, i + batchSize));
     }
     return batches;
   }

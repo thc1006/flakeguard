@@ -1,5 +1,5 @@
-import * as React from 'react';
 import { clsx } from 'clsx';
+import * as React from 'react';
 
 const badgeVariants = {
   default: 'border-transparent bg-primary text-primary-foreground hover:bg-primary/80',

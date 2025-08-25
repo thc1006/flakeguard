@@ -5,8 +5,9 @@
 
 import { createReadStream } from 'fs';
 import { pipeline } from 'stream';
-import { promisify } from 'util';
 import type { Readable } from 'stream';
+import { promisify } from 'util';
+
 import * as sax from 'sax';
 
 import type {

@@ -1,10 +1,13 @@
 /**
  * JUnit Parser Performance Benchmarks
  */
-import { PerformanceBenchmark } from "./benchmark-framework.js";
-import { createOptimizedJUnitParser } from "../apps/api/src/performance/parser-optimizations.js";
-import { parseJUnitXMLString } from "../apps/api/src/ingestion/junit-parser.js";
 import { Readable } from "stream";
+
+import { parseJUnitXMLString } from "../apps/api/src/ingestion/junit-parser.js";
+import { createOptimizedJUnitParser } from "../apps/api/src/performance/parser-optimizations.js";
+
+import { PerformanceBenchmark } from "./benchmark-framework.js";
+
 
 export async function runParserBenchmarks() {
   const benchmark = new PerformanceBenchmark();

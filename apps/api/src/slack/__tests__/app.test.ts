@@ -9,12 +9,13 @@
  * - Message formatting and response validation
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { FlakeGuardSlackApp, createFlakeGuardSlackApp } from '../app.js';
 import { PrismaClient } from '@prisma/client';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+import { FlakinessScorer } from '../../analytics/flakiness.js';
 import { GitHubAuthManager } from '../../github/auth.js';
 import { CheckRunHandler } from '../../github/handlers.js';
-import { FlakinessScorer } from '../../analytics/flakiness.js';
+import { FlakeGuardSlackApp, createFlakeGuardSlackApp } from '../app.js';
 
 // Mock all dependencies
 vi.mock('@slack/bolt');

@@ -4,15 +4,16 @@
  * Tests GitHub API responses, webhook processing, and state changes
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { Queue } from 'bullmq';
 import nock from 'nock';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import { testDb, testRedis } from '../../__tests__/setup/integration.setup.js';
-import { CheckRunHandler, WorkflowRunHandler } from '../handlers.js';
 import { GitHubAuthManager } from '../auth.js';
-import { GitHubHelpers } from '../helpers.js';
 import { createFlakeDetector } from '../flake-detector.js';
+import { CheckRunHandler, WorkflowRunHandler } from '../handlers.js';
+import { GitHubHelpers } from '../helpers.js';
 import type {
   CheckRunWebhookPayload,
   WorkflowRunWebhookPayload,

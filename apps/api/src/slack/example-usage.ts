@@ -2,8 +2,9 @@
  * Example usage of optimized Slack integration
  */
 
-import { SlackService, NotificationFilterService, createSlackConfig } from './index.js';
 import type { FlakeNotification } from './types.js';
+
+import { SlackService, NotificationFilterService, createSlackConfig } from './index.js';
 
 // Initialize services
 const config = createSlackConfig();

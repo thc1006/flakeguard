@@ -10,17 +10,19 @@
  * - Edge case handling
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+import { FLAKE_DETECTION } from '../constants.js';
 import {
   FlakeDetector,
   createFlakeDetector,
   type FlakeDetectionConfig,
   type TestExecutionContext,
 } from '../flake-detector.js';
-import { createMockPrismaClient } from './mocks.js';
 import type { CheckRunAction, FlakeAnalysis, TestResult } from '../types.js';
-import { FLAKE_DETECTION } from '../constants.js';
+
+import { createMockPrismaClient } from './mocks.js';
 
 describe('FlakeDetector', () => {
   let flakeDetector: FlakeDetector;

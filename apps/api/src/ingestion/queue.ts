@@ -10,9 +10,15 @@
  * - Job lifecycle management and cleanup
  */
 
-import { Queue, Worker, Job, QueueEvents, JobsOptions } from 'bullmq';
+import { QueueNames, JobPriorities } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
+import { Queue, Worker, Job, QueueEvents, JobsOptions } from 'bullmq';
 import type { Redis } from 'ioredis';
+
+import { GitHubAuthManager } from '../github/auth.js';
+import { GitHubHelpers } from '../github/helpers.js';
+import { logger } from '../utils/logger.js';
+
 import {
   GitHubArtifactsIntegration,
   createGitHubArtifactsIntegration,
@@ -20,10 +26,8 @@ import {
   IngestionJobResult
 } from './github-integration.js';
 import { JUnitIngestionService } from './junit.js';
-import { GitHubAuthManager } from '../github/auth.js';
-import { GitHubHelpers } from '../github/helpers.js';
-import { QueueNames, JobPriorities } from '@flakeguard/shared';
-import { logger } from '../utils/logger.js';
+
+
 
 // ============================================================================
 // Types and Interfaces
@@ -305,7 +309,7 @@ export class IngestionQueueManager {
 
     try {
       // Update status to processing
-      await this.updateJobStatus(job.id!, 'processing', { startedAt: new Date() });
+      await this.updateJobStatus(job.id, 'processing', { startedAt: new Date() });
 
       // Set up progress tracking
       const progressTracker = this.createProgressTracker(job);
@@ -315,7 +319,7 @@ export class IngestionQueueManager {
 
       // Update final status
       await this.updateJobStatus(
-        job.id!,
+        job.id,
         result.success ? 'completed' : 'failed',
         {
           completedAt: new Date(),
@@ -324,7 +328,7 @@ export class IngestionQueueManager {
           errorCount: result.totalErrors,
           processingTimeMs: result.processingTimeMs,
           metadata: {
-            ...((await this.getJobMetadata(job.id!)) || {}),
+            ...((await this.getJobMetadata(job.id)) || {}),
             errors: result.errors,
             result
           }
@@ -362,14 +366,14 @@ export class IngestionQueueManager {
 
       // Update status to failed
       await this.updateJobStatus(
-        job.id!,
+        job.id,
         'failed',
         {
           completedAt: new Date(),
           processingTimeMs: processingTime,
           errorMessage,
           metadata: {
-            ...((await this.getJobMetadata(job.id!)) || {}),
+            ...((await this.getJobMetadata(job.id)) || {}),
             error: errorMessage
           }
         }

@@ -10,14 +10,16 @@
 
 import type { Octokit } from '@octokit/rest';
 import type { PrismaClient } from '@prisma/client';
+
+import { logger } from '../utils/logger.js';
+
+import { ErrorCode } from './api-spec.js';
+import { ERROR_MESSAGES } from './constants.js';
 import type {
   CheckRunAction,
   RepositoryInfo,
   ApiResponse,
 } from './types.js';
-import { logger } from '../utils/logger.js';
-import { ErrorCode } from './api-spec.js';
-import { ERROR_MESSAGES } from './constants.js';
 
 /**
  * Test information for action handling
@@ -474,7 +476,7 @@ async function createQuarantineIssue(
   const confidencePercentage = (test.confidence * 100).toFixed(1);
   const failureRatePercentage = (test.failureRate * 100).toFixed(1);
   
-  let body = `## Quarantined Flaky Test Report
+  const body = `## Quarantined Flaky Test Report
 
 This test has been automatically quarantined due to detected flaky behavior.
 

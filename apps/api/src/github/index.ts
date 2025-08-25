@@ -11,27 +11,17 @@
  * - Rate limiting and security measures
  */
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import type { PrismaClient } from '@prisma/client';
-import fp from 'fastify-plugin';
 import crypto from 'crypto';
 
-import { 
-  WebhookRouter,
-  createLoggingMiddleware,
-  registerWebhookRoutes,
-} from './webhook-router.js';
-import {
-  CheckRunHandler,
-  WorkflowRunHandler,
-  InstallationHandler,
-  createWebhookHandlers,
-} from './handlers.js';
-import { GitHubAuthManager, createGitHubAuthManager } from './auth.js';
-import { GitHubHelpers, createGitHubHelpers } from './helpers.js';
-import { FlakeDetector, createFlakeDetector } from './flake-detector.js';
+import type { PrismaClient } from '@prisma/client';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import fp from 'fastify-plugin';
+
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
+
+import { ErrorCode, type ErrorFactory } from './api-spec.js';
+import { GitHubAuthManager, createGitHubAuthManager } from './auth.js';
 import {
   WEBHOOK_EVENTS,
   SUPPORTED_WEBHOOK_EVENTS,
@@ -39,7 +29,14 @@ import {
   PAGINATION,
   RATE_LIMITS,
 } from './constants.js';
-import { ErrorCode, type ErrorFactory } from './api-spec.js';
+import { FlakeDetector, createFlakeDetector } from './flake-detector.js';
+import {
+  CheckRunHandler,
+  WorkflowRunHandler,
+  InstallationHandler,
+  createWebhookHandlers,
+} from './handlers.js';
+import { GitHubHelpers, createGitHubHelpers } from './helpers.js';
 import {
   githubAppConfigSchema,
   validateWebhookPayload,
@@ -48,6 +45,11 @@ import {
   checkRunListParamsSchema,
   workflowRunParamsSchema,
 } from './schemas.js';
+import { 
+  WebhookRouter,
+  createLoggingMiddleware,
+  registerWebhookRoutes,
+} from './webhook-router.js';
 
 /**
  * Plugin options interface
@@ -161,7 +163,7 @@ async function githubAppPlugin(fastify: FastifyInstance, options: GitHubAppPlugi
   const githubConfig = githubAppConfigSchema.parse(config.github);
   
   // Get Prisma instance (assumed to be registered as plugin)
-  const prisma = fastify.prisma as PrismaClient;
+  const prisma = fastify.prisma;
   
   // Initialize core services
   const errorFactory = new GitHubErrorFactory();

@@ -5,8 +5,9 @@
  * Tests edge cases: permission errors, API rate limits, malformed data
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { CheckRunEvent } from '@octokit/webhooks-types';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import { CheckRunHandler } from '../handlers.js';
 import type { CheckRunWebhookPayload } from '../types.js';
 

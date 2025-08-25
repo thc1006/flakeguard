@@ -1,9 +1,10 @@
-import { Client } from 'pg';
-import Redis from 'redis';
 import axios from 'axios';
 import chalk from 'chalk';
-import { HealthCheckResult, ServiceHealth } from '../types';
+import { Client } from 'pg';
+import Redis from 'redis';
+
 import { I18nManager } from '../i18n/I18nManager';
+import { HealthCheckResult, ServiceHealth } from '../types';
 
 export class HealthChecker {
   private i18n: I18nManager;
@@ -255,7 +256,7 @@ export class HealthChecker {
       
       const cpuCount = os.cpus().length;
       const loadAvg = os.loadavg();
-      const avgLoad = loadAvg[0] / cpuCount * 100;
+      const avgLoad = (loadAvg[0] ?? 0) / cpuCount * 100;
       
       const responseTime = Date.now() - startTime;
       

@@ -7,13 +7,15 @@ import type {
   QuarantineCandidate,
   TestStabilityMetrics,
 } from '@flakeguard/shared';
+
+import { logger } from '../utils/logger.js';
+
 import type {
   SlackMessageTemplate,
   FlakeNotification,
   QualitySummaryData,
   SlackConfig,
 } from './types.js';
-import { logger } from '../utils/logger.js';
 
 export class SlackMessageBuilder {
   private templateCache = new Map<string, SlackMessageTemplate>();

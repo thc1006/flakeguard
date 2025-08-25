@@ -1,10 +1,12 @@
-import { useTranslations } from 'next-intl';
+import { ExternalLinkIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslations } from 'next-intl';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { QuarantineCandidate } from '@/lib/api';
-import { ExternalLinkIcon } from '@heroicons/react/24/outline';
+
 
 interface FlakyTestsTableProps {
   tests: QuarantineCandidate[];

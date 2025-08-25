@@ -4,13 +4,14 @@
  * Tests complete webhook flow from GitHub to database updates
  */
 
-import { test, expect, type APIRequestContext } from '@playwright/test';
 import crypto from 'crypto';
 
+import { test, expect, type APIRequestContext } from '@playwright/test';
+
 // GitHub webhook fixtures
-import workflowRunCompleted from '../../fixtures/github/workflow-run-completed.json';
 import checkRunCompleted from '../../fixtures/github/check-run-completed.json';
 import checkRunRequestedAction from '../../fixtures/github/check-run-requested-action.json';
+import workflowRunCompleted from '../../fixtures/github/workflow-run-completed.json';
 
 const API_BASE_URL = 'http://localhost:3001';
 const WEBHOOK_SECRET = 'test-webhook-secret-12345';

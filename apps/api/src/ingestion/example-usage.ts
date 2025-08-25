@@ -5,14 +5,16 @@
  */
 
 import type { PrismaClient } from '@prisma/client';
+
+import { GitHubAuthManager } from '../github/auth.js';
+import { GitHubHelpers } from '../github/helpers.js';
+
 import { 
   JUnitIngestionService,
   createIngestionService,
   ingestJUnitArtifacts,
   ingestFromGitHubWorkflowRun
 } from './junit.js';
-import { GitHubHelpers } from '../github/helpers.js';
-import { GitHubAuthManager } from '../github/auth.js';
 import type { 
   ArtifactSource, 
   RepositoryContext, 

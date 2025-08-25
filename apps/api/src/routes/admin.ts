@@ -7,8 +7,9 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { createTenantManagementService } from '../services/tenant-management.js';
+
 import { createOrgSyncService } from '../services/org-sync.js';
+import { createTenantManagementService } from '../services/tenant-management.js';
 import { logger } from '../utils/logger.js';
 
 // Admin request schemas

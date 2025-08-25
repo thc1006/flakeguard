@@ -1,9 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { clsx } from 'clsx';
 import { 
   HomeIcon, 
   FolderIcon, 
@@ -11,6 +7,10 @@ import {
   ClockIcon, 
   Cog6ToothIcon 
 } from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 const navigationItems = [
   { key: 'dashboard', href: '/dashboard', icon: HomeIcon },

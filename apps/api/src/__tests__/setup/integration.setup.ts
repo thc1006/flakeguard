@@ -4,11 +4,11 @@
  * Configures test environment with real external dependencies
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { GenericContainer, StartedTestContainer } from 'testcontainers';
 import { PrismaClient } from '@prisma/client';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import Redis from 'ioredis';
+import { GenericContainer, StartedTestContainer } from 'testcontainers';
+import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 
 let postgresContainer: StartedPostgreSqlContainer;
 let redisContainer: StartedTestContainer;

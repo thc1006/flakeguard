@@ -9,10 +9,15 @@
  * - OpenAPI documentation with examples and schemas
  */
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { Type, Static } from '@sinclair/typebox';
+import { QueueNames, JobPriorities } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
+import { Type, Static } from '@sinclair/typebox';
 import { Queue } from 'bullmq';
+import type { Job } from 'bullmq';
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+
+import { GitHubAuthManager } from '../github/auth.js';
+import { GitHubHelpers } from '../github/helpers.js';
 import { 
   GitHubArtifactsIntegration,
   createGitHubArtifactsIntegration,
@@ -21,11 +26,27 @@ import {
   validateArtifactFilter
 } from '../ingestion/github-integration.js';
 import { JUnitIngestionService } from '../ingestion/junit.js';
-import { GitHubAuthManager } from '../github/auth.js';
-import { GitHubHelpers } from '../github/helpers.js';
+import type { IngestionJobProgress } from '../ingestion/queue.js';
 import { generateCorrelationId } from '../ingestion/utils.js';
-import { QueueNames, JobPriorities } from '@flakeguard/shared';
 import { logger } from '../utils/logger.js';
+
+
+// ============================================================================
+// Type definitions for BullMQ job data
+// ============================================================================
+
+interface IngestionJobMetadata {
+  errors?: string[];
+  [key: string]: unknown;
+}
+
+interface BullMQJobProgress {
+  phase?: string;
+  processed?: number;
+  total?: number;
+  currentFileName?: string;
+  percentage?: number;
+}
 
 // ============================================================================
 // Request/Response Schemas
@@ -372,7 +393,7 @@ class IngestionRouteHandler {
 
       // Add progress information if available
       if (queueJob?.progress) {
-        const progress = queueJob.progress as any;
+        const progress = queueJob.progress as BullMQJobProgress;
         response.progress = {
           phase: progress.phase || 'processing',
           processed: progress.processed || 0,
@@ -390,16 +411,17 @@ class IngestionRouteHandler {
           totalFailures: job.failureCount || 0,
           totalErrors: job.errorCount || 0,
           processingTimeMs: job.processingTimeMs || 0,
-          errors: (job.metadata as any)?.errors || []
+          errors: (job.metadata as IngestionJobMetadata)?.errors || []
         };
       }
 
       return response;
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Failed to get job status', {
         jobId,
-        error: error.message
+        error: errorMessage
       });
       
       throw error;
@@ -474,7 +496,7 @@ class IngestionRouteHandler {
       // Convert to response format
       const jobResponses: JobStatusResponse[] = jobs.map(job => ({
         jobId: job.id,
-        status: job.status as any,
+        status: job.status,
         createdAt: job.createdAt.toISOString(),
         startedAt: job.startedAt?.toISOString(),
         completedAt: job.completedAt?.toISOString(),
@@ -486,7 +508,7 @@ class IngestionRouteHandler {
           totalFailures: job.failureCount || 0,
           totalErrors: job.errorCount || 0,
           processingTimeMs: job.processingTimeMs || 0,
-          errors: (job.metadata as any)?.errors || []
+          errors: (job.metadata)?.errors || []
         } : undefined
       }));
 

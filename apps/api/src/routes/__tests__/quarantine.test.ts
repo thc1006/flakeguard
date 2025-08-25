@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { FastifyInstance } from 'fastify';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+
 import { buildApp } from '../../app.js';
 
 describe('/v1/quarantine routes', () => {

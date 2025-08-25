@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useTranslations } from 'next-intl';
-import { useRepositories } from '@/hooks/use-repositories';
+import { useState } from 'react';
+
 import { RepositoryHealthCard } from '@/components/dashboard/repository-health-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useRepositories } from '@/hooks/use-repositories';
 
 export default function RepositoriesPage() {
   const t = useTranslations();

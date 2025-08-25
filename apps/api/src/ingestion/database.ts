@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient, TestResult, TestSuite, Prisma } from '@prisma/client';
+
 import type {
   TestCase,
   TestSuite as JUnitTestSuite,

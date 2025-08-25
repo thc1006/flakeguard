@@ -11,10 +11,15 @@
  * - Reusable test helpers
  */
 
-import { vi } from 'vitest';
 import crypto from 'crypto';
-import type { PrismaClient } from '@prisma/client';
+
 import type { Octokit } from '@octokit/rest';
+import type { PrismaClient } from '@prisma/client';
+import { vi } from 'vitest';
+
+import { GitHubAuthManager } from '../auth.js';
+import { FlakeDetector } from '../flake-detector.js';
+import { GitHubHelpers } from '../helpers.js';
 import type {
   CheckRunWebhookPayload,
   WorkflowRunWebhookPayload,
@@ -28,9 +33,6 @@ import type {
   TestArtifact,
   ApiResponse,
 } from '../types.js';
-import { GitHubAuthManager } from '../auth.js';
-import { GitHubHelpers } from '../helpers.js';
-import { FlakeDetector } from '../flake-detector.js';
 
 // =============================================================================
 // WEBHOOK PAYLOAD FACTORIES

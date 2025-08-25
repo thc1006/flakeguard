@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
 import { ZodError } from 'zod';
+
 import { logger } from '../utils/logger.js';
 
 async function errorHandler(fastify: FastifyInstance) {

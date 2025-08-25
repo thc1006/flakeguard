@@ -2,10 +2,12 @@
  * Slack notification processor for FlakeGuard worker
  */
 
-import { Job, Processor } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
-import { logger } from '../utils/logger.js';
 import type { FlakeScore, QuarantineCandidate } from '@flakeguard/shared';
+import { PrismaClient } from '@prisma/client';
+import { Job, Processor } from 'bullmq';
+
+import { logger } from '../utils/logger.js';
+
 
 // Mock Slack service - in real implementation this would import from api
 interface SlackNotificationJobData {

@@ -13,13 +13,14 @@ import type {
   FlakeScore,
   TestStabilityMetrics,
 } from '@flakeguard/shared';
+
+import {
+  CHECK_RUN_ACTION_CONFIGS,
+} from './constants.js';
 import type {
   CheckRunAction,
   RepositoryInfo,
 } from './types.js';
-import {
-  CHECK_RUN_ACTION_CONFIGS,
-} from './constants.js';
 
 // =============================================================================
 // TYPES AND INTERFACES

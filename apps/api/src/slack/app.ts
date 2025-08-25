@@ -9,13 +9,15 @@
  * - Secure request verification
  */
 
-import { App, BlockAction, SlashCommand, ButtonAction } from '@slack/bolt';
+import type { TestRun, QuarantineCandidate } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
-import { logger } from '../utils/logger.js';
+import { App, BlockAction, SlashCommand, ButtonAction } from '@slack/bolt';
+
+import { FlakinessScorer } from '../analytics/flakiness.js';
 import { GitHubAuthManager } from '../github/auth.js';
 import { CheckRunHandler } from '../github/handlers.js';
-import { FlakinessScorer } from '../analytics/flakiness.js';
-import type { TestRun, QuarantineCandidate } from '@flakeguard/shared';
+import { logger } from '../utils/logger.js';
+
 
 /**
  * Slack App Configuration

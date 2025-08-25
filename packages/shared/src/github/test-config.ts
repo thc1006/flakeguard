@@ -4,6 +4,7 @@
  */
 
 import type { Logger } from 'pino';
+
 import type { 
   GitHubApiConfig,
   RequestOptions,
@@ -364,7 +365,7 @@ export class TestUtils {
       error: (obj: any, msg?: string) => logs.push({ level: 'error', obj, msg }),
       fatal: (obj: any, msg?: string) => logs.push({ level: 'fatal', obj, msg }),
       trace: (obj: any, msg?: string) => logs.push({ level: 'trace', obj, msg }),
-      child: () => logger as any,
+      child: () => logger,
       getLogs: () => [...logs],
     } as any;
 
@@ -685,7 +686,7 @@ export const exampleTests = {
     
     console.log('Benchmark results:', benchmark);
     
-    const successful = (benchmark.result as PromiseSettledResult<any>[])
+    const successful = (benchmark.result)
       .filter(r => r.status === 'fulfilled').length;
     
     console.log(`Successful requests: ${successful}/${testData.length}`);

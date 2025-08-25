@@ -11,6 +11,15 @@
 
 import type { Octokit } from '@octokit/rest';
 import type { PrismaClient } from '@prisma/client';
+
+import { logger } from '../utils/logger.js';
+
+import { ErrorCode } from './api-spec.js';
+import { GitHubAuthManager } from './auth.js';
+import {
+  CHECK_RUN_ACTION_CONFIGS,
+  ERROR_MESSAGES,
+} from './constants.js';
 import type {
   FlakeGuardCheckRun,
   CheckRunAction,
@@ -19,13 +28,6 @@ import type {
   TestResult,
   ApiResponse,
 } from './types.js';
-import { GitHubAuthManager } from './auth.js';
-import { logger } from '../utils/logger.js';
-import { ErrorCode } from './api-spec.js';
-import {
-  CHECK_RUN_ACTION_CONFIGS,
-  ERROR_MESSAGES,
-} from './constants.js';
 
 /**
  * Interface for test data used in check run rendering

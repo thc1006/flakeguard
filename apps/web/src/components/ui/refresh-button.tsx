@@ -1,9 +1,10 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
-import { Button } from './button';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+
+import { Button } from './button';
 
 export function RefreshButton() {
   const queryClient = useQueryClient();

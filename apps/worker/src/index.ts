@@ -10,32 +10,33 @@
  * - Production-ready observability and monitoring
  */
 
-import { Worker, Queue, QueueEvents } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
-import { Octokit } from '@octokit/rest';
-import { App } from '@octokit/app';
-import { config } from './config/index.js';
-import { logger } from './utils/logger.js';
-import { connection, closeRedisConnection } from './utils/redis.js';
-import { initializeMetricsCollection, workerHealth, updateQueueMetrics } from './utils/metrics.js';
-import { initializeHealthCheck, getHealthManager } from './utils/health.js';
-
-// Import processors
-import { emailProcessor } from './processors/email.processor.js';
-import { taskProcessor } from './processors/task.processor.js';
-import { reportProcessor } from './processors/report.processor.js';
-import { ingestionProcessor } from './processors/ingestion.processor.js';
-import { runsIngestProcessor } from './processors/runs-ingest.processor.js';
-import { runsAnalyzeProcessor } from './processors/runs-analyze.processor.js';
-import { testsRecomputeProcessor } from './processors/tests-recompute.processor.js';
-import { pollingProcessor, createPollingManager } from './processors/polling.processor.js';
-import { githubWebhookProcessor } from './processors/github-webhook.processor.js';
-
 import { 
   QueueNames, 
   WORKER_CONFIG,
   POLLING_CONFIG 
 } from '@flakeguard/shared';
+import { App } from '@octokit/app';
+import { Octokit } from '@octokit/rest';
+import { PrismaClient } from '@prisma/client';
+import { Worker, Queue, QueueEvents } from 'bullmq';
+
+import { config } from './config/index.js';
+import { emailProcessor } from './processors/email.processor.js';
+import { githubWebhookProcessor } from './processors/github-webhook.processor.js';
+import { ingestionProcessor } from './processors/ingestion.processor.js';
+import { pollingProcessor, createPollingManager } from './processors/polling.processor.js';
+import { reportProcessor } from './processors/report.processor.js';
+import { runsAnalyzeProcessor } from './processors/runs-analyze.processor.js';
+import { runsIngestProcessor } from './processors/runs-ingest.processor.js';
+import { taskProcessor } from './processors/task.processor.js';
+import { initializeHealthCheck, getHealthManager } from './utils/health.js';
+import { logger } from './utils/logger.js';
+import { connection, closeRedisConnection } from './utils/redis.js';
+import { initializeMetricsCollection, workerHealth, updateQueueMetrics } from './utils/metrics.js';
+
+// Import processors
+import { testsRecomputeProcessor } from './processors/tests-recompute.processor.js';
+
 
 // ============================================================================
 // Global State

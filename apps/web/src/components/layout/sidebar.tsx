@@ -1,8 +1,9 @@
 'use client';
 
-import { clsx } from 'clsx';
-import { Navigation } from './navigation';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
+
+import { Navigation } from './navigation';
 
 interface SidebarProps {
   open: boolean;

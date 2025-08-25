@@ -11,9 +11,10 @@
  * - SAX parser event handling and state management
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Readable, Transform } from 'stream';
 import { createReadStream } from 'fs';
+import { Readable, Transform } from 'stream';
+
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import {
   parseJUnitXML,

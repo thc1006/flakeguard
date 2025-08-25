@@ -6,18 +6,19 @@
  * with fallback to environment variable defaults.
  */
 
-import { z } from 'zod';
-import type { Octokit } from '@octokit/rest';
-import { minimatch } from 'minimatch';
-import yaml from 'yaml';
 import type {
   TestResult,
   FlakeScore,
   QuarantineRecommendation,
 } from '@flakeguard/shared';
 import { DEFAULT_QUARANTINE_POLICY } from '@flakeguard/shared';
-import { logger } from '../utils/logger.js';
+import type { Octokit } from '@octokit/rest';
+import { minimatch } from 'minimatch';
+import yaml from 'yaml';
+import { z } from 'zod';
+
 import { config } from '../config/index.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * FlakeGuard policy configuration schema

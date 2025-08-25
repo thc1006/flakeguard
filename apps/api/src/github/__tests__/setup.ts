@@ -10,6 +10,7 @@
  */
 
 import { vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+
 import { mockEnvironmentVariables, setupTestEnvironment } from './mocks.js';
 
 // =============================================================================

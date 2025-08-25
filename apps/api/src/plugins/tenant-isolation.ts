@@ -5,9 +5,10 @@
  * Ensures users can only access data within their organization's scope.
  */
 
+import { PrismaClient } from '@prisma/client';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
-import { PrismaClient } from '@prisma/client';
+
 import { logger } from '../utils/logger.js';
 
 // Tenant context interface

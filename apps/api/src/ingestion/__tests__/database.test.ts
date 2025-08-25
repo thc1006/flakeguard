@@ -11,8 +11,8 @@
  * - Data integrity and consistency validation
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { PrismaClient, TestResult, TestSuite, Prisma } from '@prisma/client';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
 import {
   TestIngestionRepository,

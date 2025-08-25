@@ -11,17 +11,11 @@
 
 import type { Octokit } from '@octokit/rest';
 import type { PrismaClient } from '@prisma/client';
-import type {
-  FlakeGuardCheckRun,
-  CheckRunAction,
-  CheckRunStatus,
-  CheckRunConclusion,
-  TestResult,
-  ApiResponse,
-} from './types.js';
-import { GitHubAuthManager } from './auth.js';
+
 import { logger } from '../utils/logger.js';
+
 import { ErrorCode } from './api-spec.js';
+import { GitHubAuthManager } from './auth.js';
 import {
   CHECK_RUN_ACTION_CONFIGS,
   ERROR_MESSAGES,
@@ -31,6 +25,14 @@ import {
   benchmarkMarkdownGeneration,
   GITHUB_CHECK_RUN_TEXT_LIMIT,
 } from './markdown-utils.js';
+import type {
+  FlakeGuardCheckRun,
+  CheckRunAction,
+  CheckRunStatus,
+  CheckRunConclusion,
+  TestResult,
+  ApiResponse,
+} from './types.js';
 
 // Re-export types and interfaces for backward compatibility
 export type { TestCandidate, CheckRunOutput, CheckRunActionDef, CheckRunParams } from './check-runs.js';

@@ -5,6 +5,7 @@
  * and compare original vs optimized implementations.
  */
 
+import { renderCheckRunOutput } from '../check-runs.js';
 import {
   benchmarkMarkdownGeneration,
   generateBenchmarkTestCandidates,
@@ -14,7 +15,6 @@ import {
   GITHUB_CHECK_RUN_TEXT_LIMIT,
 } from '../markdown-utils.js';
 
-import { renderCheckRunOutput } from '../check-runs.js';
 
 interface BenchmarkResult {
   testCount: number;

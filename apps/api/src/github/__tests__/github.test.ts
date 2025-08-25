@@ -9,13 +9,14 @@
  * - Error handling and validation
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
+import { PrismaClient } from '@prisma/client';
 import Fastify, { type FastifyInstance } from 'fastify';
 import nock from 'nock';
-import { PrismaClient } from '@prisma/client';
+import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
+
 import githubAppPlugin from '../index.js';
-import { createTestMocks } from './mocks.js';
-import {
+
+import { createTestMocks ,
   createMockCheckRunPayload,
   createMockWorkflowRunPayload,
   createMockInstallationPayload,
@@ -24,6 +25,7 @@ import {
   createMockPrismaClient,
   signWebhookPayload,
 } from './mocks.js';
+
 
 describe('GitHub App Plugin', () => {
   let fastify: FastifyInstance;

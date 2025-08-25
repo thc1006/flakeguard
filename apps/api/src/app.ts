@@ -1,28 +1,29 @@
-import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import Fastify, { FastifyInstance } from 'fastify';
+
 import { config } from './config/index.js';
-import { errorHandler } from './plugins/error-handler.js';
-import { prismaPlugin } from './plugins/prisma.js';
-import metricsPlugin from './plugins/metrics.js';
-import securityPlugin from './plugins/security.js';
 import githubAppPlugin from './github/index.js';
-import slackAppPlugin from './slack/plugin.js';
-import policyPlugin from './plugins/policy.js';
-import { healthRoutes } from './routes/health.js';
-import { userRoutes } from './routes/users.js';
-import { taskRoutes } from './routes/tasks.js';
-import { ingestionRoutes } from './routes/ingestion.js';
 import { quarantineRoutes } from './routes/quarantine.js';
 import { policyRoutes } from './routes/policy.js';
 import organizationRoutes from './routes/organizations.js';
 import adminRoutes from './routes/admin.js';
 import tenantIsolationPlugin from './plugins/tenant-isolation.js';
 import bullmqPlugin from './plugins/bullmq.js';
+import { errorHandler } from './plugins/error-handler.js';
+import metricsPlugin from './plugins/metrics.js';
+import policyPlugin from './plugins/policy.js';
+import { prismaPlugin } from './plugins/prisma.js';
+import securityPlugin from './plugins/security.js';
 import { githubWebhookRoutes } from './routes/github-webhook.js';
+import { healthRoutes } from './routes/health.js';
+import { ingestionRoutes } from './routes/ingestion.js';
+import { taskRoutes } from './routes/tasks.js';
+import { userRoutes } from './routes/users.js';
+import slackAppPlugin from './slack/plugin.js';
 import { logger } from './utils/logger.js';
 
 export async function buildApp(): Promise<FastifyInstance> {

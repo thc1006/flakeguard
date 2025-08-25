@@ -10,6 +10,11 @@
  */
 
 import type { Octokit } from '@octokit/rest';
+
+import { logger } from '../utils/logger.js';
+
+import { ErrorCode } from './api-spec.js';
+import { ERROR_MESSAGES } from './constants.js';
 import type {
   CheckRunStatus,
   CheckRunConclusion,
@@ -17,9 +22,6 @@ import type {
   ApiResponse,
   FlakeGuardCheckRun,
 } from './types.js';
-import { logger } from '../utils/logger.js';
-import { ErrorCode } from './api-spec.js';
-import { ERROR_MESSAGES } from './constants.js';
 
 /**
  * Check run output interface

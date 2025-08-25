@@ -4,6 +4,7 @@
  */
 
 import { Readable } from 'stream';
+
 import { 
   parseJUnitXMLString, 
   parseJUnitXMLAdvanced, 

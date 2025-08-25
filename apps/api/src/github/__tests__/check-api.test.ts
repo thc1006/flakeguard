@@ -5,8 +5,10 @@
  * Covers rate limiting, error handling, and proper status transitions
  */
 
-import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
 import type { Octokit } from '@octokit/rest';
+import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
+
+import { ErrorCode } from '../api-spec.js';
 import {
   createCheckRun,
   updateCheckRun,
@@ -14,7 +16,6 @@ import {
   createCheckRunWithProgression,
 } from '../check-api.js';
 import type { CheckRunOutput, CheckRunActionDef } from '../check-api.js';
-import { ErrorCode } from '../api-spec.js';
 
 // Mock the logger
 vi.mock('../../utils/logger.js', () => ({

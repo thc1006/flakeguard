@@ -1,6 +1,6 @@
+import { userSchema, createUserSchema, updateUserSchema } from '@flakeguard/shared';
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { userSchema, createUserSchema, updateUserSchema } from '@flakeguard/shared';
 
 export async function userRoutes(fastify: FastifyInstance) {
   // Get all users

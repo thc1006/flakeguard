@@ -3,9 +3,9 @@
  * Implements comprehensive types for P18 - Rate Limit & Resilience
  */
 
-import type { Logger } from 'pino';
-import type { Octokit } from '@octokit/rest';
 import type { RequestError } from '@octokit/request-error';
+import type { Octokit } from '@octokit/rest';
+import type { Logger } from 'pino';
 
 // =============================================================================
 // RATE LIMITING TYPES

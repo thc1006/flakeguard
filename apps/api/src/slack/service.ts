@@ -3,6 +3,10 @@
  */
 
 import { WebClient, LogLevel } from '@slack/web-api';
+
+import { logger } from '../utils/logger.js';
+
+import { SlackMessageBuilder } from './message-builder.js';
 import type {
   SlackConfig,
   FlakeNotification,
@@ -11,8 +15,6 @@ import type {
   SlackInteractionPayload,
   SlackMetrics,
 } from './types.js';
-import { SlackMessageBuilder } from './message-builder.js';
-import { logger } from '../utils/logger.js';
 
 export class SlackService {
   private client: WebClient;
@@ -80,7 +82,7 @@ export class SlackService {
   private buildNotificationTemplate(notification: FlakeNotification) {
     switch (notification.type) {
       case 'flake_detected':
-        return this.messageBuilder.buildFlakeAlert(notification.data.flakeScore!, notification.repository);
+        return this.messageBuilder.buildFlakeAlert(notification.data.flakeScore, notification.repository);
       case 'quarantine_recommended':
         return this.messageBuilder.buildQuarantineReport(notification.repository, notification.data.quarantineCandidates!);
       case 'critical_spike':

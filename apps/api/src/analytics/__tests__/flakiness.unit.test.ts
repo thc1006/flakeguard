@@ -4,9 +4,10 @@
  * Tests all scoring scenarios, edge cases, and ensures deterministic results
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { FlakinessScorer } from '../flakiness.js';
 import type { TestRun, QuarantinePolicy, FlakeScore } from '@flakeguard/shared';
+import { describe, it, expect, beforeEach } from 'vitest';
+
+import { FlakinessScorer } from '../flakiness.js';
 
 describe('FlakinessScorer', () => {
   let scorer: FlakinessScorer;

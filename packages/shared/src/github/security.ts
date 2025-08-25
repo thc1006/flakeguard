@@ -4,9 +4,10 @@
  */
 
 import { createHmac, timingSafeEqual } from 'crypto';
-import type { Logger } from 'pino';
-import { GitHubApiError } from './types.js';
 
+import type { Logger } from 'pino';
+
+import { GitHubApiError } from './types.js';
 import type {
   SecurityConfig,
   AuditLogEntry,

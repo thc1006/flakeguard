@@ -46,6 +46,24 @@ interface FailureCluster {
   }>;
 }
 
+interface TestCaseWithScore {
+  id: string;
+  name: string;
+  suite: string;
+  flakeScore: {
+    score: number;
+  } | null;
+}
+
+interface FailureClusterWithTestCases {
+  id: string;
+  failureMsgSignature: string;
+  exampleMessage: string | null;
+  occurrenceCount: number;
+  testIds: string[];
+  testCases: TestCaseWithScore[];
+}
+
 class FlakeGuardQueries {
   
   /**
@@ -201,7 +219,7 @@ class FlakeGuardQueries {
           }
         }
       }
-    });
+    }) as FailureClusterWithTestCases;
 
     return {
       id: cluster.id,
@@ -209,11 +227,11 @@ class FlakeGuardQueries {
       exampleMessage: cluster.exampleMessage,
       occurrenceCount: cluster.occurrenceCount,
       affectedTestCount: cluster.testIds.length,
-      testCases: cluster.testCases.map((tc: any) => ({
-        id: tc.id as string,
-        name: tc.name as string,
-        suite: tc.suite as string,
-        flakeScore: (tc.flakeScore?.score as number) || 0,
+      testCases: cluster.testCases.map((tc) => ({
+        id: tc.id,
+        name: tc.name,
+        suite: tc.suite,
+        flakeScore: tc.flakeScore?.score || 0,
       })),
     };
   }

@@ -1,6 +1,6 @@
+import { taskSchema, createTaskSchema, updateTaskSchema, TaskStatus, Priority } from '@flakeguard/shared';
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { taskSchema, createTaskSchema, updateTaskSchema, TaskStatus, Priority } from '@flakeguard/shared';
 
 export async function taskRoutes(fastify: FastifyInstance) {
   // Get all tasks

@@ -9,21 +9,22 @@
  * - Monitoring and logging capabilities
  */
 
-import { Job } from 'bullmq';
+import { 
+  IngestionQueueJobData, 
+  JobExecutionResult,
+  JobProgressInfo
+} from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
+import { Job } from 'bullmq';
+
+import { GitHubAuthManager } from '../../../api/src/github/auth.js';
+import { GitHubHelpers } from '../../../api/src/github/helpers.js';
 import { 
   GitHubArtifactsIntegration, 
   createGitHubArtifactsIntegration,
   IngestionJobConfig
 } from '../../../api/src/ingestion/github-integration.js';
 import { JUnitIngestionService } from '../../../api/src/ingestion/junit.js';
-import { GitHubAuthManager } from '../../../api/src/github/auth.js';
-import { GitHubHelpers } from '../../../api/src/github/helpers.js';
-import { 
-  IngestionQueueJobData, 
-  JobExecutionResult,
-  JobProgressInfo
-} from '@flakeguard/shared';
 import { logger } from '../utils/logger.js';
 
 // ============================================================================

@@ -11,12 +11,12 @@
  * - API contract validation
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
-import { FastifyInstance } from 'fastify';
-import { build } from '../../app.js';
 import { PrismaClient } from '@prisma/client';
 import { Queue, Worker, Job } from 'bullmq';
-import { GitHubArtifactsIntegration } from '../github-integration.js';
+import { FastifyInstance } from 'fastify';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+
+import { build } from '../../app.js';
 import type {
   ProcessArtifactsRequest,
   ProcessArtifactsResponse,
@@ -25,6 +25,7 @@ import type {
   ArtifactFilter,
   IngestionJobConfig
 } from '../../routes/ingestion.js';
+import { GitHubArtifactsIntegration } from '../github-integration.js';
 
 // Mock external dependencies
 vi.mock('../github-integration.js');
@@ -381,7 +382,7 @@ describe('Ingestion API Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(202);
-      const body = response.json() as ProcessArtifactsResponse;
+      const body = response.json();
       expect(body.jobId).toBeDefined();
       expect(body.status).toBe('queued');
       expect(body.correlationId).toBe('custom-correlation-123');
@@ -477,7 +478,7 @@ describe('Ingestion API Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(202);
-      const body = response.json() as ProcessArtifactsResponse;
+      const body = response.json();
       expect(body.statusUrl).toBe(`/api/ingestion/jobs/${testJobId}/status`);
     });
 
@@ -537,7 +538,7 @@ describe('Ingestion API Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = response.json() as JobStatusResponse;
+      const body = response.json();
       expect(body.jobId).toBe(testJobId);
       expect(body.status).toBe('active');
       expect(body.progress).toEqual({ processed: 2, total: 5 });
@@ -587,7 +588,7 @@ describe('Ingestion API Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = response.json() as JobStatusResponse;
+      const body = response.json();
       expect(body.status).toBe('completed');
       expect(body.result).toEqual(mockIngestionResult);
       expect(body.completedAt).toBeDefined();
@@ -623,7 +624,7 @@ describe('Ingestion API Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = response.json() as JobStatusResponse;
+      const body = response.json();
       expect(body.status).toBe('failed');
       expect(body.error).toBe(mockError);
       expect(body.attempts).toBe(3);
@@ -670,7 +671,7 @@ describe('Ingestion API Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = response.json() as IngestionHistoryResponse;
+      const body = response.json();
       expect(body.jobs).toHaveLength(2);
       expect(body.pagination).toEqual({
         page: 1,

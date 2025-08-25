@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { FlakinessScorer } from '../flakiness.js';
 import type { TestRun, QuarantinePolicy } from '@flakeguard/shared';
+import { describe, it, expect, beforeEach } from 'vitest';
+
+import { FlakinessScorer } from '../flakiness.js';
 
 describe('FlakinessScorer', () => {
   let scorer: FlakinessScorer;

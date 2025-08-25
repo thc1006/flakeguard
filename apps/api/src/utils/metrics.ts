@@ -10,8 +10,9 @@
  * - Business metrics (tests processed, flake detections)
  */
 
-import { register, collectDefaultMetrics, Counter, Histogram, Gauge, Summary } from 'prom-client';
 import { METRICS_CONFIG } from '@flakeguard/shared';
+import { register, collectDefaultMetrics, Counter, Histogram, Gauge, Summary } from 'prom-client';
+
 import { logger } from './logger.js';
 
 // Initialize default metrics collection

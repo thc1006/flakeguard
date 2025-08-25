@@ -1,10 +1,11 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
-import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
 import { UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
+
+import { Button } from '@/components/ui/button';
 
 export function UserButton() {
   const { data: session, status } = useSession();

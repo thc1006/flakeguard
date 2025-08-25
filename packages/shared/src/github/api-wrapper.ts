@@ -4,16 +4,15 @@
  */
 
 import { App } from '@octokit/app';
-import { Octokit } from '@octokit/rest';
 import { RequestError } from '@octokit/request-error';
+import { Octokit } from '@octokit/rest';
 import type { Logger } from 'pino';
 
+import { ArtifactHandler } from './artifact-handler.js';
 import { CircuitBreaker } from './circuit-breaker.js';
 import { PrimaryRateLimiter, SecondaryRateLimiter } from './rate-limiter.js';
 import { RequestQueue, RequestPrioritizer } from './request-queue.js';
-import { ArtifactHandler } from './artifact-handler.js';
 import { SecurityManager, TokenManager } from './security.js';
-
 import {
   GitHubApiError,
   DEFAULT_RATE_LIMIT_CONFIG,
@@ -25,7 +24,6 @@ import {
   DEFAULT_SECURITY_CONFIG,
   DEFAULT_ARTIFACT_DOWNLOAD_CONFIG,
 } from './types.js';
-
 import type {
   GitHubApiConfig,
   GitHubApiWrapper,
@@ -286,7 +284,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
     const requestId = this.generateRequestId();
     const startTime = new Date();
     
-    let requestMetric: RequestMetrics = {
+    const requestMetric: RequestMetrics = {
       method: options.method,
       endpoint: options.endpoint,
       startTime,

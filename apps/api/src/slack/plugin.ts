@@ -8,12 +8,14 @@
 
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import fp from 'fastify-plugin';
-import { FlakeGuardSlackApp, createFlakeGuardSlackApp } from './app.js';
-import { config, requireSlackConfig } from '../config/index.js';
-import { createWebhookHandlers } from '../github/handlers.js';
+
 import { FlakinessScorer } from '../analytics/flakiness.js';
+import { config, requireSlackConfig } from '../config/index.js';
 import { GitHubAuthManager } from '../github/auth.js';
+import { createWebhookHandlers } from '../github/handlers.js';
 import { logger } from '../utils/logger.js';
+
+import { FlakeGuardSlackApp, createFlakeGuardSlackApp } from './app.js';
 
 /**
  * Slack App plugin options

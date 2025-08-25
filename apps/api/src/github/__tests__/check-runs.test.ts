@@ -9,7 +9,11 @@
  * - Error handling and status transitions
  */
 
+import type { Octokit } from '@octokit/rest';
+import type { PrismaClient } from '@prisma/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+import { GitHubAuthManager } from '../auth.js';
 import {
   renderCheckRunOutput,
   generateCheckRunActions,
@@ -21,10 +25,8 @@ import {
   type CheckRunOutput,
   type CheckRunParams,
 } from '../check-runs.js';
-import { GitHubAuthManager } from '../auth.js';
+
 import { createMockPrismaClient } from './mocks.js';
-import type { PrismaClient } from '@prisma/client';
-import type { Octokit } from '@octokit/rest';
 
 // Mock the auth manager
 vi.mock('../auth.js', () => ({

@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-import { Command } from 'commander';
 import chalk from 'chalk';
-import { FlakeGuardSetupWizard } from '../wizard/SetupWizard';
+import { Command } from 'commander';
+
 import { version } from '../../package.json';
+import { FlakeGuardSetupWizard } from '../wizard/SetupWizard';
 
 const program = new Command();
 

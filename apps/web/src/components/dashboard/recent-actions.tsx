@@ -1,11 +1,13 @@
-import { useTranslations } from 'next-intl';
+import { ExternalLinkIcon } from '@heroicons/react/24/outline';
+import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslations } from 'next-intl';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Task } from '@/lib/api';
-import { formatDistanceToNow } from 'date-fns';
-import { ExternalLinkIcon } from '@heroicons/react/24/outline';
+
 
 interface RecentActionsProps {
   actions: Task[];

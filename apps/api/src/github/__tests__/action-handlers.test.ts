@@ -5,8 +5,9 @@
  * Covers idempotency, partial failures, and proper error handling
  */
 
-import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
 import type { Octokit } from '@octokit/rest';
+import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
+
 import {
   handleQuarantineAction,
   handleRerunFailedAction,

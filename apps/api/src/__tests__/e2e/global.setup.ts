@@ -4,10 +4,11 @@
  * Manages Docker Compose test environment lifecycle
  */
 
-import { chromium, type FullConfig } from '@playwright/test';
 import { execSync, spawn, type ChildProcess } from 'child_process';
 import { existsSync } from 'fs';
 import path from 'path';
+
+import { chromium, type FullConfig } from '@playwright/test';
 
 let dockerProcess: ChildProcess | null = null;
 

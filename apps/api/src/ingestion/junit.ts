@@ -3,15 +3,21 @@
  * Provides comprehensive artifact processing with streaming, retry logic, and error handling
  */
 
+import { EventEmitter } from 'events';
 import { createReadStream, createWriteStream } from 'fs';
-import { pipeline, Readable } from 'stream';
-import { promisify } from 'util';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { EventEmitter } from 'events';
-import StreamZip from 'node-stream-zip';
-import type { PrismaClient } from '@prisma/client';
+import { pipeline, Readable } from 'stream';
+import { promisify } from 'util';
 
+import type { PrismaClient } from '@prisma/client';
+import StreamZip from 'node-stream-zip';
+
+import { GitHubHelpers } from '../github/helpers.js';
+import { logger } from '../utils/logger.js';
+
+import { TestIngestionRepository } from './database.js';
+import { parseJUnitXML, parseJUnitXMLFile } from './parsers/junit-parser.js';
 import type {
   IngestionParameters,
   IngestionResult,
@@ -29,6 +35,12 @@ import type {
   AsyncIngestionResult
 } from './types.js';
 import {
+  IngestionException,
+  DownloadFailedException,
+  ParsingFailedException,
+  TimeoutException
+} from './types.js';
+import {
   createArtifactFilter,
   createXMLFileFilter,
   createJUnitXMLFilter,
@@ -44,16 +56,7 @@ import {
   createSizeLimiter,
   createTimeoutStream
 } from './utils.js';
-import { parseJUnitXML, parseJUnitXMLFile } from './parsers/junit-parser.js';
-import {
-  IngestionException,
-  DownloadFailedException,
-  ParsingFailedException,
-  TimeoutException
-} from './types.js';
-import { TestIngestionRepository } from './database.js';
-import { GitHubHelpers } from '../github/helpers.js';
-import { logger } from '../utils/logger.js';
+
 
 const pipelineAsync = promisify(pipeline);
 

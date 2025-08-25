@@ -1,17 +1,18 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { useRepositories } from '@/hooks/use-repositories';
-import { useRecentActions } from '@/hooks/use-tasks';
-import { useQuarantinePlan } from '@/hooks/use-quarantine';
-import { RepositoryHealthCard } from '@/components/dashboard/repository-health-card';
-import { FlakyTestsTable } from '@/components/dashboard/flaky-tests-table';
-import { RecentActions } from '@/components/dashboard/recent-actions';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+
+import { FlakyTestsTable } from '@/components/dashboard/flaky-tests-table';
+import { RecentActions } from '@/components/dashboard/recent-actions';
+import { RepositoryHealthCard } from '@/components/dashboard/repository-health-card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useQuarantinePlan } from '@/hooks/use-quarantine';
+import { useRepositories } from '@/hooks/use-repositories';
+import { useRecentActions } from '@/hooks/use-tasks';
 
 export default function DashboardPage() {
   const t = useTranslations();

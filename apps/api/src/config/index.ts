@@ -1,5 +1,7 @@
-import { z } from 'zod';
 import { readFileSync } from 'fs';
+
+import { z } from 'zod';
+
 import { githubEnvSchema } from '../github/schemas.js';
 
 // Slack configuration schema

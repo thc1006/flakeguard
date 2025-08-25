@@ -2,6 +2,7 @@
  * Optimized Database Connection Pooling for FlakeGuard
  */
 import { PrismaClient, Prisma } from '@prisma/client';
+
 import { logger } from '../utils/logger.js';
 
 interface DatabasePoolConfig {

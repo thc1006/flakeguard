@@ -4,8 +4,10 @@
  * Tests all parser dialects, edge cases, and performance scenarios
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Readable } from 'stream';
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import {
   parseJUnitXMLString,
   parseJUnitXMLFile,
@@ -385,7 +387,7 @@ describe('JUnit XML Parser', () => {
       expect(result.warnings).toBeDefined();
       
       // Format-specific metadata
-      const metadata = result.metadata as FormatSpecificResult<'surefire'>;
+      const metadata = result.metadata;
       expect(metadata.surefireSpecific).toBeDefined();
       expect(metadata.surefireSpecific.mavenVersion).toBe('3.8.1');
     });

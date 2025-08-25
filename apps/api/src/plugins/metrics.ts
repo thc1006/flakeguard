@@ -8,15 +8,16 @@
  * - Memory and system metrics
  */
 
-import fp from 'fastify-plugin';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import fp from 'fastify-plugin';
+
+import { logger } from '../utils/logger.js';
 import { 
   initializeApiMetrics,
   recordHttpRequest,
   httpRequestsInProgress,
   getMetricsRegistry
 } from '../utils/metrics.js';
-import { logger } from '../utils/logger.js';
 
 interface MetricsPluginOptions {
   enabled?: boolean;

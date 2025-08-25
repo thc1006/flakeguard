@@ -12,13 +12,14 @@
  * artifact processing and workflow analysis in FlakeGuard.
  */
 
-import { App } from '@octokit/app';
-import { Octokit } from '@octokit/rest';
 import { createWriteStream, mkdtempSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { pipeline } from 'stream/promises';
 import type { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
+
+import { App } from '@octokit/app';
+import { Octokit } from '@octokit/rest';
 
 // GitHub API response types
 interface GitHubArtifact {

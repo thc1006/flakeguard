@@ -9,13 +9,15 @@
  * - Error scenarios and recovery
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
-import { FlakeGuardSlackApp } from '../app.js';
 import { PrismaClient } from '@prisma/client';
+import nock from 'nock';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
+
+import { FlakinessScorer } from '../../analytics/flakiness.js';
 import { GitHubAuthManager } from '../../github/auth.js';
 import { CheckRunHandler } from '../../github/handlers.js';
-import { FlakinessScorer } from '../../analytics/flakiness.js';
-import nock from 'nock';
+import { FlakeGuardSlackApp } from '../app.js';
+
 
 // Mock external services
 vi.mock('../../utils/logger.js', () => ({

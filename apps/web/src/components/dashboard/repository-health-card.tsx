@@ -1,10 +1,12 @@
-import { useTranslations } from 'next-intl';
-import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Repository } from '@/lib/api';
-import { formatDistanceToNow } from 'date-fns';
 import { clsx } from 'clsx';
+import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
+
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Repository } from '@/lib/api';
+
 
 interface RepositoryHealthCardProps {
   repository: Repository;

@@ -5,6 +5,7 @@
  * FlakeGuard handlers and services following consistent patterns.
  */
 
+import { logger } from './logger.js';
 import {
   recordHttpRequest,
   recordIngestionRequest,
@@ -18,7 +19,6 @@ import {
   httpRequestsInProgress,
 } from './metrics.js';
 
-import { logger } from './logger.js';
 
 // ============================================================================
 // HTTP Request Tracking
@@ -33,8 +33,8 @@ export function withRequestMetrics<T extends any[], R>(
   routeName: string
 ) {
   return async (...args: T): Promise<R> => {
-    const request = args[0] as any; // FastifyRequest
-    const reply = args[1] as any;   // FastifyReply
+    const request = args[0]; // FastifyRequest
+    const reply = args[1];   // FastifyReply
     const method = request.method;
     
     // Track request start
@@ -343,7 +343,7 @@ export function wrapIngestionHandler<T extends any[], R>(
   operationName: string
 ) {
   return withRequestMetrics(async (...args: T): Promise<R> => {
-    const request = args[0] as any;
+    const request = args[0];
     const context = createMetricsContext(request);
     const startTime = Date.now();
     
@@ -370,7 +370,7 @@ export function wrapWebhookHandler<T extends any[], R>(
   eventType: string
 ) {
   return async (...args: T): Promise<R> => {
-    const payload = args[0] as any;
+    const payload = args[0];
     const repository = extractRepositoryInfo(payload);
     const action = payload.action || 'unknown';
     const startTime = Date.now();

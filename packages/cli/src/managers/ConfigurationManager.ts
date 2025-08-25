@@ -1,8 +1,10 @@
+import crypto from 'crypto';
 import { promises as fs } from 'fs';
 import path from 'path';
-import crypto from 'crypto';
-import Cryptr from 'cryptr';
+
 import chalk from 'chalk';
+import Cryptr from 'cryptr';
+
 import { I18nManager } from '../i18n/I18nManager';
 
 export class ConfigurationManager {

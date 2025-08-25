@@ -5,8 +5,9 @@
  * Demonstrates proper usage of the FlakeGuard data model with efficient queries.
  */
 
-import { PrismaClient } from '@prisma/client';
 import { createHash } from 'crypto';
+
+import { PrismaClient } from '@prisma/client';
 import type { 
   FGRepository, 
   FGTestCase, 

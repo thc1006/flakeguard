@@ -11,12 +11,14 @@
  * - Audit logging for security events
  */
 
+import crypto from 'crypto';
+
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
-import crypto from 'crypto';
 import { z } from 'zod';
-import { logger } from '../utils/logger.js';
+
 import { config } from '../config/index.js';
+import { logger } from '../utils/logger.js';
 
 // =============================================================================
 // TYPES AND INTERFACES

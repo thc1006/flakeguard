@@ -5,11 +5,12 @@
  * GitHub webhook events and processes JUnit XML results.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Job } from 'bullmq';
 import { PrismaClient } from '@prisma/client';
-import { createGitHubWebhookProcessor } from '../github-webhook.processor.js';
+import { Job } from 'bullmq';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import type { GitHubEventJob } from '../../../api/src/routes/github-webhook.js';
+import { createGitHubWebhookProcessor } from '../github-webhook.processor.js';
 
 // Mock dependencies
 vi.mock('@flakeguard/shared', () => ({

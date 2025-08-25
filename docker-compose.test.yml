@@ -58,9 +58,8 @@ services:
       GITHUB_APP_ID: test-app-id
       GITHUB_PRIVATE_KEY: |
         -----BEGIN PRIVATE KEY-----
-        MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC5f5QWxMRbYbww
-        L8DxZVfNl5R8X2V1J8Ew9RfKgK3RHVRQj8K9WvK2nL5H3jTxYtV2z8W4Jz4Q5R
-        Test Private Key Content (Replace with actual test key)
+        FAKE_TEST_KEY_FOR_TESTING_ONLY_DO_NOT_USE_IN_PRODUCTION
+        REPLACE_WITH_ACTUAL_TEST_KEY_CONTENT_FOR_REAL_TESTING
         -----END PRIVATE KEY-----
       GITHUB_WEBHOOK_SECRET: test-webhook-secret-12345
       SLACK_BOT_TOKEN: xoxb-test-slack-token

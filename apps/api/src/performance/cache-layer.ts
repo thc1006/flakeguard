@@ -2,6 +2,7 @@
  * Redis Caching Layer for FlakeGuard Performance Optimization
  */
 import Redis from 'ioredis';
+
 import { logger } from '../utils/logger.js';
 
 interface CacheConfig {

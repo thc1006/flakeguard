@@ -7,7 +7,7 @@
 import { beforeAll, afterAll, beforeEach } from 'vitest';
 
 // Performance monitoring utilities
-let performanceMarks: Map<string, number> = new Map();
+const performanceMarks: Map<string, number> = new Map();
 
 beforeAll(() => {
   // Set up performance monitoring

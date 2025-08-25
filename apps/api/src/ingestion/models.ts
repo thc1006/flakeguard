@@ -5,13 +5,14 @@
  * for converting between JUnit XML data and database models.
  */
 
-import { z } from 'zod';
 import type { 
   TestResult, 
   TestSuite, 
   Prisma,
   PrismaClient 
 } from '@prisma/client';
+import { z } from 'zod';
+
 import type {
   TestCase,
   TestSuite as JUnitTestSuite,
@@ -648,8 +649,8 @@ export async function calculateTestTrends(
   const secondSuccessRate = secondHalf.filter(r => r.status === 'passed').length / secondHalf.length;
 
   // Calculate average execution times (excluding null values)
-  const firstHalfTimes = firstHalf.filter(r => r.time !== null).map(r => r.time!);
-  const secondHalfTimes = secondHalf.filter(r => r.time !== null).map(r => r.time!);
+  const firstHalfTimes = firstHalf.filter(r => r.time !== null).map(r => r.time);
+  const secondHalfTimes = secondHalf.filter(r => r.time !== null).map(r => r.time);
   
   const firstAvgTime = firstHalfTimes.length > 0 
     ? firstHalfTimes.reduce((sum, time) => sum + time, 0) / firstHalfTimes.length

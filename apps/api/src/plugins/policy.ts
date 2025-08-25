@@ -6,6 +6,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import fastifyPlugin from 'fastify-plugin';
+
 import { PolicyService, createPolicyService } from '../policy/service.js';
 import { logger } from '../utils/logger.js';
 

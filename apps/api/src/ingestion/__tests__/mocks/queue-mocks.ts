@@ -5,8 +5,8 @@
  * without requiring an actual Redis instance or queue system.
  */
 
-import { vi } from 'vitest';
 import type { Job, Queue, Worker, JobsOptions } from 'bullmq';
+import { vi } from 'vitest';
 
 // ============================================================================
 // Mock Job Data

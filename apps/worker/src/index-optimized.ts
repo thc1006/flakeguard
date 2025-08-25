@@ -1,17 +1,21 @@
 /**
  * Optimized FlakeGuard Worker with Enhanced Performance
  */
-import { Worker } from 'bullmq';
+import { QueueNames } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
+import { Worker } from 'bullmq';
+
+import { OptimizedWorkerManager } from '../../api/src/performance/worker-optimizations.js';
+
 import { config } from './config/index.js';
+import { emailProcessor } from './processors/email.processor.js';
+import { ingestionProcessor } from './processors/ingestion.processor.js';
+import { reportProcessor } from './processors/report.processor.js';
+import { taskProcessor } from './processors/task.processor.js';
 import { logger } from './utils/logger.js';
 import { connection } from './utils/redis.js';
-import { emailProcessor } from './processors/email.processor.js';
-import { taskProcessor } from './processors/task.processor.js';
-import { reportProcessor } from './processors/report.processor.js';
-import { ingestionProcessor } from './processors/ingestion.processor.js';
-import { QueueNames } from '@flakeguard/shared';
-import { OptimizedWorkerManager } from '../../api/src/performance/worker-optimizations.js';
+
+
 
 const prisma = new PrismaClient({
   log: ['error'],

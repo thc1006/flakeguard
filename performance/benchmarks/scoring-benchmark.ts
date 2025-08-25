@@ -1,10 +1,13 @@
 /**
  * Flakiness Scoring Performance Benchmarks
  */
-import { PerformanceBenchmark } from "./benchmark-framework.js";
+import type { TestRun } from "@flakeguard/shared";
+
 import { FlakinessScorer } from "../../apps/api/src/analytics/flakiness.js";
 import { OptimizedFlakinessScorer } from "../../apps/api/src/performance/optimized-flakiness.js";
-import type { TestRun } from "@flakeguard/shared";
+
+import { PerformanceBenchmark } from "./benchmark-framework.js";
+
 
 export async function runScoriBenchmarks() {
   const benchmark = new PerformanceBenchmark();

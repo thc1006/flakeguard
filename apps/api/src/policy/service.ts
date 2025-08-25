@@ -6,15 +6,18 @@
  * high-level policy operations.
  */
 
-import type { Octokit } from '@octokit/rest';
 import type {
   TestResult,
   PolicyDecision,
   PolicyEvaluation,
 } from '@flakeguard/shared';
-import { getPolicyEngine, type PolicyConfig } from './engine.js';
+import type { Octokit } from '@octokit/rest';
+
+
 import { GitHubAuthManager } from '../github/auth.js';
 import { logger } from '../utils/logger.js';
+
+import { getPolicyEngine, type PolicyConfig } from './engine.js';
 
 export interface EvaluatePolicyRequest {
   owner: string;

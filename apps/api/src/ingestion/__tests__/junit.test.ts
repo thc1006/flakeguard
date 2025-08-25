@@ -10,12 +10,13 @@
  * - Retry logic and timeout handling
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { EventEmitter } from 'events';
 import { createReadStream, createWriteStream, promises as fs } from 'fs';
-import { join } from 'path';
 import { tmpdir } from 'os';
+import { join } from 'path';
 import { Readable, Transform } from 'stream';
+
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
 import { 
   JUnitIngestionService, 

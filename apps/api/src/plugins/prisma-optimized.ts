@@ -1,8 +1,9 @@
+import { PrismaClient } from '@prisma/client';
 import { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
-import { PrismaClient } from '@prisma/client';
-import { logger } from '../utils/logger.js';
+
 import { createOptimizedPrismaClient } from '../performance/database-pool.js';
+import { logger } from '../utils/logger.js';
 
 declare module 'fastify' {
   interface FastifyInstance {

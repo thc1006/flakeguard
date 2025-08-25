@@ -5,8 +5,9 @@
 
 import { createReadStream, createWriteStream } from 'fs';
 import { pipeline, Transform } from 'stream';
-import { promisify } from 'util';
 import { URL } from 'url';
+import { promisify } from 'util';
+
 import type {
   ArtifactSource,
   ZipEntryInfo,

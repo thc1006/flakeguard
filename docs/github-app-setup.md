@@ -107,9 +107,7 @@ Add the GitHub App configuration to your FlakeGuard environment:
 ```bash
 # .env file
 GITHUB_APP_ID=123456
-GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
-MIIEowIBAAKCAQEA...
------END RSA PRIVATE KEY-----"
+GITHUB_APP_PRIVATE_KEY="YOUR_GITHUB_APP_PRIVATE_KEY_HERE"
 GITHUB_WEBHOOK_SECRET=your-generated-webhook-secret
 GITHUB_APP_NAME=FlakeGuard-YourOrgName
 ```

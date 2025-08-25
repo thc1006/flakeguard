@@ -1,9 +1,10 @@
-import inquirer from 'inquirer';
-import chalk from 'chalk';
 import axios from 'axios';
+import chalk from 'chalk';
+import inquirer from 'inquirer';
 import ora from 'ora';
-import { SlackConfig } from '../types';
+
 import { I18nManager } from '../i18n/I18nManager';
+import { SlackConfig } from '../types';
 
 export class SlackSetupGuide {
   private i18n: I18nManager;
@@ -125,7 +126,8 @@ export class SlackSetupGuide {
         validate: (input: string) => {
           if (!input || !input.startsWith('xoxb-')) {
             return this.i18n.t('slack.invalidBotToken');
-                    return true;
+          }
+          return true;
         }
       },
       {

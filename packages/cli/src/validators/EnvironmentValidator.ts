@@ -1,10 +1,13 @@
+import { promises as fs } from 'fs';
+import net from 'net';
+import path from 'path';
+
 import { spawn } from 'cross-spawn';
 import semver from 'semver';
-import { promises as fs } from 'fs';
-import path from 'path';
-import net from 'net';
-import { ValidationResult, SystemRequirements, PortCheck } from '../types';
+
+
 import { I18nManager } from '../i18n/I18nManager';
+import { ValidationResult, SystemRequirements, PortCheck } from '../types';
 
 export class EnvironmentValidator {
   private i18n: I18nManager;
@@ -283,18 +286,23 @@ export class EnvironmentValidator {
 
   private async getCommandVersion(...args: string[]): Promise<string | null> {
     return new Promise((resolve) => {
-      const child = spawn(args[0], args.slice(1), {
+      const command = args[0];
+      if (!command) {
+        resolve(null);
+        return;
+      }
+      const child = spawn(command, args.slice(1), {
         stdio: ['ignore', 'pipe', 'ignore'],
         timeout: 5000
       });
       
       let output = '';
       
-      child.stdout?.on('data', (data) => {
+      child.stdout.on('data', (data: Buffer) => {
         output += data.toString();
       });
       
-      child.on('close', (code) => {
+      child.on('close', (code: number | null) => {
         if (code === 0) {
           // Extract version number from output
           const versionMatch = output.match(/\d+\.\d+\.\d+/);

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState } from 'react';
+
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';
 import { LoadingPage } from '@/components/ui/loading-spinner';

@@ -1019,9 +1019,9 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     // Patterns to match test definitions
     const testPatterns = [
       // describe blocks
-      new RegExp(`(\\s*)(describe(?:\\.(?:skip|only))?\\s*\\(\\s*['"`]${this.escapeRegex(testName)}['"`])`, 'g'),
+      new RegExp(`(\\\\s*)(describe(?:\\\\.(?:skip|only))?\\\\s*\\\\(\\\\s*['\"\`]${this.escapeRegex(testName)}['\"\`])`, 'g'),
       // test/it blocks
-      new RegExp(`(\\s*)((?:test|it)(?:\\.(?:skip|only))?\\s*\\(\\s*['"`]${this.escapeRegex(testName)}['"`])`, 'g'),
+      new RegExp(`(\\\\s*)((?:test|it)(?:\\\\.(?:skip|only))?\\\\s*\\\\(\\\\s*['\"\`]${this.escapeRegex(testName)}['\"\`])`, 'g'),
     ];
 
     let modified = content;
@@ -1097,7 +1097,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
    */
   private addRSpecAnnotations(content: string, testName: string): string {
     const testPatterns = [
-      new RegExp(`(\\s*)((?:describe|context|it)\\s+['"`]${this.escapeRegex(testName)}['"`])`, 'g'),
+      new RegExp(`(\\\\s*)((?:describe|context|it)\\\\s+['\"\`]${this.escapeRegex(testName)}['\"\`])`, 'g'),
     ];
 
     let modified = content;

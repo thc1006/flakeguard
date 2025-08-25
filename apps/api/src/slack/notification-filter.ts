@@ -2,12 +2,13 @@
  * Advanced notification filtering and escalation system
  */
 
+import { logger } from '../utils/logger.js';
+
 import type {
   FlakeNotification,
   NotificationFilter,
   EscalationPolicy,
 } from './types.js';
-import { logger } from '../utils/logger.js';
 
 export class NotificationFilterService {
   private filters: Map<string, NotificationFilter> = new Map();

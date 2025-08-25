@@ -1,5 +1,3 @@
-import { FastifyInstance } from 'fastify';
-import { z } from 'zod';
 import type {
   QuarantinePlanResponse,
   QuarantinePlan,
@@ -7,6 +5,9 @@ import type {
   TestRun,
 } from '@flakeguard/shared';
 import { DEFAULT_QUARANTINE_POLICY } from '@flakeguard/shared';
+import { FastifyInstance } from 'fastify';
+import { z } from 'zod';
+
 import { FlakinessScorer } from '../analytics/flakiness.js';
 
 const quarantinePlanRequestSchema = z.object({

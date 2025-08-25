@@ -1,18 +1,20 @@
-import inquirer from 'inquirer';
-import chalk from 'chalk';
-import ora from 'ora';
 import { promises as fs } from 'fs';
 import path from 'path';
+
+import chalk from 'chalk';
+import inquirer from 'inquirer';
 import { Listr } from 'listr2';
-import { EnvironmentValidator } from '../validators/EnvironmentValidator';
-import { DatabaseManager } from '../managers/DatabaseManager';
+import ora from 'ora';
+
 import { GitHubSetupGuide } from '../guides/GitHubSetupGuide';
 import { SlackSetupGuide } from '../guides/SlackSetupGuide';
-import { ConfigurationManager } from '../managers/ConfigurationManager';
 import { HealthChecker } from '../health/HealthChecker';
-import { TranscriptLogger } from '../utils/TranscriptLogger';
 import { I18nManager } from '../i18n/I18nManager';
+import { ConfigurationManager } from '../managers/ConfigurationManager';
+import { DatabaseManager } from '../managers/DatabaseManager';
 import { WizardOptions, SetupStage, SetupState } from '../types';
+import { TranscriptLogger } from '../utils/TranscriptLogger';
+import { EnvironmentValidator } from '../validators/EnvironmentValidator';
 
 export class FlakeGuardSetupWizard {
   private options: WizardOptions;

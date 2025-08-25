@@ -5,14 +5,9 @@
  * Includes end-to-end scenarios with mocked GitHub API responses
  */
 
-import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
 import type { Octokit } from '@octokit/rest';
-import {
-  createCheckRun,
-  updateCheckRun,
-  type CheckRunOutput,
-  type CheckRunActionDef,
-} from '../check-api.js';
+import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
+
 import {
   handleQuarantineAction,
   handleRerunFailedAction,
@@ -20,6 +15,12 @@ import {
   type TestInfo,
   type RepositoryContext,
 } from '../action-handlers.js';
+import {
+  createCheckRun,
+  updateCheckRun,
+  type CheckRunOutput,
+  type CheckRunActionDef,
+} from '../check-api.js';
 
 // Mock the logger
 vi.mock('../../utils/logger.js', () => ({

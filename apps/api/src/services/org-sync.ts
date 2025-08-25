@@ -5,9 +5,10 @@
  * Handles org-wide sync jobs, webhook management, and repository lifecycle.
  */
 
-import { PrismaClient } from '@prisma/client';
 import { Octokit } from '@octokit/rest';
+import { PrismaClient } from '@prisma/client';
 import { minimatch } from 'minimatch';
+
 import { GitHubAuthManager } from '../github/auth.js';
 import { logger } from '../utils/logger.js';
 

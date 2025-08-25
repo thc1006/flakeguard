@@ -7,8 +7,9 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { createTenantManagementService } from '../services/tenant-management.js';
+
 import { createOrgSyncService } from '../services/org-sync.js';
+import { createTenantManagementService } from '../services/tenant-management.js';
 import { logger } from '../utils/logger.js';
 
 // Organization request schemas
@@ -690,7 +691,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
       const { period = 'monthly' } = request.query as any;
 
       const [usage, quotaStatus] = await Promise.all([
-        tenantService.getOrganizationUsage(orgId, period as any),
+        tenantService.getOrganizationUsage(orgId, period),
         tenantService.checkQuotaLimits(orgId),
       ]);
 

@@ -4,9 +4,11 @@
  * Unit tests for signature verification pass/fail scenarios as required by P1.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import Fastify from 'fastify';
 import crypto from 'crypto';
+
+import Fastify from 'fastify';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+
 import { githubWebhookRoutes } from '../github-webhook.js';
 
 describe('GitHub Webhook Routes - P1', () => {
@@ -221,7 +223,7 @@ describe('GitHub Webhook Routes - P1', () => {
     });
 
     it('should enqueue job for supported events', async () => {
-      const mockQueue = app.queue as any;
+      const mockQueue = app.queue;
       mockQueue.add.mockClear();
 
       const payload = JSON.stringify({
@@ -305,7 +307,7 @@ describe('GitHub Webhook Routes - P1', () => {
     });
 
     it('should handle queue errors gracefully', async () => {
-      const mockQueue = app.queue as any;
+      const mockQueue = app.queue;
       mockQueue.add.mockRejectedValue(new Error('Queue connection failed'));
 
       const payload = JSON.stringify({

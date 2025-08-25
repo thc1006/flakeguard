@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
+
 import { OctokitHelpers, GitHubApiError, ArtifactDownloadError } from '../octokit-helpers.js';
 
 // Mock dependencies
@@ -71,7 +72,7 @@ describe('OctokitHelpers - P2', () => {
     };
 
     const { App } = require('@octokit/app');
-    (App as any).mockImplementation(() => mockApp);
+    (App).mockImplementation(() => mockApp);
 
     octokitHelpers = new OctokitHelpers({
       githubAppId: '12345',

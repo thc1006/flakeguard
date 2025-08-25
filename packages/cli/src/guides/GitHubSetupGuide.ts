@@ -1,11 +1,13 @@
-import inquirer from 'inquirer';
-import chalk from 'chalk';
-import axios from 'axios';
 import { promises as fs } from 'fs';
 import path from 'path';
+
+import axios from 'axios';
+import chalk from 'chalk';
+import inquirer from 'inquirer';
 import ora from 'ora';
-import { GitHubConfig } from '../types';
+
 import { I18nManager } from '../i18n/I18nManager';
+import { GitHubConfig } from '../types';
 
 export class GitHubSetupGuide {
   private i18n: I18nManager;

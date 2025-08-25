@@ -4,8 +4,8 @@
  */
 
 import type { Logger } from 'pino';
-import { GitHubApiError } from './types.js';
 
+import { GitHubApiError } from './types.js';
 import type {
   CircuitBreakerConfig,
   CircuitBreakerState,

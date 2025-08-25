@@ -13,8 +13,9 @@
  * specific route handler as outlined in the P1 requirements.
  */
 
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import crypto from 'crypto';
+
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
 // GitHub webhook event types supported per P1 requirements

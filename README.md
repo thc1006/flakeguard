@@ -103,7 +103,7 @@ Required webhook events:
 ```bash
 # In your .env file
 GITHUB_APP_ID=123456
-GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+GITHUB_APP_PRIVATE_KEY="YOUR_GITHUB_APP_PRIVATE_KEY_HERE"
 GITHUB_WEBHOOK_SECRET=your-webhook-secret
 ```
 
@@ -121,7 +121,7 @@ LOG_LEVEL="info"
 
 // GitHub App Configuration
 GITHUB_APP_ID="123456"
-GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----..."
+GITHUB_APP_PRIVATE_KEY="YOUR_GITHUB_APP_PRIVATE_KEY_HERE"
 GITHUB_WEBHOOK_SECRET="your-webhook-secret"
 
 // Security
@@ -309,7 +309,7 @@ REDIS_URL=redis://host:6379
 JWT_SECRET=your-secure-32-character-secret
 API_KEY=your-secure-16-character-key
 GITHUB_APP_ID=123456
-GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----..."
+GITHUB_APP_PRIVATE_KEY="YOUR_GITHUB_APP_PRIVATE_KEY_HERE"
 GITHUB_WEBHOOK_SECRET=your-webhook-secret
 ```
 

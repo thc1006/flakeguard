@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { activeRepositories, databaseConnections, queueConnectionHealth } from '../utils/metrics.js';
+
 import { logger } from '../utils/logger.js';
+import { activeRepositories, databaseConnections, queueConnectionHealth } from '../utils/metrics.js';
 
 const healthResponseSchema = z.object({
   status: z.literal('ok'),

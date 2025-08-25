@@ -4,9 +4,10 @@
  * Tests all policy configuration scenarios, edge cases, and decision logic
  */
 
-import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
-import type { Octokit } from '@octokit/rest';
 import type { TestResult } from '@flakeguard/shared';
+import type { Octokit } from '@octokit/rest';
+import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
+
 import { 
   PolicyEngine, 
   policyConfigSchema, 

@@ -5,8 +5,9 @@
  * Loads sample data demonstrating various flakiness patterns and quarantine scenarios
  */
 
-import { PrismaClient } from '@prisma/client';
 import { createHash } from 'crypto';
+
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 

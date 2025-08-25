@@ -2,7 +2,9 @@
  * Optimized Database Operations for FlakeGuard
  */
 import { PrismaClient, Prisma } from "@prisma/client";
+
 import { FlakeScoreCache, TestHistoryCache } from "../performance/cache-layer.js";
+
 import { TestIngestionRepository } from "./database.js";
 
 export class OptimizedTestIngestionRepository extends TestIngestionRepository {

@@ -1,8 +1,10 @@
-import { Job, Processor } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
-import { z } from 'zod';
-import { logger } from '../utils/logger.js';
 import { EmailJobData } from '@flakeguard/shared';
+import { PrismaClient } from '@prisma/client';
+import { Job, Processor } from 'bullmq';
+import { z } from 'zod';
+
+import { logger } from '../utils/logger.js';
+
 
 export function emailProcessor(prisma: PrismaClient): Processor {
   return async (job: Job<EmailJobData>) => {

@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { useTranslations } from 'next-intl';
-import { useTasks } from '@/hooks/use-tasks';
+import { useState } from 'react';
+
 import { RecentActions } from '@/components/dashboard/recent-actions';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { useTasks } from '@/hooks/use-tasks';
 
 const ACTION_TYPES = [
   'quarantine',

@@ -1,9 +1,11 @@
 /**
  * Optimized Flakiness Scorer with Caching
  */
-import { FlakinessScorer } from "./flakiness.js";
-import { FlakeScoreCache } from "../performance/cache-layer.js";
 import type { TestRun, FlakeScore } from "@flakeguard/shared";
+
+import { FlakeScoreCache } from "../performance/cache-layer.js";
+
+import { FlakinessScorer } from "./flakiness.js";
 
 export class OptimizedFlakinessScorer extends FlakinessScorer {
   private cache = new FlakeScoreCache();

@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+
 import { TranscriptEntry } from '../types';
 
 export class TranscriptLogger {
@@ -115,10 +116,10 @@ export class TranscriptLogger {
     try {
       // Mask sensitive information before logging
       const maskedData = this.maskSensitiveData(data);
-      return `  Data: ${JSON.stringify(maskedData, null, 2)}
-    .split('\n')
-    .map(line => `    ${line}`)
-    .join('\n');
+      return `  Data: ${JSON.stringify(maskedData, null, 2)}`
+        .split('\n')
+        .map(line => `    ${line}`)
+        .join('\n');
     } catch (error) {
       return `  Data: [Could not serialize data: ${error}]`;
     }
@@ -186,8 +187,8 @@ export class TranscriptLogger {
     
     const stages = [...new Set(this.entries.map(e => e.stage))];
     
-    const startTime = this.entries.length > 0 ? new Date(this.entries[0].timestamp).getTime() : 0;
-    const endTime = this.entries.length > 0 ? new Date(this.entries[this.entries.length - 1].timestamp).getTime() : 0;
+    const startTime = this.entries.length > 0 ? new Date(this.entries[0]!.timestamp).getTime() : 0;
+    const endTime = this.entries.length > 0 ? new Date(this.entries[this.entries.length - 1]!.timestamp).getTime() : 0;
     const duration = endTime - startTime;
     
     return {

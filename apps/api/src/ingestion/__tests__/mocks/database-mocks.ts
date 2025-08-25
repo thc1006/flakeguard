@@ -5,8 +5,8 @@
  * database operations without requiring an actual database connection.
  */
 
-import { vi } from 'vitest';
 import type { PrismaClient, TestResult, TestSuite, Repository, IngestionJob, Prisma } from '@prisma/client';
+import { vi } from 'vitest';
 
 // ============================================================================
 // Mock Database Records

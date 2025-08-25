@@ -1,7 +1,9 @@
-import { Job, Processor } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
-import { logger } from '../utils/logger.js';
 import { ReportJobData } from '@flakeguard/shared';
+import { PrismaClient } from '@prisma/client';
+import { Job, Processor } from 'bullmq';
+
+import { logger } from '../utils/logger.js';
+
 
 export function reportProcessor(prisma: PrismaClient): Processor {
   return async (job: Job<ReportJobData>) => {

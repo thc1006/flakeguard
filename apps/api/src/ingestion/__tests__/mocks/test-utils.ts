@@ -5,9 +5,11 @@
  * used across multiple test files in the ingestion test suite.
  */
 
-import { vi } from 'vitest';
 import { EventEmitter } from 'events';
 import { Readable, Transform } from 'stream';
+
+import { vi } from 'vitest';
+
 import type { TestCase, TestSuite, TestSuites } from '../../types.js';
 
 // ============================================================================

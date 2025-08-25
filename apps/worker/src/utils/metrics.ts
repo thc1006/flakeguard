@@ -5,10 +5,12 @@
  * queue health, job processing rates, and system reliability.
  */
 
-import { register, collectDefaultMetrics, Counter, Histogram, Gauge, Summary } from 'prom-client';
-import { config } from '../config/index.js';
-import { logger } from './logger.js';
 import { METRICS_CONFIG } from '@flakeguard/shared';
+import { register, collectDefaultMetrics, Counter, Histogram, Gauge, Summary } from 'prom-client';
+
+import { config } from '../config/index.js';
+
+import { logger } from './logger.js';
 
 // Initialize default metrics collection
 collectDefaultMetrics({

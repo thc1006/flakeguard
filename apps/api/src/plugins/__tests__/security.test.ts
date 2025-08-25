@@ -10,14 +10,17 @@
  * - Audit logging
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { FastifyInstance } from 'fastify';
-import { buildApp } from '../../app.js';
 import crypto from 'crypto';
-import { SecretsManager } from '../security.js';
 import fs from 'fs';
-import path from 'path';
 import { tmpdir } from 'os';
+import path from 'path';
+
+import { FastifyInstance } from 'fastify';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+import { buildApp } from '../../app.js';
+import { SecretsManager } from '../security.js';
+
 
 describe('Security Plugin', () => {
   let app: FastifyInstance;

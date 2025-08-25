@@ -1,9 +1,11 @@
 'use client';
 
-import { useLocale } from 'next-intl';
-import { useRouter, usePathname } from 'next/navigation';
-import { Button } from './button';
 import { LanguageIcon } from '@heroicons/react/24/outline';
+import { useRouter, usePathname } from 'next/navigation';
+import { useLocale } from 'next-intl';
+
+import { Button } from './button';
+
 
 const locales = [
   { code: 'en', name: 'English' },

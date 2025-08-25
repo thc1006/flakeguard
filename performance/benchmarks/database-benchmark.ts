@@ -1,10 +1,13 @@
 /**
  * Database Performance Benchmarks
  */
-import { PerformanceBenchmark } from "./benchmark-framework.js";
+import { PrismaClient } from "@prisma/client";
+
 import { TestIngestionRepository } from "../../apps/api/src/ingestion/database.js";
 import { OptimizedTestIngestionRepository } from "../../apps/api/src/performance/optimized-database.js";
-import { PrismaClient } from "@prisma/client";
+
+import { PerformanceBenchmark } from "./benchmark-framework.js";
+
 
 export async function runDatabaseBenchmarks(prisma: PrismaClient) {
   const benchmark = new PerformanceBenchmark();

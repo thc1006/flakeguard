@@ -11,15 +11,10 @@
  */
 
 import type { Octokit } from '@octokit/rest';
-import type {
-  CheckRunAction,
-  FlakeAnalysis,
-  CreateCheckRunParams,
-  UpdateCheckRunParams,
-  FlakeGuardCheckRun,
-  TestArtifact,
-  ApiResponse,
-} from './types.js';
+
+import { logger } from '../utils/logger.js';
+
+import { ErrorCode } from './api-spec.js';
 import { GitHubAuthManager } from './auth.js';
 import {
   CHECK_RUN_ACTION_CONFIGS,
@@ -29,8 +24,16 @@ import {
   ERROR_MESSAGES,
   ARTIFACT_TYPES,
 } from './constants.js';
-import { ErrorCode } from './api-spec.js';
-import { logger } from '../utils/logger.js';
+import type {
+  CheckRunAction,
+  FlakeAnalysis,
+  CreateCheckRunParams,
+  UpdateCheckRunParams,
+  FlakeGuardCheckRun,
+  TestArtifact,
+  ApiResponse,
+} from './types.js';
+
 
 /**
  * Flake issue creation parameters
@@ -265,7 +268,7 @@ export class GitHubHelpers {
       ? `🚨 Flaky Test Detected (${confidenceLevel} confidence)`
       : '✅ Test Analysis Complete';
 
-    let summary = analysis.isFlaky
+    const summary = analysis.isFlaky
       ? this.generateFlakeDetectionSummary(analysis)
       : 'No flaky behavior detected in this test execution.';
 

@@ -5,11 +5,11 @@
  * covering all core SLIs and business metrics.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import { FastifyInstance } from 'fastify';
 import { PrismaClient } from '@prisma/client';
+import { FastifyInstance } from 'fastify';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+
 import { buildApp } from '../app.js';
-import { resetMetrics, getMetricsRegistry } from '../utils/metrics.js';
 import {
   trackIngestionRequest,
   trackParseResult,
@@ -17,6 +17,7 @@ import {
   trackFlakeDetection,
   trackQuarantineAction,
 } from '../utils/metrics-integration.js';
+import { resetMetrics, getMetricsRegistry } from '../utils/metrics.js';
 
 describe('Metrics Integration', () => {
   let app: FastifyInstance;
@@ -85,9 +86,9 @@ describe('Metrics Integration', () => {
       trackIngestionRequest(repository, 'application/xml', startTime, true);
 
       const metrics = getMetricsRegistry().metrics();
-      expect(metrics).resolves.toContain('flakeguard_api_ingestion_requests_total');
-      expect(metrics).resolves.toContain('repository=\"owner/test-repo\"');
-      expect(metrics).resolves.toContain('status=\"success\"');
+      await expect(metrics).resolves.toContain('flakeguard_api_ingestion_requests_total');
+      await expect(metrics).resolves.toContain('repository=\"owner/test-repo\"');
+      await expect(metrics).resolves.toContain('status=\"success\"');
     });
 
     it('should track parse results with framework', () => {

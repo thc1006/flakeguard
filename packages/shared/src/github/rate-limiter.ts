@@ -3,10 +3,10 @@
  * Handles primary and secondary rate limits with intelligent throttling
  */
 
-import type { Logger } from 'pino';
 import type { RequestError } from '@octokit/request-error';
-import { GitHubApiError } from './types.js';
+import type { Logger } from 'pino';
 
+import { GitHubApiError } from './types.js';
 import type {
   RateLimitConfig,
   SecondaryRateLimitConfig,

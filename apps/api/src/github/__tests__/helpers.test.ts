@@ -10,12 +10,14 @@
  * - Octokit client mocking
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
 import nock from 'nock';
-import { GitHubHelpers, createGitHubHelpers, type FlakeIssueParams } from '../helpers.js';
-import { GitHubAuthManager } from '../auth.js';
+import { describe, it, expect, beforeEach, afterEach, vi, beforeAll, afterAll } from 'vitest';
+
 import { ErrorCode } from '../api-spec.js';
+import { GitHubAuthManager } from '../auth.js';
+import { GitHubHelpers, createGitHubHelpers, type FlakeIssueParams } from '../helpers.js';
 import type { CheckRunAction, FlakeAnalysis, CreateCheckRunParams, UpdateCheckRunParams } from '../types.js';
+
 import { createMockOctokitClient, createMockAuthManager } from './mocks.js';
 
 describe('GitHubHelpers', () => {

@@ -10,11 +10,23 @@
  */
 
 import { createAppAuth } from '@octokit/auth-app';
-import { Octokit } from '@octokit/rest';
-import { throttling } from '@octokit/plugin-throttling';
 import { retry } from '@octokit/plugin-retry';
-import jwt from 'jsonwebtoken';
+import { throttling } from '@octokit/plugin-throttling';
+import { Octokit } from '@octokit/rest';
 import type { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+
+import { logger } from '../utils/logger.js';
+
+import { ErrorCode } from './api-spec.js';
+import {
+  GITHUB_API,
+  TIMEOUTS,
+  RATE_LIMITS,
+  CACHE_KEYS,
+  CACHE_TTL,
+  ERROR_MESSAGES,
+} from './constants.js';
 import type {
   GitHubAppConfig,
   GitHubAppCredentials,
@@ -24,16 +36,7 @@ import type {
   AppInstallation,
   RepositoryInfo,
 } from './types.js';
-import {
-  GITHUB_API,
-  TIMEOUTS,
-  RATE_LIMITS,
-  CACHE_KEYS,
-  CACHE_TTL,
-  ERROR_MESSAGES,
-} from './constants.js';
-import { ErrorCode } from './api-spec.js';
-import { logger } from '../utils/logger.js';
+
 
 // Create enhanced Octokit with throttling and retry plugins
 const OctokitWithPlugins = Octokit.plugin(throttling, retry);

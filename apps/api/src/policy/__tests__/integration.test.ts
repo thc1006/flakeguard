@@ -5,13 +5,15 @@
  * caching, and real-world scenarios.
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { Octokit } from '@octokit/rest';
-import yaml from 'yaml';
-import { PolicyService, createPolicyService } from '../service.js';
-import { PolicyEngine } from '../engine.js';
-import { GitHubAuthManager } from '../../github/auth.js';
 import type { TestResult } from '@flakeguard/shared';
+import { Octokit } from '@octokit/rest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import yaml from 'yaml';
+
+import { GitHubAuthManager } from '../../github/auth.js';
+import { PolicyEngine } from '../engine.js';
+import { PolicyService, createPolicyService } from '../service.js';
+
 
 // Mock dependencies
 vi.mock('../../utils/logger.js', () => ({
@@ -74,7 +76,7 @@ describe('Policy Integration Tests', () => {
 
       const mockContent = Buffer.from(yaml.stringify(repoPolicy)).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -133,7 +135,7 @@ describe('Policy Integration Tests', () => {
     });
 
     it('should handle GitHub API failures gracefully', async () => {
-      (mockOctokit.rest!.repos!.getContent as any).mockRejectedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockRejectedValue({
         status: 403,
         message: 'API rate limit exceeded',
       });
@@ -189,7 +191,7 @@ describe('Policy Integration Tests', () => {
       const repoPolicy = { flaky_threshold: 0.8 };
       const mockContent = Buffer.from(yaml.stringify(repoPolicy)).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -202,14 +204,14 @@ describe('Policy Integration Tests', () => {
       await service.loadPolicy({ owner: 'org', repo: 'repo' }, 12345);
 
       // Should only call GitHub API once due to caching
-      expect(mockOctokit.rest!.repos!.getContent).toHaveBeenCalledTimes(1);
+      expect(mockOctokit.rest!.repos.getContent).toHaveBeenCalledTimes(1);
     });
 
     it('should invalidate cache when requested', async () => {
       const repoPolicy = { flaky_threshold: 0.8 };
       const mockContent = Buffer.from(yaml.stringify(repoPolicy)).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -226,7 +228,7 @@ describe('Policy Integration Tests', () => {
       // Load again - should call API again
       await service.loadPolicy({ owner: 'org', repo: 'repo' }, 12345);
 
-      expect(mockOctokit.rest!.repos!.getContent).toHaveBeenCalledTimes(2);
+      expect(mockOctokit.rest!.repos.getContent).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -276,7 +278,7 @@ describe('Policy Integration Tests', () => {
 
       const mockContent = Buffer.from(yaml.stringify(complexPolicy)).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -349,7 +351,7 @@ labels_required:
 
       const mockContent = Buffer.from(malformedYaml).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -374,7 +376,7 @@ labels_required:
       const repoPolicy = { flaky_threshold: 0.8 };
       const mockContent = Buffer.from(yaml.stringify(repoPolicy)).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -393,7 +395,7 @@ labels_required:
       expect(results.every(r => r.success)).toBe(true);
       
       // Should cache and avoid multiple API calls
-      expect(mockOctokit.rest!.repos!.getContent).toHaveBeenCalledTimes(1);
+      expect(mockOctokit.rest!.repos.getContent).toHaveBeenCalledTimes(1);
     });
 
     it('should provide meaningful stats', () => {

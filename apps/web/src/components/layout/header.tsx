@@ -1,11 +1,12 @@
 'use client';
 
+import { Bars3Icon } from '@heroicons/react/24/outline';
 import { useTranslations } from 'next-intl';
+
 import { UserButton } from '@/components/auth/user-button';
 import { LanguageSwitcher } from '@/components/ui/language-switcher';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { RefreshButton } from '@/components/ui/refresh-button';
-import { Bars3Icon } from '@heroicons/react/24/outline';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface HeaderProps {
   onMenuClick?: () => void;

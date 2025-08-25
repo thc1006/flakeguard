@@ -5,9 +5,9 @@
  * This plugin adds queue functionality to the Fastify instance so webhook routes can enqueue jobs.
  */
 
+import { Queue, QueueEvents } from 'bullmq';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
-import { Queue, QueueEvents } from 'bullmq';
 import Redis from 'ioredis';
 import type { RedisOptions } from 'ioredis';
 

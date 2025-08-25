@@ -11,6 +11,14 @@
  */
 
 import type { PrismaClient } from '@prisma/client';
+
+import { logger } from '../utils/logger.js';
+
+import {
+  FLAKE_DETECTION,
+  CHECK_RUN_ACTION_CONFIGS,
+  ERROR_MESSAGES,
+} from './constants.js';
 import type {
   FlakeAnalysis,
   TestResult,
@@ -19,12 +27,6 @@ import type {
   CheckRunWebhookPayload,
   WorkflowJobWebhookPayload,
 } from './types.js';
-import {
-  FLAKE_DETECTION,
-  CHECK_RUN_ACTION_CONFIGS,
-  ERROR_MESSAGES,
-} from './constants.js';
-import { logger } from '../utils/logger.js';
 
 /**
  * Flake detection configuration

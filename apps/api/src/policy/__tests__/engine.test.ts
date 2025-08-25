@@ -5,9 +5,11 @@
  * caching, and error handling scenarios.
  */
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import type { TestResult, PolicyDecision } from '@flakeguard/shared';
 import { Octokit } from '@octokit/rest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import yaml from 'yaml';
+
 import {
   PolicyEngine,
   policyConfigSchema,
@@ -15,7 +17,7 @@ import {
   createPolicyConfig,
   getPolicyEngine,
 } from '../engine.js';
-import type { TestResult, PolicyDecision } from '@flakeguard/shared';
+
 
 // Mock dependencies
 vi.mock('../utils/logger.js', () => ({
@@ -71,7 +73,7 @@ describe('PolicyEngine', () => {
 
       const mockContent = Buffer.from(yaml.stringify(validConfig)).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -93,7 +95,7 @@ describe('PolicyEngine', () => {
     });
 
     it('should return defaults when .flakeguard.yml not found', async () => {
-      (mockOctokit.rest!.repos!.getContent as any).mockRejectedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockRejectedValue({
         status: 404,
         message: 'Not Found',
       });
@@ -113,7 +115,7 @@ describe('PolicyEngine', () => {
       const invalidYaml = 'invalid: yaml: content: [';
       const mockContent = Buffer.from(invalidYaml).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -141,7 +143,7 @@ describe('PolicyEngine', () => {
 
       const mockContent = Buffer.from(yaml.stringify(invalidConfig)).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -169,7 +171,7 @@ describe('PolicyEngine', () => {
 
       const mockContent = Buffer.from(yaml.stringify(validConfig)).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -191,7 +193,7 @@ describe('PolicyEngine', () => {
         'repo'
       );
 
-      expect(mockOctokit.rest!.repos!.getContent).toHaveBeenCalledTimes(1);
+      expect(mockOctokit.rest!.repos.getContent).toHaveBeenCalledTimes(1);
       expect(policy1).toEqual(policy2);
     });
   });
@@ -523,7 +525,7 @@ describe('PolicyEngine', () => {
       const validConfig = { flaky_threshold: 0.7 };
       const mockContent = Buffer.from(yaml.stringify(validConfig)).toString('base64');
       
-      (mockOctokit.rest!.repos!.getContent as any).mockResolvedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockResolvedValue({
         data: {
           type: 'file',
           content: mockContent,
@@ -542,7 +544,7 @@ describe('PolicyEngine', () => {
       
       // Next call should fetch again
       await engine.loadPolicy(mockOctokit as Octokit, 'owner', 'repo');
-      expect(mockOctokit.rest!.repos!.getContent).toHaveBeenCalledTimes(2);
+      expect(mockOctokit.rest!.repos.getContent).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -609,7 +611,7 @@ describe('PolicyEngine', () => {
       const freshEngine = new FreshPolicyEngine();
 
       // Mock GitHub API call that returns 404
-      (mockOctokit.rest!.repos!.getContent as any).mockRejectedValue({
+      (mockOctokit.rest!.repos.getContent as any).mockRejectedValue({
         status: 404,
         message: 'Not Found',
       });

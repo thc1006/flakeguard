@@ -3,9 +3,10 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { SlackService } from '../service.js';
-import { SlackMessageBuilder } from '../message-builder.js';
+
 import { createSlackConfig } from '../config.js';
+import { SlackMessageBuilder } from '../message-builder.js';
+import { SlackService } from '../service.js';
 import type { FlakeNotification, SlackConfig } from '../types.js';
 
 vi.mock('@slack/web-api', () => ({

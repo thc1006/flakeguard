@@ -4,6 +4,7 @@
  */
 
 import type { Logger } from 'pino';
+
 import {
   createGitHubApiWrapper,
   createGitHubApiWrapperFromEnv,

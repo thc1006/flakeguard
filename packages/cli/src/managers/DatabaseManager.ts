@@ -1,10 +1,11 @@
+import chalk from 'chalk';
 import inquirer from 'inquirer';
+import ora from 'ora';
 import { Client } from 'pg';
 import Redis from 'redis';
-import chalk from 'chalk';
-import ora from 'ora';
-import { DatabaseConfig } from '../types';
+
 import { I18nManager } from '../i18n/I18nManager';
+import { DatabaseConfig } from '../types';
 
 export class DatabaseManager {
   private i18n: I18nManager;

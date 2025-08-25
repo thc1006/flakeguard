@@ -14,6 +14,7 @@
 import { createReadStream } from 'fs';
 import { pipeline, Transform, Readable } from 'stream';
 import { promisify } from 'util';
+
 import * as sax from 'sax';
 
 import type {
@@ -1238,7 +1239,7 @@ export async function parseJUnitXMLAdvanced<T extends JUnitFormat = JUnitFormat>
   const testCases = extractTestCases ? extractJUnitTestCases(parseResult.testSuites) : [];
   
   // Create format-specific metadata
-  const metadata = createFormatSpecificMetadata(parseResult.format, parseResult.testSuites) as FormatSpecificResult<T>;
+  const metadata = createFormatSpecificMetadata(parseResult.format, parseResult.testSuites);
   
   return {
     testSuites: parseResult.testSuites,

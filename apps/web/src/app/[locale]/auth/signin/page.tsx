@@ -1,11 +1,12 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { signIn, getSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
+import { useEffect } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 export default function SignInPage() {
   const t = useTranslations('auth');
