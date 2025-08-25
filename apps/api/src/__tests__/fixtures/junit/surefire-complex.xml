@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Maven Surefire Tests" tests="8" failures="2" errors="1" skipped="1" time="2.456" timestamp="2023-10-01T10:30:00.123Z">
+  <testsuite name="com.flakeguard.api.PolicyEngineTest" tests="4" failures="1" errors="1" skipped="0" time="1.234" timestamp="2023-10-01T10:30:01.000Z" package="com.flakeguard.api" hostname="ci-server-01">
+    <properties>
+      <property name="maven.version" value="3.8.1"/>
+      <property name="surefire.version" value="3.0.0-M7"/>
+      <property name="java.version" value="11.0.16"/>
+      <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+      <property name="os.name" value="Linux"/>
+      <property name="user.dir" value="/home/ci/flakeguard"/>
+    </properties>
+    
+    <testcase name="shouldApplyDefaultPolicy" classname="com.flakeguard.api.PolicyEngineTest" time="0.123"/>
+    
+    <testcase name="shouldValidateConfiguration" classname="com.flakeguard.api.PolicyEngineTest" time="0.456">
+      <failure message="Configuration validation failed" type="java.lang.AssertionError">
+java.lang.AssertionError: Configuration validation failed
+	at org.junit.jupiter.api.AssertionUtils.fail(AssertionUtils.java:55)
+	at org.junit.jupiter.api.AssertTrue.assertTrue(AssertTrue.java:40)
+	at com.flakeguard.api.PolicyEngineTest.shouldValidateConfiguration(PolicyEngineTest.java:67)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+      </failure>
+      <system-out>Debug: Validating policy configuration</system-out>
+      <system-err>Warning: Using default thresholds</system-err>
+    </testcase>
+    
+    <testcase name="shouldHandleTeamOverrides" classname="com.flakeguard.api.PolicyEngineTest" time="0.234">
+      <error message="Null pointer exception" type="java.lang.NullPointerException">
+java.lang.NullPointerException: Cannot invoke "String.toLowerCase()" because "teamContext" is null
+	at com.flakeguard.api.PolicyEngine.getEffectiveThresholds(PolicyEngine.java:451)
+	at com.flakeguard.api.PolicyEngine.evaluateTestPolicy(PolicyEngine.java:311)
+	at com.flakeguard.api.PolicyEngineTest.shouldHandleTeamOverrides(PolicyEngineTest.java:89)
+      </error>
+    </testcase>
+    
+    <testcase name="shouldCacheConfiguration" classname="com.flakeguard.api.PolicyEngineTest" time="0.421"/>
+    
+    <system-out>
+Test suite completed successfully
+Total memory used: 256MB
+Test execution environment: CI
+    </system-out>
+    <system-err>
+No critical errors detected
+    </system-err>
+  </testsuite>
+  
+  <testsuite name="com.flakeguard.api.FlakeDetectorTest" tests="3" failures="1" errors="0" skipped="1" time="0.892" timestamp="2023-10-01T10:30:02.000Z" package="com.flakeguard.api" hostname="ci-server-01">
+    <properties>
+      <property name="test.category" value="integration"/>
+      <property name="database.url" value="jdbc:postgresql://localhost:5432/flakeguard_test"/>
+    </properties>
+    
+    <testcase name="shouldDetectFlakyTests" classname="com.flakeguard.api.FlakeDetectorTest" time="0.345"/>
+    
+    <testcase name="shouldCalculateFlakeScore" classname="com.flakeguard.api.FlakeDetectorTest" time="0.234">
+      <failure message="Flake score calculation incorrect" type="java.lang.AssertionError">
+java.lang.AssertionError: Expected flake score to be 0.7 but was 0.65
+	at com.flakeguard.api.FlakeDetectorTest.shouldCalculateFlakeScore(FlakeDetectorTest.java:45)
+      </failure>
+    </testcase>
+    
+    <testcase name="shouldHandleLargeDataset" classname="com.flakeguard.api.FlakeDetectorTest" time="0.313">
+      <skipped message="Test requires large dataset, skipped in CI environment"/>
+    </testcase>
+  </testsuite>
+  
+  <testsuite name="com.flakeguard.api.QuarantineServiceTest" tests="1" failures="0" errors="0" skipped="0" time="0.330" timestamp="2023-10-01T10:30:03.000Z" package="com.flakeguard.api" hostname="ci-server-01">
+    <testcase name="shouldQuarantineTest" classname="com.flakeguard.api.QuarantineServiceTest" time="0.330">
+      <system-out>Quarantine service initialized</system-out>
+    </testcase>
+  </testsuite>
+</testsuites>

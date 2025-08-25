@@ -1,0 +1,44 @@
+# Grafana datasources provisioning for FlakeGuard
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    basicAuth: false
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+      manageAlerts: true
+      alertmanagerUid: ""
+    
+  - name: PostgreSQL
+    type: postgres
+    url: postgres:5432
+    database: flakeguard
+    user: ${POSTGRES_USER}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      sslmode: "disable"
+      maxOpenConns: 10
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+    editable: false
+
+  # Example: External monitoring datasource
+  # - name: External Metrics
+  #   type: prometheus
+  #   access: proxy
+  #   url: https://external-prometheus.example.com
+  #   basicAuth: true
+  #   basicAuthUser: monitoring
+  #   secureJsonData:
+  #     basicAuthPassword: password
+  #   jsonData:
+  #     timeInterval: "30s"
+  #     queryTimeout: "120s"

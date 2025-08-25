@@ -58,6 +58,21 @@ export {
   exampleTests,
 } from './test-config.js';
 
+// Octokit Helpers (P2 requirements)
+export {
+  OctokitHelpers,
+  createOctokitHelpers,
+  GitHubApiError,
+  ArtifactDownloadError,
+} from './octokit-helpers.js';
+
+export type {
+  GitHubArtifact,
+  GitHubWorkflowRun,
+  GitHubJob,
+  OctokitHelpersConfig,
+} from './octokit-helpers.js';
+
 // Example usage patterns
 export {
   GitHubApiExamples,

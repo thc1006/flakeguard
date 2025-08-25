@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="UserControllerTest"
+             file="tests/Unit/UserControllerTest.php"
+             tests="8"
+             assertions="24"
+             failures="2"
+             errors="0"
+             skipped="1"
+             time="3.456789"
+             timestamp="2023-12-01T11:00:45+00:00">
+    
+    <testcase name="testIndex"
+              class="Tests\Unit\UserControllerTest"
+              classname="Tests.Unit.UserControllerTest"
+              file="tests/Unit/UserControllerTest.php"
+              line="25"
+              assertions="3"
+              time="0.123456">
+    </testcase>
+    
+    <testcase name="testShow"
+              class="Tests\Unit\UserControllerTest"
+              classname="Tests.Unit.UserControllerTest"
+              file="tests/Unit/UserControllerTest.php"
+              line="35"
+              assertions="4"
+              time="0.087654">
+    </testcase>
+    
+    <testcase name="testStore"
+              class="Tests\Unit\UserControllerTest"
+              classname="Tests.Unit.UserControllerTest"
+              file="tests/Unit/UserControllerTest.php"
+              line="45"
+              assertions="5"
+              time="0.234567">
+    </testcase>
+    
+    <testcase name="testUpdate"
+              class="Tests\Unit\UserControllerTest"
+              classname="Tests.Unit.UserControllerTest"
+              file="tests/Unit/UserControllerTest.php"
+              line="58"
+              assertions="4"
+              time="0.198765">
+    </testcase>
+    
+    <testcase name="testDestroy"
+              class="Tests\Unit\UserControllerTest"
+              classname="Tests.Unit.UserControllerTest"
+              file="tests/Unit/UserControllerTest.php"
+              line="70"
+              assertions="3"
+              time="0.156789">
+      <failure type="PHPUnit\Framework\ExpectationFailedException"
+               message="Failed asserting that 500 matches expected 204.">
+        <![CDATA[
+Failed asserting that 500 matches expected 204.
+
+tests/Unit/UserControllerTest.php:73
+/vendor/phpunit/phpunit/src/Framework/TestCase.php:1796
+
+Expected HTTP status code 204 (No Content) but received 500 (Internal Server Error)
+
+Response body:
+{
+    "error": "Internal Server Error",
+    "message": "Cannot delete user: foreign key constraint violation",
+    "exception": "Illuminate\\Database\\QueryException",
+    "file": "/app/app/Http/Controllers/UserController.php",
+    "line": 89,
+    "trace": [
+        "#0 /app/app/Http/Controllers/UserController.php(89): Illuminate\\Database\\Connection->delete()",
+        "#1 /app/vendor/laravel/framework/src/Illuminate/Routing/Controller.php(54): App\\Http\\Controllers\\UserController->destroy()",
+        "#2 /app/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(45): Illuminate\\Routing\\Controller->callAction()"
+    ]
+}
+        ]]>
+      </failure>
+    </testcase>
+    
+    <testcase name="testValidationErrors"
+              class="Tests\Unit\UserControllerTest"
+              classname="Tests.Unit.UserControllerTest"
+              file="tests/Unit/UserControllerTest.php"
+              line="82"
+              assertions="2"
+              time="0.098765">
+      <failure type="PHPUnit\Framework\ExpectationFailedException"
+               message="Failed asserting that 200 matches expected 422.">
+        <![CDATA[
+Failed asserting that 200 matches expected 422.
+
+tests/Unit/UserControllerTest.php:89
+/vendor/phpunit/phpunit/src/Framework/TestCase.php:1796
+
+Expected validation to fail with HTTP 422 (Unprocessable Entity) but received 200 (OK)
+
+Test data sent:
+{
+    "name": "",
+    "email": "invalid-email-format",
+    "password": "123"
+}
+
+Expected validation errors:
+- name: required
+- email: must be valid email
+- password: minimum 8 characters
+
+Actual response:
+{
+    "message": "User created successfully",
+    "user": {
+        "id": 123,
+        "name": "",
+        "email": "invalid-email-format",
+        "created_at": "2023-12-01T11:00:46Z"
+    }
+}
+        ]]>
+      </failure>
+    </testcase>
+    
+    <testcase name="testUnauthorizedAccess"
+              class="Tests\Unit\UserControllerTest"
+              classname="Tests.Unit.UserControllerTest"
+              file="tests/Unit/UserControllerTest.php"
+              line="98"
+              assertions="1"
+              time="0.067891">
+    </testcase>
+    
+    <testcase name="testDatabaseConnectionFailure"
+              class="Tests\Unit\UserControllerTest"
+              classname="Tests.Unit.UserControllerTest"
+              file="tests/Unit/UserControllerTest.php"
+              line="110"
+              assertions="0"
+              time="0.000000">
+      <skipped message="Database connection test skipped in CI environment"/>
+    </testcase>
+    
+    <system-out><![CDATA[
+PHPUnit 10.4.2 by Sebastian Bergmann and contributors.
+
+Runtime: PHP 8.2.13
+Configuration: /app/phpunit.xml
+
+Testing started at 11:00:45 AM (UTC)
+
+UserControllerTest
+ ✓ Index                                                             0.12 s
+ ✓ Show                                                              0.09 s
+ ✓ Store                                                             0.23 s
+ ✓ Update                                                            0.20 s
+ ✗ Destroy                                                           0.16 s
+   │
+   │ Failed asserting that 500 matches expected 204.
+   │
+   │ tests/Unit/UserControllerTest.php:73
+   │
+ ✗ Validation errors                                                 0.10 s
+   │
+   │ Failed asserting that 200 matches expected 422.
+   │
+   │ tests/Unit/UserControllerTest.php:89
+   │
+ ✓ Unauthorized access                                               0.07 s
+ ↩ Database connection failure                                       0.00 s
+
+Time: 00:03.457, Memory: 18.50 MB
+
+Tests: 8, Assertions: 24, Failures: 2, Skipped: 1.
+    ]]></system-out>
+    
+    <system-err><![CDATA[
+[2023-12-01 11:00:45] testing.ERROR: Database constraint violation in UserController::destroy {"userId":1,"exception":"Illuminate\\Database\\QueryException"} []
+[2023-12-01 11:00:46] testing.WARNING: Validation bypassed for user creation {"data":{"name":"","email":"invalid-email-format","password":"123"}} []
+[2023-12-01 11:00:46] testing.ERROR: Input validation not working correctly {"endpoint":"POST /api/users","expected_status":422,"actual_status":200} []
+    ]]></system-err>
+  </testsuite>
+  
+  <testsuite name="UserModelTest"
+             file="tests/Unit/UserModelTest.php"
+             tests="6"
+             assertions="18"
+             failures="0"
+             errors="0"
+             skipped="0"
+             time="1.234567"
+             timestamp="2023-12-01T11:00:48+00:00">
+    
+    <testcase name="testUserCreation"
+              class="Tests\Unit\UserModelTest"
+              classname="Tests.Unit.UserModelTest"
+              file="tests/Unit/UserModelTest.php"
+              line="20"
+              assertions="3"
+              time="0.156789">
+    </testcase>
+    
+    <testcase name="testUserAttributes"
+              class="Tests\Unit\UserModelTest"
+              classname="Tests.Unit.UserModelTest"
+              file="tests/Unit/UserModelTest.php"
+              line="30"
+              assertions="4"
+              time="0.123456">
+    </testcase>
+    
+    <testcase name="testUserRelationships"
+              class="Tests\Unit\UserModelTest"
+              classname="Tests.Unit.UserModelTest"
+              file="tests/Unit/UserModelTest.php"
+              line="42"
+              assertions="3"
+              time="0.234567">
+    </testcase>
+    
+    <testcase name="testUserValidation"
+              class="Tests\Unit\UserModelTest"
+              classname="Tests.Unit.UserModelTest"
+              file="tests/Unit/UserModelTest.php"
+              line="55"
+              assertions="5"
+              time="0.345678">
+    </testcase>
+    
+    <testcase name="testPasswordHashing"
+              class="Tests\Unit\UserModelTest"
+              classname="Tests.Unit.UserModelTest"
+              file="tests/Unit/UserModelTest.php"
+              line="68"
+              assertions="2"
+              time="0.198765">
+    </testcase>
+    
+    <testcase name="testUserSoftDelete"
+              class="Tests\Unit\UserModelTest"
+              classname="Tests.Unit.UserModelTest"
+              file="tests/Unit/UserModelTest.php"
+              line="78"
+              assertions="1"
+              time="0.175312">
+    </testcase>
+    
+    <system-out><![CDATA[
+UserModelTest
+ ✓ User creation                                                     0.16 s
+ ✓ User attributes                                                   0.12 s
+ ✓ User relationships                                                0.23 s
+ ✓ User validation                                                   0.35 s
+ ✓ Password hashing                                                  0.20 s
+ ✓ User soft delete                                                  0.18 s
+
+Time: 00:01.235, Memory: 12.25 MB
+
+Tests: 6, Assertions: 18, Failures: 0.
+    ]]></system-out>
+    
+    <system-err><![CDATA[]]></system-err>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,269 @@
+# FlakeGuard Prometheus Recording Rules
+# 
+# Pre-computed SLI metrics for efficient alerting and dashboard queries
+# Following Google SRE best practices for SLI/SLO monitoring
+
+groups:
+  # ============================================================================
+  # API Availability SLI Recording Rules
+  # ============================================================================
+  
+  - name: flakeguard.api.sli
+    interval: 30s
+    rules:
+      # API success rate over different time windows
+      - record: flakeguard:api_success_rate_5m
+        expr: |
+          rate(flakeguard_api_http_requests_total{status_code!~"5.."}[5m])
+          /
+          rate(flakeguard_api_http_requests_total[5m])
+          
+      - record: flakeguard:api_success_rate_30m
+        expr: |
+          rate(flakeguard_api_http_requests_total{status_code!~"5.."}[30m])
+          /
+          rate(flakeguard_api_http_requests_total[30m])
+          
+      - record: flakeguard:api_success_rate_1h
+        expr: |
+          rate(flakeguard_api_http_requests_total{status_code!~"5.."}[1h])
+          /
+          rate(flakeguard_api_http_requests_total[1h])
+          
+      - record: flakeguard:api_success_rate_6h
+        expr: |
+          rate(flakeguard_api_http_requests_total{status_code!~"5.."}[6h])
+          /
+          rate(flakeguard_api_http_requests_total[6h])
+          
+      - record: flakeguard:api_success_rate_24h
+        expr: |
+          rate(flakeguard_api_http_requests_total{status_code!~"5.."}[24h])
+          /
+          rate(flakeguard_api_http_requests_total[24h])
+
+      # API error rate (inverse of success rate)
+      - record: flakeguard:api_error_rate_5m
+        expr: 1 - flakeguard:api_success_rate_5m
+        
+      - record: flakeguard:api_error_rate_1h
+        expr: 1 - flakeguard:api_success_rate_1h
+        
+      - record: flakeguard:api_error_rate_6h
+        expr: 1 - flakeguard:api_success_rate_6h
+
+  # ============================================================================
+  # Ingestion Pipeline SLI Recording Rules
+  # ============================================================================
+  
+  - name: flakeguard.ingestion.sli
+    interval: 30s
+    rules:
+      # Parse success rate over different time windows
+      - record: flakeguard:parse_success_rate_5m
+        expr: |
+          rate(flakeguard_api_parse_results_total{result="success"}[5m])
+          /
+          rate(flakeguard_api_parse_results_total[5m])
+          
+      - record: flakeguard:parse_success_rate_30m
+        expr: |
+          rate(flakeguard_api_parse_results_total{result="success"}[30m])
+          /
+          rate(flakeguard_api_parse_results_total[30m])
+          
+      - record: flakeguard:parse_success_rate_1h
+        expr: |
+          rate(flakeguard_api_parse_results_total{result="success"}[1h])
+          /
+          rate(flakeguard_api_parse_results_total[1h])
+          
+      - record: flakeguard:parse_success_rate_6h
+        expr: |
+          rate(flakeguard_api_parse_results_total{result="success"}[6h])
+          /
+          rate(flakeguard_api_parse_results_total[6h])
+
+      # Parse error rate (for burn-rate alerting)
+      - record: flakeguard:parse_error_rate_5m
+        expr: 1 - flakeguard:parse_success_rate_5m
+        
+      - record: flakeguard:parse_error_rate_30m
+        expr: 1 - flakeguard:parse_success_rate_30m
+        
+      - record: flakeguard:parse_error_rate_1h
+        expr: 1 - flakeguard:parse_success_rate_1h
+        
+      - record: flakeguard:parse_error_rate_6h
+        expr: 1 - flakeguard:parse_success_rate_6h
+
+      # Ingestion latency percentiles
+      - record: flakeguard:ingestion_latency_p50_5m
+        expr: |
+          histogram_quantile(0.5, 
+            rate(flakeguard_api_ingestion_latency_seconds_bucket[5m])
+          )
+          
+      - record: flakeguard:ingestion_latency_p95_5m
+        expr: |
+          histogram_quantile(0.95, 
+            rate(flakeguard_api_ingestion_latency_seconds_bucket[5m])
+          )
+          
+      - record: flakeguard:ingestion_latency_p99_5m
+        expr: |
+          histogram_quantile(0.99, 
+            rate(flakeguard_api_ingestion_latency_seconds_bucket[5m])
+          )
+
+  # ============================================================================
+  # Worker Performance SLI Recording Rules  
+  # ============================================================================
+  
+  - name: flakeguard.worker.sli
+    interval: 30s
+    rules:
+      # Worker job success rate
+      - record: flakeguard:worker_job_success_rate_5m
+        expr: |
+          rate(flakeguard_worker_jobs_processed_total{status="completed"}[5m])
+          /
+          rate(flakeguard_worker_jobs_processed_total[5m])
+          
+      - record: flakeguard:worker_job_success_rate_1h
+        expr: |
+          rate(flakeguard_worker_jobs_processed_total{status="completed"}[1h])
+          /
+          rate(flakeguard_worker_jobs_processed_total[1h])
+
+      # Worker processing latency percentiles  
+      - record: flakeguard:worker_latency_p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            rate(flakeguard_worker_job_processing_duration_seconds_bucket[5m])
+          )
+          
+      # Queue depth (waiting jobs)
+      - record: flakeguard:queue_depth_5m
+        expr: |
+          avg_over_time(flakeguard_worker_queue_size{status="waiting"}[5m])
+
+  # ============================================================================
+  # Business Metrics Recording Rules
+  # ============================================================================
+  
+  - name: flakeguard.business.sli
+    interval: 60s
+    rules:
+      # Test processing rate (tests per second)
+      - record: flakeguard:test_processing_rate_5m
+        expr: |
+          rate(flakeguard_api_tests_processed_total[5m])
+          
+      - record: flakeguard:test_processing_rate_1h
+        expr: |
+          rate(flakeguard_api_tests_processed_total[1h])
+
+      # Flake detection rate (flakes per hour)
+      - record: flakeguard:flake_detection_rate_1h
+        expr: |
+          rate(flakeguard_api_flake_detections_total[1h]) * 3600
+
+      # Repository activity (active repositories)
+      - record: flakeguard:active_repositories_24h
+        expr: |
+          flakeguard_api_active_repositories
+
+  # ============================================================================
+  # SLO Burn Rate Calculation Rules
+  # ============================================================================
+  
+  - name: flakeguard.burn_rate
+    interval: 30s
+    rules:
+      # API availability burn rates
+      - record: flakeguard:api_availability_burn_rate_1h
+        expr: |
+          (1 - flakeguard:api_success_rate_1h) / 0.001  # 0.1% monthly budget
+          
+      - record: flakeguard:api_availability_burn_rate_6h
+        expr: |
+          (1 - flakeguard:api_success_rate_6h) / 0.001
+
+      # Parse success burn rates  
+      - record: flakeguard:parse_success_burn_rate_1h
+        expr: |
+          (1 - flakeguard:parse_success_rate_1h) / 0.01  # 1% monthly budget
+          
+      - record: flakeguard:parse_success_burn_rate_6h
+        expr: |
+          (1 - flakeguard:parse_success_rate_6h) / 0.01
+
+      # Latency SLO compliance (percentage of requests under target)
+      - record: flakeguard:ingestion_latency_slo_compliance_5m
+        expr: |
+          (
+            rate(flakeguard_api_ingestion_latency_seconds_bucket{le="30"}[5m])
+            /
+            rate(flakeguard_api_ingestion_latency_seconds_bucket{le="+Inf"}[5m])
+          )
+
+  # ============================================================================
+  # Infrastructure Health Recording Rules
+  # ============================================================================
+  
+  - name: flakeguard.infrastructure.sli
+    interval: 30s
+    rules:
+      # Database query success rate
+      - record: flakeguard:db_query_success_rate_5m
+        expr: |
+          rate(flakeguard_api_database_queries_total{status="success"}[5m])
+          /
+          rate(flakeguard_api_database_queries_total[5m])
+
+      # Database query latency percentiles
+      - record: flakeguard:db_query_latency_p95_5m
+        expr: |
+          histogram_quantile(0.95,
+            rate(flakeguard_api_database_query_duration_seconds_bucket[5m])
+          )
+
+      # GitHub API success rate
+      - record: flakeguard:github_api_success_rate_5m
+        expr: |
+          rate(flakeguard_api_github_api_calls_total{status_code!~"5.."}[5m])
+          /
+          rate(flakeguard_api_github_api_calls_total[5m])
+
+      # Memory usage percentage (assuming 2GB container limit)
+      - record: flakeguard:memory_usage_percentage
+        expr: |
+          (flakeguard_api_memory_usage_bytes{type="rss"} / (2 * 1024 * 1024 * 1024)) * 100
+
+  # ============================================================================
+  # Aggregated Service Health Score
+  # ============================================================================
+  
+  - name: flakeguard.service_health
+    interval: 60s
+    rules:
+      # Overall service health score (0-1, where 1 is perfectly healthy)
+      - record: flakeguard:service_health_score_5m
+        expr: |
+          (
+            flakeguard:api_success_rate_5m * 0.4 +                    # 40% weight on API availability
+            flakeguard:parse_success_rate_5m * 0.3 +                  # 30% weight on parse success  
+            flakeguard:worker_job_success_rate_5m * 0.2 +             # 20% weight on worker success
+            flakeguard:db_query_success_rate_5m * 0.1                 # 10% weight on DB performance
+          )
+          
+      # Service degradation indicator (1 if any SLO is breached)
+      - record: flakeguard:service_degraded_5m
+        expr: |
+          (
+            (flakeguard:api_success_rate_5m < 0.999) or               # API availability SLO breach
+            (flakeguard:parse_success_rate_5m < 0.99) or              # Parse success SLO breach  
+            (flakeguard:ingestion_latency_p95_5m > 30) or             # Ingestion latency SLO breach
+            (flakeguard:worker_latency_p95_5m > 120)                  # Worker latency SLO breach
+          )

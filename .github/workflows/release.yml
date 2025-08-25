@@ -1,0 +1,569 @@
+name: Release & Deploy
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        type: string
+      pre_release:
+        description: 'Mark as pre-release'
+        type: boolean
+        default: false
+      skip_deploy:
+        description: 'Skip deployment (release only)'
+        type: boolean
+        default: false
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8.15.1'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: write
+  packages: write
+  deployments: write
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Validate release requirements
+  validate-release:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_pre_release: ${{ steps.version.outputs.is_pre_release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version information
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+            IS_PRE_RELEASE="${{ inputs.pre_release }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+            IS_PRE_RELEASE=$(echo $VERSION | grep -E "(alpha|beta|rc)" && echo "true" || echo "false")
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_pre_release=$IS_PRE_RELEASE" >> $GITHUB_OUTPUT
+          echo "Releasing version: $VERSION (pre-release: $IS_PRE_RELEASE)"
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+(\.[0-9]+)?)?$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z or X.Y.Z-alpha.1"
+            exit 1
+          fi
+          echo "✅ Version format is valid: $VERSION"
+
+      - name: Check if tag exists
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if git tag | grep -q "v$VERSION"; then
+            echo "❌ Tag v$VERSION already exists"
+            exit 1
+          fi
+          echo "✅ Tag v$VERSION is available"
+
+  # Run tests before release
+  pre-release-tests:
+    name: Pre-Release Tests
+    uses: ./.github/workflows/ci.yml
+    with:
+      skip_tests: false
+    secrets: inherit
+
+  # Build and push release images
+  build-release-images:
+    name: Build Release Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [validate-release, pre-release-tests]
+    strategy:
+      matrix:
+        app: [api, web, worker]
+    outputs:
+      image-digest-api: ${{ steps.build-api.outputs.digest }}
+      image-digest-web: ${{ steps.build-web.outputs.digest }}
+      image-digest-worker: ${{ steps.build-worker.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: |
+          pnpm --filter=@flakeguard/shared build
+          pnpm --filter=@flakeguard/${{ matrix.app }} build
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.app }}
+          tags: |
+            type=semver,pattern={{version}},value=v${{ needs.validate-release.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ needs.validate-release.outputs.version }}
+            type=semver,pattern={{major}},value=v${{ needs.validate-release.outputs.version }}
+            type=raw,value=latest,enable=${{ needs.validate-release.outputs.is_pre_release == 'false' }}
+          labels: |
+            org.opencontainers.image.title=FlakeGuard ${{ matrix.app }}
+            org.opencontainers.image.description=FlakeGuard detects and manages flaky tests in GitHub Actions
+            org.opencontainers.image.version=${{ needs.validate-release.outputs.version }}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./apps/${{ matrix.app }}/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            NODE_ENV=production
+            VERSION=${{ needs.validate-release.outputs.version }}
+          provenance: true
+          sbom: true
+
+      - name: Set output for specific app
+        id: build-api
+        if: matrix.app == 'api'
+        run: echo "digest=${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+        
+      - name: Set output for specific app
+        id: build-web
+        if: matrix.app == 'web'
+        run: echo "digest=${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+        
+      - name: Set output for specific app
+        id: build-worker
+        if: matrix.app == 'worker'
+        run: echo "digest=${{ steps.build.outputs.digest }}" >> $GITHUB_OUTPUT
+
+  # Security scanning of release images
+  security-scan-images:
+    name: Security Scan Release Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [validate-release, build-release-images]
+    strategy:
+      matrix:
+        app: [api, web, worker]
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.app }}:${{ needs.validate-release.outputs.version }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.app }}.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results-${{ matrix.app }}.sarif'
+          category: 'trivy-${{ matrix.app }}-release'
+
+      - name: Run Grype vulnerability scanner
+        uses: anchore/scan-action@v3
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.app }}:${{ needs.validate-release.outputs.version }}
+          fail-build: false
+          severity-cutoff: high
+
+  # Generate changelog and release notes
+  generate-changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [validate-release]
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      release_notes: ${{ steps.release_notes.outputs.release_notes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Get the last version tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          VERSION="v${{ needs.validate-release.outputs.version }}"
+          
+          if [ -z "$LAST_TAG" ]; then
+            echo "First release, including all commits"
+            COMMIT_RANGE=""
+          else
+            echo "Generating changelog from $LAST_TAG to $VERSION"
+            COMMIT_RANGE="$LAST_TAG..HEAD"
+          fi
+          
+          # Generate changelog
+          cat > changelog_temp.md << 'EOF'
+          ## What's Changed
+          
+          EOF
+          
+          # Get commits grouped by type
+          git log $COMMIT_RANGE --pretty=format:"%s (%h)" --no-merges | \
+          while IFS= read -r line; do
+            case "$line" in
+              feat*) echo "### ✨ New Features" >> features.tmp; echo "- $line" >> features.tmp ;;
+              fix*) echo "### 🐛 Bug Fixes" >> fixes.tmp; echo "- $line" >> fixes.tmp ;;
+              docs*) echo "### 📚 Documentation" >> docs.tmp; echo "- $line" >> docs.tmp ;;
+              perf*) echo "### ⚡ Performance Improvements" >> perf.tmp; echo "- $line" >> perf.tmp ;;
+              refactor*) echo "### ♻️ Code Refactoring" >> refactor.tmp; echo "- $line" >> refactor.tmp ;;
+              test*) echo "### 🧪 Testing" >> test.tmp; echo "- $line" >> test.tmp ;;
+              build*|ci*) echo "### 🚀 Build & CI" >> build.tmp; echo "- $line" >> build.tmp ;;
+              *) echo "### 🔧 Other Changes" >> other.tmp; echo "- $line" >> other.tmp ;;
+            esac
+          done
+          
+          # Combine all sections
+          for file in features.tmp fixes.tmp docs.tmp perf.tmp refactor.tmp test.tmp build.tmp other.tmp; do
+            if [ -f "$file" ]; then
+              sort -u "$file" >> changelog_temp.md
+              echo "" >> changelog_temp.md
+              rm "$file"
+            fi
+          done
+          
+          # Save changelog
+          CHANGELOG=$(cat changelog_temp.md)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="v${{ needs.validate-release.outputs.version }}"
+          cat > release_notes.md << EOF
+          # FlakeGuard $VERSION
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## 📦 Docker Images
+          
+          \`\`\`bash
+          # API Server
+          docker pull ghcr.io/${{ github.repository }}-api:${{ needs.validate-release.outputs.version }}
+          
+          # Web Dashboard
+          docker pull ghcr.io/${{ github.repository }}-web:${{ needs.validate-release.outputs.version }}
+          
+          # Background Worker
+          docker pull ghcr.io/${{ github.repository }}-worker:${{ needs.validate-release.outputs.version }}
+          \`\`\`
+          
+          ## 🚀 Quick Start
+          
+          \`\`\`bash
+          # Clone the repository
+          git clone https://github.com/${{ github.repository }}.git
+          cd flakeguard
+          
+          # Checkout the release tag
+          git checkout $VERSION
+          
+          # Start with Docker Compose
+          docker-compose up -d
+          \`\`\`
+          
+          ## 📋 What's Next?
+          
+          - 📖 Check out our [documentation](https://github.com/${{ github.repository }}/blob/main/README.md)
+          - 🐛 Found a bug? [Report it](https://github.com/${{ github.repository }}/issues/new)
+          - 💡 Have an idea? [Share it](https://github.com/${{ github.repository }}/discussions)
+          
+          ---
+          
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "initial")...$VERSION
+          EOF
+          
+          RELEASE_NOTES=$(cat release_notes.md)
+          echo "release_notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update CHANGELOG.md
+        run: |
+          VERSION="v${{ needs.validate-release.outputs.version }}"
+          DATE=$(date +"%Y-%m-%d")
+          
+          # Create backup
+          cp CHANGELOG.md CHANGELOG.md.bak
+          
+          # Create new changelog entry
+          cat > changelog_entry.md << EOF
+          ## [${{ needs.validate-release.outputs.version }}] - $DATE
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          EOF
+          
+          # Insert new entry after the header
+          head -n 7 CHANGELOG.md > temp_changelog.md
+          cat changelog_entry.md >> temp_changelog.md
+          tail -n +8 CHANGELOG.md >> temp_changelog.md
+          mv temp_changelog.md CHANGELOG.md
+          
+          # Commit the updated changelog
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for $VERSION" || echo "No changes to commit"
+
+  # Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [validate-release, build-release-images, security-scan-images, generate-changelog]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Git tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          VERSION="v${{ needs.validate-release.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$VERSION" -m "Release $VERSION"
+          git push origin "$VERSION"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.validate-release.outputs.version }}
+          name: FlakeGuard v${{ needs.validate-release.outputs.version }}
+          body: ${{ needs.generate-changelog.outputs.release_notes }}
+          prerelease: ${{ needs.validate-release.outputs.is_pre_release == 'true' }}
+          generate_release_notes: false
+          files: |
+            docker-compose.yml
+            docker-compose.prod.yml
+            .env.example
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Deploy to staging environment
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [validate-release, create-release]
+    if: ${{ !inputs.skip_deploy }}
+    environment:
+      name: staging
+      url: https://staging.flakeguard.dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_STAGING }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Deploy to staging
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          
+          # Update image tags in deployment manifests
+          sed -i "s|image: ghcr.io/${{ github.repository }}-api:.*|image: ghcr.io/${{ github.repository }}-api:$VERSION|g" k8s/staging/api-deployment.yaml
+          sed -i "s|image: ghcr.io/${{ github.repository }}-web:.*|image: ghcr.io/${{ github.repository }}-web:$VERSION|g" k8s/staging/web-deployment.yaml
+          sed -i "s|image: ghcr.io/${{ github.repository }}-worker:.*|image: ghcr.io/${{ github.repository }}-worker:$VERSION|g" k8s/staging/worker-deployment.yaml
+          
+          # Apply deployments
+          kubectl apply -f k8s/staging/ --kubeconfig=kubeconfig
+          
+          # Wait for rollout to complete
+          kubectl rollout status deployment/flakeguard-api -n staging --timeout=600s --kubeconfig=kubeconfig
+          kubectl rollout status deployment/flakeguard-web -n staging --timeout=600s --kubeconfig=kubeconfig
+          kubectl rollout status deployment/flakeguard-worker -n staging --timeout=600s --kubeconfig=kubeconfig
+
+      - name: Run smoke tests
+        run: |
+          STAGING_URL="https://staging.flakeguard.dev"
+          
+          # Wait for services to be ready
+          sleep 30
+          
+          # Health check tests
+          curl -f "$STAGING_URL/api/health" || exit 1
+          curl -f "$STAGING_URL/health" || exit 1
+          
+          echo "✅ Staging deployment successful"
+
+  # Deploy to production environment
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [validate-release, deploy-staging]
+    if: ${{ !inputs.skip_deploy && needs.validate-release.outputs.is_pre_release == 'false' }}
+    environment:
+      name: production
+      url: https://flakeguard.dev
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          echo "${{ secrets.KUBECONFIG_PRODUCTION }}" | base64 -d > kubeconfig
+          export KUBECONFIG=kubeconfig
+
+      - name: Blue-Green Deployment to Production
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          
+          # Create new deployment with version suffix
+          sed "s|flakeguard-|flakeguard-$VERSION-|g" k8s/production/api-deployment.yaml > k8s/production/api-deployment-$VERSION.yaml
+          sed "s|flakeguard-|flakeguard-$VERSION-|g" k8s/production/web-deployment.yaml > k8s/production/web-deployment-$VERSION.yaml
+          sed "s|flakeguard-|flakeguard-$VERSION-|g" k8s/production/worker-deployment.yaml > k8s/production/worker-deployment-$VERSION.yaml
+          
+          # Update image tags
+          sed -i "s|image: ghcr.io/${{ github.repository }}-api:.*|image: ghcr.io/${{ github.repository }}-api:$VERSION|g" k8s/production/*-deployment-$VERSION.yaml
+          sed -i "s|image: ghcr.io/${{ github.repository }}-web:.*|image: ghcr.io/${{ github.repository }}-web:$VERSION|g" k8s/production/*-deployment-$VERSION.yaml
+          sed -i "s|image: ghcr.io/${{ github.repository }}-worker:.*|image: ghcr.io/${{ github.repository }}-worker:$VERSION|g" k8s/production/*-deployment-$VERSION.yaml
+          
+          # Deploy new version
+          kubectl apply -f k8s/production/ --kubeconfig=kubeconfig
+          
+          # Wait for new deployment to be ready
+          kubectl rollout status deployment/flakeguard-api-$VERSION -n production --timeout=600s --kubeconfig=kubeconfig
+          kubectl rollout status deployment/flakeguard-web-$VERSION -n production --timeout=600s --kubeconfig=kubeconfig
+          kubectl rollout status deployment/flakeguard-worker-$VERSION -n production --timeout=600s --kubeconfig=kubeconfig
+
+      - name: Switch traffic to new version
+        run: |
+          VERSION="${{ needs.validate-release.outputs.version }}"
+          
+          # Update service selectors to point to new version
+          kubectl patch service flakeguard-api-service -n production --type='merge' -p='{"spec":{"selector":{"version":"'$VERSION'"}}}' --kubeconfig=kubeconfig
+          kubectl patch service flakeguard-web-service -n production --type='merge' -p='{"spec":{"selector":{"version":"'$VERSION'"}}}' --kubeconfig=kubeconfig
+          
+          # Wait for DNS propagation
+          sleep 60
+
+      - name: Run production smoke tests
+        run: |
+          PRODUCTION_URL="https://flakeguard.dev"
+          
+          # Health check tests
+          curl -f "$PRODUCTION_URL/api/health" || exit 1
+          curl -f "$PRODUCTION_URL/health" || exit 1
+          
+          # Additional production tests
+          curl -f "$PRODUCTION_URL/api/metrics" || exit 1
+          
+          echo "✅ Production deployment successful"
+
+      - name: Cleanup old deployments
+        run: |
+          # Keep only the last 3 deployments
+          kubectl get deployments -n production -o name | grep flakeguard | sort -r | tail -n +4 | xargs -r kubectl delete --kubeconfig=kubeconfig
+
+  # Notification and cleanup
+  post-release:
+    name: Post-Release Tasks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [validate-release, create-release, deploy-staging, deploy-production]
+    if: always()
+    steps:
+      - name: Notify team of successful release
+        if: ${{ needs.create-release.result == 'success' }}
+        run: |
+          VERSION="v${{ needs.validate-release.outputs.version }}"
+          echo "🎉 Successfully released FlakeGuard $VERSION!"
+          echo "📦 Docker images are available in GitHub Container Registry"
+          echo "🚀 Staging deployment: ${{ needs.deploy-staging.result }}"
+          echo "🌟 Production deployment: ${{ needs.deploy-production.result }}"
+
+      - name: Create deployment summary
+        run: |
+          VERSION="v${{ needs.validate-release.outputs.version }}"
+          echo "## 🚀 Release Summary: FlakeGuard $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Release Creation | ${{ needs.create-release.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Staging Deployment | ${{ needs.deploy-staging.result == 'success' && '✅' || needs.deploy-staging.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Production Deployment | ${{ needs.deploy-production.result == 'success' && '✅' || needs.deploy-production.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "**Pre-release:** ${{ needs.validate-release.outputs.is_pre_release }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Release URL:** https://github.com/${{ github.repository }}/releases/tag/$VERSION" >> $GITHUB_STEP_SUMMARY

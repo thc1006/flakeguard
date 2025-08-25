@@ -1,0 +1,273 @@
+{
+  "action": "completed",
+  "workflow_run": {
+    "id": 6789012345,
+    "name": "CI",
+    "node_id": "WFR_kwDOBhHGuM8AAAAACZ3ZGWk",
+    "head_branch": "main",
+    "head_sha": "abc123def456789012345678901234567890abcd",
+    "path": ".github/workflows/ci.yml",
+    "display_title": "Add FlakeGuard integration",
+    "run_number": 123,
+    "event": "push",
+    "status": "completed",
+    "conclusion": "failure",
+    "workflow_id": 555666777,
+    "check_suite_id": 111222333444,
+    "check_suite_node_id": "CS_kwDOBhHGuM8AAAABm7XYaw",
+    "url": "https://api.github.com/repos/test-org/flakeguard-test/actions/runs/6789012345",
+    "html_url": "https://github.com/test-org/flakeguard-test/actions/runs/6789012345",
+    "pull_requests": [
+      {
+        "id": 998877665,
+        "number": 456,
+        "url": "https://api.github.com/repos/test-org/flakeguard-test/pulls/456",
+        "head": {
+          "ref": "feature/flakeguard-integration",
+          "sha": "abc123def456789012345678901234567890abcd",
+          "repo": {
+            "id": 123456789,
+            "name": "flakeguard-test",
+            "full_name": "test-org/flakeguard-test",
+            "owner": {
+              "login": "test-org",
+              "id": 67890,
+              "type": "Organization"
+            }
+          }
+        },
+        "base": {
+          "ref": "main",
+          "sha": "def456789012345678901234567890abcdef123",
+          "repo": {
+            "id": 123456789,
+            "name": "flakeguard-test",
+            "full_name": "test-org/flakeguard-test",
+            "owner": {
+              "login": "test-org",
+              "id": 67890,
+              "type": "Organization"
+            }
+          }
+        }
+      }
+    ],
+    "created_at": "2023-10-01T10:00:00Z",
+    "updated_at": "2023-10-01T10:15:30Z",
+    "actor": {
+      "login": "developer",
+      "id": 98765,
+      "node_id": "MDQ6VXNlcjk4NzY1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/98765?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/developer",
+      "html_url": "https://github.com/developer",
+      "type": "User"
+    },
+    "run_attempt": 1,
+    "referenced_workflows": [
+      {
+        "path": "test-org/shared-workflows/.github/workflows/test.yml@v1",
+        "sha": "shared123456789012345678901234567890abc",
+        "ref": "refs/tags/v1"
+      }
+    ],
+    "run_started_at": "2023-10-01T10:00:15Z",
+    "triggering_actor": {
+      "login": "developer",
+      "id": 98765,
+      "node_id": "MDQ6VXNlcjk4NzY1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/98765?v=4",
+      "type": "User"
+    },
+    "jobs_url": "https://api.github.com/repos/test-org/flakeguard-test/actions/runs/6789012345/jobs",
+    "logs_url": "https://api.github.com/repos/test-org/flakeguard-test/actions/runs/6789012345/logs",
+    "check_suite_url": "https://api.github.com/repos/test-org/flakeguard-test/check-suites/111222333444",
+    "artifacts_url": "https://api.github.com/repos/test-org/flakeguard-test/actions/runs/6789012345/artifacts",
+    "cancel_url": "https://api.github.com/repos/test-org/flakeguard-test/actions/runs/6789012345/cancel",
+    "rerun_url": "https://api.github.com/repos/test-org/flakeguard-test/actions/runs/6789012345/rerun",
+    "previous_attempt_url": null,
+    "workflow_url": "https://api.github.com/repos/test-org/flakeguard-test/actions/workflows/555666777",
+    "head_commit": {
+      "id": "abc123def456789012345678901234567890abcd",
+      "tree_id": "tree123456789012345678901234567890abcde",
+      "message": "Add comprehensive test coverage\n\nThis commit adds:\n- Unit tests for policy engine\n- Integration tests for GitHub webhooks\n- E2E tests for the complete flow\n\nFixes flaky tests in the analytics module.",
+      "timestamp": "2023-10-01T09:58:23Z",
+      "author": {
+        "name": "Developer Name",
+        "email": "developer@company.com"
+      },
+      "committer": {
+        "name": "Developer Name", 
+        "email": "developer@company.com"
+      }
+    },
+    "repository": {
+      "id": 123456789,
+      "name": "flakeguard-test",
+      "full_name": "test-org/flakeguard-test",
+      "owner": {
+        "login": "test-org",
+        "id": 67890,
+        "type": "Organization"
+      }
+    },
+    "head_repository": {
+      "id": 123456789,
+      "name": "flakeguard-test", 
+      "full_name": "test-org/flakeguard-test",
+      "owner": {
+        "login": "test-org",
+        "id": 67890,
+        "type": "Organization"
+      }
+    }
+  },
+  "workflow": {
+    "id": 555666777,
+    "node_id": "W_kwDOBhHGuM4AAAAAIT1lmQ",
+    "name": "CI",
+    "path": ".github/workflows/ci.yml",
+    "state": "active",
+    "created_at": "2023-09-15T08:30:00Z",
+    "updated_at": "2023-10-01T09:45:00Z",
+    "url": "https://api.github.com/repos/test-org/flakeguard-test/actions/workflows/555666777",
+    "html_url": "https://github.com/test-org/flakeguard-test/blob/main/.github/workflows/ci.yml",
+    "badge_url": "https://github.com/test-org/flakeguard-test/workflows/CI/badge.svg"
+  },
+  "repository": {
+    "id": 123456789,
+    "node_id": "MDEwOlJlcG9zaXRvcnkxMjM0NTY3ODk",
+    "name": "flakeguard-test",
+    "full_name": "test-org/flakeguard-test",
+    "private": false,
+    "owner": {
+      "login": "test-org",
+      "id": 67890,
+      "node_id": "MDEyOk9yZ2FuaXphdGlvbjY3ODkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/67890?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/test-org",
+      "html_url": "https://github.com/test-org",
+      "type": "Organization"
+    },
+    "html_url": "https://github.com/test-org/flakeguard-test",
+    "description": "Test repository for FlakeGuard integration testing",
+    "fork": false,
+    "url": "https://api.github.com/repos/test-org/flakeguard-test",
+    "archive_url": "https://api.github.com/repos/test-org/flakeguard-test/{archive_format}{/ref}",
+    "assignees_url": "https://api.github.com/repos/test-org/flakeguard-test/assignees{/user}",
+    "blobs_url": "https://api.github.com/repos/test-org/flakeguard-test/git/blobs{/sha}",
+    "branches_url": "https://api.github.com/repos/test-org/flakeguard-test/branches{/branch}",
+    "collaborators_url": "https://api.github.com/repos/test-org/flakeguard-test/collaborators{/collaborator}",
+    "comments_url": "https://api.github.com/repos/test-org/flakeguard-test/comments{/number}",
+    "commits_url": "https://api.github.com/repos/test-org/flakeguard-test/commits{/sha}",
+    "compare_url": "https://api.github.com/repos/test-org/flakeguard-test/compare/{base}...{head}",
+    "contents_url": "https://api.github.com/repos/test-org/flakeguard-test/contents/{+path}",
+    "contributors_url": "https://api.github.com/repos/test-org/flakeguard-test/contributors",
+    "deployments_url": "https://api.github.com/repos/test-org/flakeguard-test/deployments",
+    "downloads_url": "https://api.github.com/repos/test-org/flakeguard-test/downloads",
+    "events_url": "https://api.github.com/repos/test-org/flakeguard-test/events",
+    "forks_url": "https://api.github.com/repos/test-org/flakeguard-test/forks",
+    "git_commits_url": "https://api.github.com/repos/test-org/flakeguard-test/git/commits{/sha}",
+    "git_refs_url": "https://api.github.com/repos/test-org/flakeguard-test/git/refs{/sha}",
+    "git_tags_url": "https://api.github.com/repos/test-org/flakeguard-test/git/tags{/sha}",
+    "git_url": "git://github.com/test-org/flakeguard-test.git",
+    "issue_comment_url": "https://api.github.com/repos/test-org/flakeguard-test/issues/comments{/number}",
+    "issue_events_url": "https://api.github.com/repos/test-org/flakeguard-test/issues/events{/number}",
+    "issues_url": "https://api.github.com/repos/test-org/flakeguard-test/issues{/number}",
+    "keys_url": "https://api.github.com/repos/test-org/flakeguard-test/keys{/key_id}",
+    "labels_url": "https://api.github.com/repos/test-org/flakeguard-test/labels{/name}",
+    "languages_url": "https://api.github.com/repos/test-org/flakeguard-test/languages",
+    "merges_url": "https://api.github.com/repos/test-org/flakeguard-test/merges",
+    "milestones_url": "https://api.github.com/repos/test-org/flakeguard-test/milestones{/number}",
+    "notifications_url": "https://api.github.com/repos/test-org/flakeguard-test/notifications{?since,all,participating}",
+    "pulls_url": "https://api.github.com/repos/test-org/flakeguard-test/pulls{/number}",
+    "releases_url": "https://api.github.com/repos/test-org/flakeguard-test/releases{/id}",
+    "ssh_url": "git@github.com:test-org/flakeguard-test.git",
+    "stargazers_url": "https://api.github.com/repos/test-org/flakeguard-test/stargazers",
+    "statuses_url": "https://api.github.com/repos/test-org/flakeguard-test/statuses/{sha}",
+    "subscribers_url": "https://api.github.com/repos/test-org/flakeguard-test/subscribers",
+    "subscription_url": "https://api.github.com/repos/test-org/flakeguard-test/subscription",
+    "tags_url": "https://api.github.com/repos/test-org/flakeguard-test/tags",
+    "teams_url": "https://api.github.com/repos/test-org/flakeguard-test/teams",
+    "trees_url": "https://api.github.com/repos/test-org/flakeguard-test/git/trees{/sha}",
+    "clone_url": "https://github.com/test-org/flakeguard-test.git",
+    "mirror_url": null,
+    "hooks_url": "https://api.github.com/repos/test-org/flakeguard-test/hooks",
+    "svn_url": "https://github.com/test-org/flakeguard-test",
+    "homepage": "https://flakeguard.dev",
+    "language": "TypeScript",
+    "forks_count": 5,
+    "stargazers_count": 42,
+    "watchers_count": 42,
+    "size": 2048,
+    "default_branch": "main",
+    "open_issues_count": 3,
+    "is_template": false,
+    "topics": [
+      "testing",
+      "ci-cd", 
+      "flaky-tests",
+      "github-actions"
+    ],
+    "has_issues": true,
+    "has_projects": true,
+    "has_wiki": true,
+    "has_pages": false,
+    "has_downloads": true,
+    "archived": false,
+    "disabled": false,
+    "visibility": "public",
+    "pushed_at": "2023-10-01T09:58:30Z",
+    "created_at": "2023-09-01T14:20:00Z",
+    "updated_at": "2023-10-01T09:00:00Z",
+    "allow_rebase_merge": true,
+    "template_repository": null,
+    "temp_clone_token": "",
+    "allow_squash_merge": true,
+    "allow_auto_merge": false,
+    "delete_branch_on_merge": false,
+    "allow_merge_commit": true,
+    "allow_update_branch": false,
+    "use_squash_pr_title_as_default": false,
+    "squash_merge_commit_message": "COMMIT_MESSAGES",
+    "squash_merge_commit_title": "COMMIT_OR_PR_TITLE",
+    "merge_commit_message": "PR_TITLE",
+    "merge_commit_title": "MERGE_MESSAGE"
+  },
+  "organization": {
+    "login": "test-org",
+    "id": 67890,
+    "node_id": "MDEyOk9yZ2FuaXphdGlvbjY3ODkw",
+    "url": "https://api.github.com/orgs/test-org",
+    "repos_url": "https://api.github.com/orgs/test-org/repos",
+    "events_url": "https://api.github.com/orgs/test-org/events",
+    "hooks_url": "https://api.github.com/orgs/test-org/hooks",
+    "issues_url": "https://api.github.com/orgs/test-org/issues",
+    "members_url": "https://api.github.com/orgs/test-org/members{/member}",
+    "public_members_url": "https://api.github.com/orgs/test-org/public_members{/member}",
+    "avatar_url": "https://avatars.githubusercontent.com/u/67890?v=4",
+    "description": "Test Organization for FlakeGuard Development"
+  },
+  "sender": {
+    "login": "developer",
+    "id": 98765,
+    "node_id": "MDQ6VXNlcjk4NzY1",
+    "avatar_url": "https://avatars.githubusercontent.com/u/98765?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/developer",
+    "html_url": "https://github.com/developer",
+    "followers_url": "https://api.github.com/users/developer/followers",
+    "following_url": "https://api.github.com/users/developer/following{/other_user}",
+    "gists_url": "https://api.github.com/users/developer/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/developer/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/developer/subscriptions",
+    "organizations_url": "https://api.github.com/users/developer/orgs",
+    "repos_url": "https://api.github.com/users/developer/repos",
+    "events_url": "https://api.github.com/users/developer/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/developer/received_events",
+    "type": "User",
+    "site_admin": false
+  }
+}

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="MalformedTestSuite" tests="3" failures="1" errors="0" skipped="0" time="1.234">
+  
+  <testcase name="test1" classname="TestClass1" time="0.123">
+    <!-- Missing closing tag for failure element -->
+    <failure type="AssertionError" message="Test failed">
+      Stack trace content here
+    <!-- </failure> -->
+  </testcase>
+  
+  <!-- Unclosed testcase -->
+  <testcase name="test2" classname="TestClass2" time="0.456">
+  
+  <!-- Invalid XML characters -->
+  <testcase name="test3" classname="TestClass3" time="0.789">
+    <system-out>Invalid character: </system-out>
+  </testcase>
+  
+  <!-- Missing closing testsuite tag -->
+<!-- </testsuite> -->

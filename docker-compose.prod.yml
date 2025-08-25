@@ -1,0 +1,638 @@
+# FlakeGuard Production Docker Compose
+# High-availability, security-hardened production deployment
+
+version: '3.9'
+
+services:
+  # ==========================================================================
+  # LOAD BALANCER / REVERSE PROXY
+  # ==========================================================================
+  nginx:
+    image: nginx:1.24-alpine
+    container_name: flakeguard-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - NGINX_ENVSUBST_TEMPLATE_SUFFIX=.template
+    volumes:
+      - ./config/nginx/production.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./config/nginx/ssl:/etc/nginx/ssl:ro
+      - ./logs/nginx:/var/log/nginx
+      - nginx_cache:/var/cache/nginx
+    depends_on:
+      - api
+      - web
+    networks:
+      - flakeguard-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+  # ==========================================================================
+  # APPLICATION SERVICES
+  # ==========================================================================
+  api:
+    image: ghcr.io/flakeguard/flakeguard-api:${VERSION:-latest}
+    container_name: flakeguard-api
+    restart: unless-stopped
+    environment:
+      # Core Configuration
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - VERSION=${VERSION:-latest}
+      
+      # Database Configuration
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_POOL_MIN=${DATABASE_POOL_MIN:-5}
+      - DATABASE_POOL_MAX=${DATABASE_POOL_MAX:-20}
+      - DATABASE_CONNECTION_TIMEOUT=${DATABASE_CONNECTION_TIMEOUT:-30000}
+      
+      # Redis Configuration
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_TLS=${REDIS_TLS:-false}
+      - REDIS_KEY_PREFIX=flakeguard:prod
+      
+      # Security Configuration
+      - JWT_SECRET_FILE=/run/secrets/jwt_secret
+      - API_KEY_FILE=/run/secrets/api_key
+      - WEBHOOK_SECRET_FILE=/run/secrets/webhook_secret
+      - ENCRYPTION_KEY_FILE=/run/secrets/encryption_key
+      
+      # GitHub Integration
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_PRIVATE_KEY_FILE=/run/secrets/github_private_key
+      - GITHUB_WEBHOOK_SECRET_FILE=/run/secrets/github_webhook_secret
+      
+      # Slack Integration
+      - SLACK_BOT_TOKEN_FILE=/run/secrets/slack_bot_token
+      - SLACK_SIGNING_SECRET_FILE=/run/secrets/slack_signing_secret
+      
+      # Performance & Monitoring
+      - PROMETHEUS_ENABLED=true
+      - PROMETHEUS_PORT=9090
+      - HEALTH_CHECK_TIMEOUT=5000
+      - REQUEST_TIMEOUT=30000
+      - MAX_REQUEST_SIZE=10mb
+      
+      # Rate Limiting
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_WINDOW_MS=60000
+      - RATE_LIMIT_MAX_REQUESTS=1000
+      
+      # CORS Configuration
+      - CORS_ORIGIN=${CORS_ORIGIN:-https://flakeguard.dev}
+      - CORS_CREDENTIALS=true
+    
+    secrets:
+      - jwt_secret
+      - api_key
+      - webhook_secret
+      - encryption_key
+      - github_private_key
+      - github_webhook_secret
+      - slack_bot_token
+      - slack_signing_secret
+    
+    volumes:
+      - ./logs/api:/var/log/flakeguard:rw
+      - api_uploads:/app/uploads:rw
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - flakeguard-network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+
+  web:
+    image: ghcr.io/flakeguard/flakeguard-web:${VERSION:-latest}
+    container_name: flakeguard-web
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - HOSTNAME=0.0.0.0
+      - NEXT_TELEMETRY_DISABLED=1
+      - VERSION=${VERSION:-latest}
+      
+      # API Configuration
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://api.flakeguard.dev}
+      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-wss://api.flakeguard.dev}
+      
+      # Authentication
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://flakeguard.dev}
+      - NEXTAUTH_SECRET_FILE=/run/secrets/nextauth_secret
+      
+      # GitHub OAuth
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET_FILE=/run/secrets/github_client_secret
+      
+      # Monitoring
+      - NEXT_PUBLIC_SENTRY_DSN=${SENTRY_DSN}
+      - NEXT_PUBLIC_ANALYTICS_ID=${ANALYTICS_ID}
+    
+    secrets:
+      - nextauth_secret
+      - github_client_secret
+    
+    volumes:
+      - ./logs/web:/var/log/flakeguard:rw
+    
+    depends_on:
+      - api
+    
+    networks:
+      - flakeguard-network
+    
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+
+  worker:
+    image: ghcr.io/flakeguard/flakeguard-worker:${VERSION:-latest}
+    container_name: flakeguard-worker
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - VERSION=${VERSION:-latest}
+      
+      # Database Configuration
+      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_POOL_MIN=${DATABASE_WORKER_POOL_MIN:-3}
+      - DATABASE_POOL_MAX=${DATABASE_WORKER_POOL_MAX:-10}
+      
+      # Redis Configuration
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_KEY_PREFIX=flakeguard:worker
+      
+      # Worker Configuration
+      - WORKER_NAME=flakeguard-worker-${HOSTNAME:-prod}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY:-5}
+      - WORKER_MAX_STALLED_COUNT=3
+      - WORKER_MAX_FAILED_COUNT=3
+      - WORKER_RETRY_DELAY=30000
+      
+      # GitHub Integration
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_APP_PRIVATE_KEY_FILE=/run/secrets/github_private_key
+      
+      # Job Processing
+      - MAX_JOB_PROCESSING_TIME=300000
+      - JOB_CLEANUP_INTERVAL=3600000
+      - FAILED_JOB_RETENTION=7
+      - COMPLETED_JOB_RETENTION=1
+      
+      # Performance
+      - PROMETHEUS_ENABLED=true
+      - PROMETHEUS_PORT=9090
+      - HEALTH_CHECK_PORT=8080
+    
+    secrets:
+      - github_private_key
+    
+    volumes:
+      - ./logs/worker:/var/log/flakeguard:rw
+      - worker_temp:/tmp/flakeguard:rw
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - flakeguard-network
+    
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+      restart_policy:
+        condition: on-failure
+        delay: 15s
+        max_attempts: 5
+        window: 300s
+
+  # ==========================================================================
+  # DATABASE SERVICES
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: flakeguard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-flakeguard}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: >
+        --auth-host=scram-sha-256
+        --encoding=UTF8
+        --locale=en_US.utf8
+        --data-checksums
+      
+      # Performance Configuration
+      POSTGRES_SHARED_BUFFERS: ${POSTGRES_SHARED_BUFFERS:-256MB}
+      POSTGRES_EFFECTIVE_CACHE_SIZE: ${POSTGRES_EFFECTIVE_CACHE_SIZE:-1GB}
+      POSTGRES_WORK_MEM: ${POSTGRES_WORK_MEM:-4MB}
+      POSTGRES_MAINTENANCE_WORK_MEM: ${POSTGRES_MAINTENANCE_WORK_MEM:-64MB}
+      POSTGRES_MAX_CONNECTIONS: ${POSTGRES_MAX_CONNECTIONS:-200}
+    
+    secrets:
+      - postgres_password
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./config/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./config/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./scripts/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./logs/postgres:/var/log/postgresql
+      - postgres_backups:/backups
+    
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+      -c logging_collector=on
+      -c log_directory=/var/log/postgresql
+      -c log_filename=postgresql.log
+      -c log_rotation_age=1d
+      -c log_rotation_size=100MB
+    
+    networks:
+      - flakeguard-network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+
+  redis:
+    image: redis:7-alpine
+    container_name: flakeguard-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass $(cat /run/secrets/redis_password)
+      --appendonly yes
+      --appendfsync everysec
+      --auto-aof-rewrite-percentage 100
+      --auto-aof-rewrite-min-size 64mb
+      --maxmemory ${REDIS_MAX_MEMORY:-512mb}
+      --maxmemory-policy allkeys-lru
+      --timeout 300
+      --tcp-keepalive 60
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+      --stop-writes-on-bgsave-error yes
+      --rdbcompression yes
+      --rdbchecksum yes
+    
+    secrets:
+      - redis_password
+    
+    volumes:
+      - redis_data:/data
+      - ./logs/redis:/var/log/redis
+    
+    networks:
+      - flakeguard-network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "$(cat /run/secrets/redis_password)", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  # ==========================================================================
+  # MONITORING & OBSERVABILITY
+  # ==========================================================================
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: flakeguard-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--storage.tsdb.retention.size=10GB'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+      - '--log.level=info'
+    
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./config/prometheus/alerts:/etc/prometheus/alerts:ro
+      - prometheus_data:/prometheus
+    
+    networks:
+      - flakeguard-network
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+  grafana:
+    image: grafana/grafana:10.1.0
+    container_name: flakeguard-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD_FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_ANALYTICS_REPORTING_ENABLED: false
+      GF_ANALYTICS_CHECK_FOR_UPDATES: false
+      GF_SECURITY_DISABLE_GRAVATAR: true
+      GF_SNAPSHOTS_EXTERNAL_ENABLED: false
+      GF_LOG_LEVEL: info
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-https://grafana.flakeguard.dev}
+    
+    secrets:
+      - grafana_admin_password
+    
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    
+    depends_on:
+      - prometheus
+    
+    networks:
+      - flakeguard-network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: flakeguard-alertmanager
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=https://alerts.flakeguard.dev'
+      - '--log.level=info'
+    
+    volumes:
+      - ./config/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    
+    depends_on:
+      - prometheus
+    
+    networks:
+      - flakeguard-network
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+# =============================================================================
+# SECRETS MANAGEMENT
+# =============================================================================
+secrets:
+  jwt_secret:
+    external: true
+    name: flakeguard_jwt_secret
+  api_key:
+    external: true
+    name: flakeguard_api_key
+  webhook_secret:
+    external: true
+    name: flakeguard_webhook_secret
+  encryption_key:
+    external: true
+    name: flakeguard_encryption_key
+  github_private_key:
+    external: true
+    name: flakeguard_github_private_key
+  github_webhook_secret:
+    external: true
+    name: flakeguard_github_webhook_secret
+  github_client_secret:
+    external: true
+    name: flakeguard_github_client_secret
+  slack_bot_token:
+    external: true
+    name: flakeguard_slack_bot_token
+  slack_signing_secret:
+    external: true
+    name: flakeguard_slack_signing_secret
+  nextauth_secret:
+    external: true
+    name: flakeguard_nextauth_secret
+  postgres_password:
+    external: true
+    name: flakeguard_postgres_password
+  redis_password:
+    external: true
+    name: flakeguard_redis_password
+  grafana_admin_password:
+    external: true
+    name: flakeguard_grafana_admin_password
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/postgres
+  
+  postgres_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${BACKUP_PATH:-./backups}/postgres
+  
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/redis
+  
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/prometheus
+  
+  grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/grafana
+  
+  alertmanager_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/alertmanager
+  
+  api_uploads:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}/uploads
+  
+  worker_temp:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${TEMP_PATH:-./temp}/worker
+  
+  nginx_cache:
+    driver: local
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+networks:
+  flakeguard-network:
+    name: flakeguard-production
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1
+    driver_opts:
+      com.docker.network.bridge.name: flakeguard-prod

@@ -1,0 +1,31 @@
+Contact: mailto:security@flakeguard.dev
+Contact: https://github.com/flakeguard/flakeguard/security/advisories/new
+Expires: 2025-12-31T23:59:59.000Z
+Encryption: https://flakeguard.dev/.well-known/pgp-key.asc
+Acknowledgments: https://flakeguard.dev/security/acknowledgments
+Preferred-Languages: en, zh-TW
+Canonical: https://flakeguard.dev/.well-known/security.txt
+Policy: https://flakeguard.dev/security/policy
+
+# FlakeGuard Security Contact Information
+#
+# We take security seriously. Please report security vulnerabilities
+# responsibly through one of the contact methods above.
+#
+# Response Times:
+# - Critical: 24 hours
+# - High: 48 hours  
+# - Medium: 72 hours
+# - Low: 7 days
+#
+# Security Features:
+# - HMAC webhook verification
+# - Rate limiting
+# - CSRF protection
+# - Security headers
+# - Input validation
+# - Audit logging
+# - Secret management
+#
+# For more information, see our security documentation at:
+# https://docs.flakeguard.dev/security

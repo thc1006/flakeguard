@@ -1,0 +1,286 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "FlakeGuard - Service Overview",
+    "tags": ["flakeguard", "sre", "overview"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health Score",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "flakeguard:service_health_score_5m",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0.95},
+                {"color": "yellow", "value": 0.98},
+                {"color": "green", "value": 0.99}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0.9,
+            "max": 1
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "API Availability (SLO: 99.9%)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "flakeguard:api_success_rate_5m",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0.995},
+                {"color": "yellow", "value": 0.998},
+                {"color": "green", "value": 0.999}
+              ]
+            },
+            "unit": "percentunit"
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Parse Success Rate (SLO: 99%)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "flakeguard:parse_success_rate_5m",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0.985},
+                {"color": "yellow", "value": 0.995},
+                {"color": "green", "value": 0.99}
+              ]
+            },
+            "unit": "percentunit"
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "Ingestion P95 Latency (SLO: <30s)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "flakeguard:ingestion_latency_p95_5m",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 25},
+                {"color": "red", "value": 30}
+              ]
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "HTTP Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(flakeguard_api_http_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "HTTP Response Times",
+        "type": "graph", 
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(flakeguard_api_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(flakeguard_api_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(flakeguard_api_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Duration (s)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "Error Budget Consumption",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "flakeguard:api_availability_burn_rate_1h",
+            "legendFormat": "API Availability (1h)",
+            "refId": "A"
+          },
+          {
+            "expr": "flakeguard:parse_success_burn_rate_1h",
+            "legendFormat": "Parse Success (1h)",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Burn Rate (x normal)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Tests Processed",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(flakeguard_api_tests_processed_total[5m])",
+            "legendFormat": "{{test_status}} - {{repository}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Tests/sec",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "Flake Detections",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(flakeguard_api_flake_detections_total[1h]) * 3600",
+            "legendFormat": "{{severity}} - {{repository}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Flakes/hour",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 10,
+        "title": "Worker Queue Depths",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "flakeguard_worker_queue_size{status=\"waiting\"}",
+            "legendFormat": "{{queue}} - waiting",
+            "refId": "A"
+          },
+          {
+            "expr": "flakeguard_worker_queue_size{status=\"active\"}",
+            "legendFormat": "{{queue}} - active",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Jobs",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "id": 11,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "flakeguard_api_memory_usage_bytes{type=\"rss\"} / 1024 / 1024",
+            "legendFormat": "API RSS (MB)",
+            "refId": "A"
+          },
+          {
+            "expr": "flakeguard_worker_memory_usage_bytes{type=\"rss\"} / 1024 / 1024",
+            "legendFormat": "Worker RSS (MB)",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Memory (MB)",
+            "min": 0
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "schemaVersion": 30,
+    "version": 1,
+    "uid": "flakeguard-overview"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "name": "flakeguard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade monorepo for flakeguard",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "scripts": {
+    "flakeguard:init": "node packages/cli/src/bin/cli.js",
+    "dev": "pnpm --parallel --filter='./apps/*' dev",
+    "docs:dev": "pnpm --filter=@flakeguard/docs dev",
+    "docs:build": "pnpm --filter=@flakeguard/docs build",
+    "docs:serve": "pnpm --filter=@flakeguard/docs serve",
+    "build": "pnpm --filter='./packages/*' build && pnpm --filter='./apps/*' build",
+    "test": "pnpm --filter='./apps/*' --filter='./packages/*' test",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "migrate:dev": "pnpm --filter=@flakeguard/api migrate:dev",
+    "migrate:deploy": "pnpm --filter=@flakeguard/api migrate:deploy",
+    "typecheck": "pnpm --filter='./packages/*' --filter='./apps/*' typecheck",
+    "clean": "pnpm --filter='./packages/*' --filter='./apps/*' clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "prettier": "^3.2.4",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "inquirer": "^9.2.12",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1",
+    "commander": "^11.1.0"
+  },
+  "packageManager": "pnpm@8.15.1",
+  "bin": {
+    "flakeguard-init": "packages/cli/src/bin/cli.js"
+  }
+}

@@ -1,0 +1,65 @@
+# Prometheus Configuration for FlakeGuard Worker Monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'flakeguard'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+
+# Scrape configuration
+scrape_configs:
+  # FlakeGuard Worker metrics
+  - job_name: 'flakeguard-worker'
+    static_configs:
+      - targets: ['worker:9090']
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    honor_labels: true
+    params:
+      format: ['prometheus']
+
+  # Redis metrics (if redis_exporter is used)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Node.js process metrics
+  - job_name: 'nodejs-process'
+    static_configs:
+      - targets: ['worker:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    params:
+      collect[]: ['process']
+
+  # BullMQ queue metrics
+  - job_name: 'bullmq-queues'
+    static_configs:
+      - targets: ['worker:9090']
+    scrape_interval: 15s
+    metrics_path: /metrics
+    params:
+      collect[]: ['queues']
+
+  # System metrics
+  - job_name: 'system-metrics'
+    static_configs:
+      - targets: ['worker:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+    params:
+      collect[]: ['system']

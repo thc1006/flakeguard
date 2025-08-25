@@ -1,0 +1,208 @@
+# FlakeGuard Worker - Production Docker Compose
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Worker Service
+  # ============================================================================
+  worker:
+    build:
+      context: ../../
+      dockerfile: apps/worker/Dockerfile
+    container_name: flakeguard-worker
+    restart: unless-stopped
+    environment:
+      # Database Configuration
+      DATABASE_URL: ${DATABASE_URL}
+      
+      # Redis Configuration
+      REDIS_URL: redis://redis:6379
+      REDIS_CLUSTER_ENABLED: "false"
+      
+      # Worker Configuration
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-5}
+      WORKER_NAME: ${WORKER_NAME:-flakeguard-worker}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      
+      # GitHub Configuration
+      GITHUB_APP_ID: ${GITHUB_APP_ID}
+      GITHUB_PRIVATE_KEY: ${GITHUB_PRIVATE_KEY}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      GITHUB_API_BASE_URL: ${GITHUB_API_BASE_URL:-https://api.github.com}
+      
+      # Polling Configuration
+      POLLING_ENABLED: ${POLLING_ENABLED:-true}
+      POLLING_INTERVAL_MINUTES: ${POLLING_INTERVAL_MINUTES:-5}
+      POLLING_BATCH_SIZE: ${POLLING_BATCH_SIZE:-10}
+      
+      # Metrics Configuration
+      METRICS_PORT: 9090
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
+      
+      # Health Check Configuration
+      HEALTH_CHECK_PORT: 8080
+      
+      # Node Configuration
+      NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=2048"
+    ports:
+      - "${HEALTH_CHECK_PORT:-8080}:8080"  # Health checks
+      - "${METRICS_PORT:-9090}:9090"       # Metrics
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - flakeguard-network
+    volumes:
+      - worker-temp:/tmp/flakeguard
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.5'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: json-file
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # ============================================================================
+  # Redis Service
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: flakeguard-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/etc/redis/redis.conf:ro
+    networks:
+      - flakeguard-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+  # ============================================================================
+  # Prometheus (Optional - for metrics collection)
+  # ============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: flakeguard-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "${PROMETHEUS_PORT:-9091}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - flakeguard-network
+    depends_on:
+      - worker
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.1'
+
+  # ============================================================================
+  # Grafana (Optional - for metrics visualization)
+  # ============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: flakeguard-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource"
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - flakeguard-network
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+
+# ============================================================================
+# Networks
+# ============================================================================
+networks:
+  flakeguard-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ============================================================================
+# Volumes
+# ============================================================================
+volumes:
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  worker-temp:
+    driver: local

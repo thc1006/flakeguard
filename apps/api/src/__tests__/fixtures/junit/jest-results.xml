@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Jest Tests" tests="12" failures="3" errors="1" skipped="2" time="4.567" timestamp="2023-10-01T10:30:00.000Z">
+  <testsuite name="src/components/Button.test.tsx" tests="4" failures="1" errors="0" skipped="1" time="1.234">
+    <testcase classname="src/components/Button.test.tsx Button component" name="should render with default props" time="0.045"/>
+    
+    <testcase classname="src/components/Button.test.tsx Button component" name="should handle click events" time="0.123">
+      <failure message="Expected onClick to have been called" type="AssertionError">
+AssertionError: Expected onClick to have been called
+    at Object.toHaveBeenCalled (/app/node_modules/expect/build/index.js:218:17)
+    at Object.it (/app/src/components/Button.test.tsx:23:34)
+    at Promise.then.completed (/app/node_modules/jest-circus/build/utils.js:300:28)
+      </failure>
+      <system-out>console.log: Button clicked with props: {"variant":"primary"}</system-out>
+    </testcase>
+    
+    <testcase classname="src/components/Button.test.tsx Button component" name="should apply custom className" time="0.067"/>
+    
+    <testcase classname="src/components/Button.test.tsx Button component" name="should handle disabled state" time="0.089">
+      <skipped message="Temporarily disabled due to flaky behavior"/>
+    </testcase>
+  </testsuite>
+  
+  <testsuite name="src/hooks/useQuarantine.test.ts" tests="3" failures="1" errors="0" skipped="0" time="0.891">
+    <testcase classname="src/hooks/useQuarantine.test.ts useQuarantine hook" name="should return quarantine status" time="0.234"/>
+    
+    <testcase classname="src/hooks/useQuarantine.test.ts useQuarantine hook" name="should handle API errors gracefully" time="0.456">
+      <failure message="API error not properly handled" type="Error">
+Error: API error not properly handled
+    at expect (/app/node_modules/expect/build/index.js:218:17)
+    at /app/src/hooks/useQuarantine.test.ts:45:23
+    at processTicksAndRejections (internal/process/task_queues.js:97:5)
+      </failure>
+    </testcase>
+    
+    <testcase classname="src/hooks/useQuarantine.test.ts useQuarantine hook" name="should refresh data on demand" time="0.201"/>
+  </testsuite>
+  
+  <testsuite name="src/utils/api.test.ts" tests="3" failures="1" errors="1" skipped="1" time="1.567">
+    <testcase classname="src/utils/api.test.ts API utilities" name="should make GET requests" time="0.123"/>
+    
+    <testcase classname="src/utils/api.test.ts API utilities" name="should handle network timeouts" time="0.789">
+      <failure message="Timeout not properly handled" type="Error">
+Error: Timeout not properly handled
+    at Object.it (/app/src/utils/api.test.ts:67:11)
+    at processImmediate (internal/timers.js:456:26)
+      </failure>
+    </testcase>
+    
+    <testcase classname="src/utils/api.test.ts API utilities" name="should retry failed requests" time="0.655">
+      <error message="Unexpected error during test execution" type="TypeError">
+TypeError: Cannot read property 'retry' of undefined
+    at /app/src/utils/api.test.ts:89:23
+    at processTicksAndRejections (internal/process/task_queues.js:97:5)
+      </error>
+    </testcase>
+    
+    <testcase classname="src/utils/api.test.ts API utilities" name="should cache responses appropriately" time="0.000">
+      <skipped message="Cache implementation not yet available"/>
+    </testcase>
+  </testsuite>
+  
+  <testsuite name="src/services/flake-analysis.test.ts" tests="2" failures="0" errors="0" skipped="0" time="0.875">
+    <testcase classname="src/services/flake-analysis.test.ts FlakeAnalysisService" name="should analyze test patterns" time="0.445">
+      <system-out>console.log: Analyzing 1000 test results</system-out>
+    </testcase>
+    
+    <testcase classname="src/services/flake-analysis.test.ts FlakeAnalysisService" name="should calculate confidence scores" time="0.430">
+      <system-out>console.log: Confidence score calculated: 0.87</system-out>
+    </testcase>
+  </testsuite>
+</testsuites>

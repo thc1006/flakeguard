@@ -1,0 +1,73 @@
+{
+  "navigation": {
+    "dashboard": "儀表板",
+    "repositories": "儲存庫",
+    "tests": "測試",
+    "actions": "最近動作",
+    "settings": "設定"
+  },
+  "dashboard": {
+    "title": "FlakeGuard 儀表板",
+    "subtitle": "監控和管理您儲存庫中的不穩定測試檢測",
+    "repositoryHealth": "儲存庫健康狀態",
+    "topFlakyTests": "主要不穩定測試",
+    "failureClusters": "失敗群組",
+    "recentActions": "最近動作"
+  },
+  "repository": {
+    "health": {
+      "excellent": "優秀",
+      "good": "良好",
+      "warning": "警告",
+      "critical": "危急"
+    },
+    "metrics": {
+      "flakinessScore": "不穩定分數",
+      "testCount": "測試總數",
+      "flakyTests": "不穩定測試",
+      "lastUpdated": "最後更新"
+    }
+  },
+  "test": {
+    "status": {
+      "passing": "通過",
+      "flaky": "不穩定",
+      "quarantined": "已隔離",
+      "failing": "失敗"
+    },
+    "actions": {
+      "quarantine": "隔離",
+      "viewHistory": "查看歷史",
+      "createIssue": "建立議題"
+    }
+  },
+  "actions": {
+    "types": {
+      "quarantine": "隔離",
+      "unquarantine": "解除隔離",
+      "issue_created": "議題已建立",
+      "rerun": "重新執行測試"
+    },
+    "viewDetails": "查看詳情",
+    "viewOnGitHub": "在 GitHub 上查看",
+    "viewSlackThread": "查看 Slack 討論串"
+  },
+  "common": {
+    "loading": "載入中...",
+    "error": "發生錯誤",
+    "retry": "重試",
+    "noData": "無可用資料",
+    "signIn": "登入",
+    "signOut": "登出",
+    "search": "搜尋...",
+    "filter": "篩選",
+    "sort": "排序",
+    "refresh": "重新整理"
+  },
+  "auth": {
+    "signInTitle": "登入 FlakeGuard",
+    "signInSubtitle": "存取您的不穩定測試儀表板",
+    "signInWithGitHub": "使用 GitHub 登入",
+    "unauthorized": "您無權存取此資源"
+  }
+}

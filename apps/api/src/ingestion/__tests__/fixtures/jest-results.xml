@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="jest tests" 
+            tests="12" 
+            failures="2" 
+            errors="0" 
+            time="4.567" 
+            timestamp="2023-12-01T10:50:15">
+  
+  <testsuite name="UserService" 
+             tests="6" 
+             failures="1" 
+             errors="0" 
+             skipped="0" 
+             time="2.345" 
+             timestamp="2023-12-01T10:50:15" 
+             file="src/services/UserService.test.js">
+    
+    <testcase classname="UserService" 
+              name="should create a new user" 
+              time="0.456">
+    </testcase>
+    
+    <testcase classname="UserService" 
+              name="should find user by id" 
+              time="0.234">
+    </testcase>
+    
+    <testcase classname="UserService" 
+              name="should update user" 
+              time="0.567">
+    </testcase>
+    
+    <testcase classname="UserService" 
+              name="should delete user" 
+              time="0.123">
+    </testcase>
+    
+    <testcase classname="UserService" 
+              name="should throw error for invalid user id" 
+              time="0.089">
+    </testcase>
+    
+    <testcase classname="UserService" 
+              name="should validate user email format" 
+              time="0.876">
+      <failure message="Expected validation to fail for invalid email" 
+               type="AssertionError">
+        <![CDATA[
+AssertionError: Expected validation to fail for invalid email
+Expected: false
+Actual: true
+
+    at Object.<anonymous> (src/services/UserService.test.js:45:23)
+    at Promise.then.completed (node_modules/jest-circus/build/utils.js:298:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (node_modules/jest-circus/build/utils.js:231:10)
+    at _callCircusTest (node_modules/jest-circus/build/run.js:316:40)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at _runTest (node_modules/jest-circus/build/run.js:252:3)
+    at _runTestsForDescribeBlock (node_modules/jest-circus/build/run.js:126:9)
+    at run (node_modules/jest-circus/build/run.js:71:3)
+    at runAndTransformResultsToJestFormat (node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapterInit.js:122:21)
+    at jestAdapter (node_modules/jest-circus/build/legacy-code-todo-rewrite/jestAdapter.js:79:19)
+    at runTestInternal (node_modules/jest-runner/build/runTest.js:389:16)
+    at runTest (node_modules/jest-runner/build/runTest.js:475:34)
+        ]]>
+      </failure>
+    </testcase>
+  </testsuite>
+  
+  <testsuite name="ApiController" 
+             tests="6" 
+             failures="1" 
+             errors="0" 
+             skipped="0" 
+             time="2.222" 
+             timestamp="2023-12-01T10:50:17" 
+             file="src/controllers/ApiController.test.js">
+    
+    <testcase classname="ApiController" 
+              name="GET /api/users should return all users" 
+              time="0.345">
+    </testcase>
+    
+    <testcase classname="ApiController" 
+              name="GET /api/users/:id should return user by id" 
+              time="0.287">
+    </testcase>
+    
+    <testcase classname="ApiController" 
+              name="POST /api/users should create new user" 
+              time="0.567">
+    </testcase>
+    
+    <testcase classname="ApiController" 
+              name="PUT /api/users/:id should update user" 
+              time="0.423">
+    </testcase>
+    
+    <testcase classname="ApiController" 
+              name="DELETE /api/users/:id should delete user" 
+              time="0.189">
+    </testcase>
+    
+    <testcase classname="ApiController" 
+              name="should handle authentication middleware" 
+              time="0.411">
+      <failure message="Authentication middleware did not reject invalid token" 
+               type="AssertionError">
+        <![CDATA[
+AssertionError: Authentication middleware did not reject invalid token
+Expected: 401
+Actual: 200
+
+Request headers: {
+  "authorization": "Bearer invalid-jwt-token",
+  "content-type": "application/json"
+}
+
+Response: {
+  "message": "Success",
+  "data": {...}
+}
+
+    at Object.<anonymous> (src/controllers/ApiController.test.js:78:45)
+    at runMicrotasks (<anonymous>)
+    at processTicksAndRejections (node:internal/process/task_queues:96:5)
+        ]]>
+      </failure>
+    </testcase>
+  </testsuite>
+  
+  <system-out><![CDATA[
+  console.log
+    UserService test suite started
+
+      at Object.<anonymous> (src/services/UserService.test.js:5:13)
+
+  console.log
+    Creating mock user: John Doe
+
+      at Object.<anonymous> (src/services/UserService.test.js:12:15)
+
+  console.log
+    User created successfully with ID: 1
+
+      at Object.<anonymous> (src/services/UserService.test.js:15:15)
+
+  console.log
+    Testing email validation with: invalid-email-format
+
+      at Object.<anonymous> (src/services/UserService.test.js:42:15)
+
+  console.log
+    ApiController test suite started
+
+      at Object.<anonymous> (src/controllers/ApiController.test.js:8:13)
+
+  console.log
+    Testing authentication with invalid token
+
+      at Object.<anonymous> (src/controllers/ApiController.test.js:75:15)
+  ]]></system-out>
+  
+  <system-err><![CDATA[
+  console.error
+    Email validation error: Invalid format should have been rejected
+
+      at Object.<anonymous> (src/services/UserService.test.js:46:17)
+
+  console.error
+    Authentication middleware bypass detected
+
+      at Object.<anonymous> (src/controllers/ApiController.test.js:79:17)
+  ]]></system-err>
+</testsuites>
