@@ -338,6 +338,20 @@ docker build -f apps/worker/Dockerfile -t flakeguard-worker .
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
+## For Maintainers
+
+### Dependency Management
+
+FlakeGuard uses [Renovate](https://renovatebot.com/) for automated dependency updates:
+
+- **Scheduled Updates**: Dependencies are updated weekly (Mondays before 6 AM UTC)
+- **Grouping**: Minor and patch updates are grouped together to reduce PR noise
+- **Automerge**: Non-breaking patch updates are automatically merged after CI passes
+- **Security**: Vulnerability alerts trigger immediate updates outside the schedule
+- **Testing Coverage**: TypeScript, ESLint, and testing dependencies are grouped separately for easier review
+
+**Renovate Configuration**: See `renovate.json` for the complete configuration. Major updates require manual review and are never automerged.
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
