@@ -6,9 +6,8 @@
 [extend]
 useDefault = true
 
-# Documentation and example files
-[[allowlist]]
-description = "Documentation, guides, and example files"
+# Single allowlist section with combined paths and regexes
+[allowlist]
 paths = [
   '''README\.md''',
   '''CLAUDE\.md''',
@@ -24,13 +23,7 @@ paths = [
   '''.*\.sample''',
   '''build/.*''',
   '''dist/.*''',
-  '''coverage/.*'''
-]
-
-# Test files and fixtures
-[[allowlist]]
-description = "Test files, fixtures, and mock data"
-paths = [
+  '''coverage/.*''',
   '''.*/__tests__/.*''',
   '''.*/__mocks__/.*''',
   '''test/.*''',
@@ -41,22 +34,12 @@ paths = [
   '''.*\.integration\.test\..*''',
   '''docker-compose\.test\.yml''',
   '''.*\.test\.yml''',
-  '''scripts/test-.*\.ps1'''
-]
-
-# Environment configuration examples
-[[allowlist]]
-description = "Environment variable examples and configuration files"
-paths = [
+  '''scripts/test-.*\.ps1''',
   '''\.env\.example''',
   '''\.env\..*\.example''',
   '''example\.env''',
   '''\.env\.template'''
 ]
-
-# Placeholder tokens and test data
-[[allowlist]]
-description = "Safe placeholder tokens and clearly marked test values"
 regexes = [
   # Explicit placeholders
   '''<REDACTED[^>]*>''',
