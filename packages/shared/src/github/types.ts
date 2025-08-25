@@ -310,7 +310,7 @@ export interface GitHubApiWrapper {
   readonly circuitBreakerStatus: CircuitBreakerStatus;
   
   /** Make authenticated API request with resilience */
-  request<T = any>(options: RequestOptions): Promise<T>;
+  request<T = unknown>(options: RequestOptions): Promise<T>;
   
   /** Download artifact with retry and validation */
   downloadArtifact(options: ArtifactDownloadOptions): Promise<Buffer>;

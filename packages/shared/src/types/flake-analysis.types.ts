@@ -19,17 +19,91 @@
 //   FGIssueLink
 // } from '@prisma/client';
 
-// Temporary type definitions
-type FGRepository = any;
-type FGTestCase = any;
-type FGOccurrence = any;
-type FGFlakeScore = any;
-type FGQuarantineDecision = any;
+// Temporary type definitions - replace with proper Prisma types when available
+interface FGRepository {
+  id: string;
+  provider: string;
+  owner: string;
+  name: string;
+  installationId: string;
+}
+
+interface FGTestCase {
+  id: string;
+  repoId: string;
+  suite: string;
+  className: string | null;
+  name: string;
+  file: string | null;
+  ownerTeam: string | null;
+}
+
+interface FGOccurrence {
+  id: string;
+  testId: string;
+  runId: string;
+  status: string;
+  durationMs: number | null;
+  failureMsgSignature: string | null;
+  failureStackDigest: string | null;
+  attempt: number;
+  createdAt: Date;
+}
+
+interface FGFlakeScore {
+  testId: string;
+  score: number;
+  windowN: number;
+  lastUpdatedAt: Date;
+}
+
+interface FGQuarantineDecision {
+  id: string;
+  testId: string;
+  state: FGQuarantineState;
+  rationale: string | null;
+  byUser: string | null;
+  until: Date | null;
+  createdAt: Date;
+}
+
 type FGQuarantineState = 'NONE' | 'PARTIAL' | 'FULL';
-type FGWorkflowRun = any;
-type FGJob = any;
-type FGFailureCluster = any;
-type FGIssueLink = any;
+
+interface FGWorkflowRun {
+  id: string;
+  repoId: string;
+  runId: string;
+  status: string;
+  conclusion: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface FGJob {
+  id: string;
+  runId: string;
+  jobId: string;
+  name: string;
+  status: string;
+  conclusion: string | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
+}
+
+interface FGFailureCluster {
+  id: string;
+  signature: string;
+  tests: string[];
+  count: number;
+}
+
+interface FGIssueLink {
+  id: string;
+  testId: string;
+  provider: string;
+  url: string;
+  createdAt: Date;
+}
 
 // =============================================================================
 // Core Analysis Types
@@ -420,7 +494,7 @@ export interface PaginatedResults<T> {
 /**
  * Standard API response wrapper
  */
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: ApiError;
@@ -433,7 +507,7 @@ export interface ApiResponse<T = any> {
 export interface ApiError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   field?: string;
 }
 
@@ -484,7 +558,7 @@ export interface NotificationSettings {
  */
 export interface NotificationChannel {
   type: 'slack' | 'email' | 'webhook';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   events: string[];
 }
 

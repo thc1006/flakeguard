@@ -145,9 +145,9 @@ export class OctokitHelpers {
       const octokit = await this.app.getInstallationOctokit(installationId);
       
       // Cache the instance
-      this.installationOctokits.set(installationId, octokit as any);
+      this.installationOctokits.set(installationId, octokit);
       
-      return octokit as any;
+      return octokit;
     } catch (error) {
       throw new GitHubApiError(
         `Failed to get Octokit for installation ${installationId}`,
@@ -188,7 +188,7 @@ export class OctokitHelpers {
     } catch (error) {
       throw new GitHubApiError(
         `Failed to list artifacts for run ${runId} in ${owner}/${repo}`,
-        error instanceof Error && 'status' in error ? (error as any).status : undefined,
+        error instanceof Error && 'status' in error ? (error as { status?: number }).status : undefined,
         error instanceof Error ? error : new Error(String(error))
       );
     }
@@ -230,7 +230,6 @@ export class OctokitHelpers {
       // Download immediately since URL is short-lived
       const response = await fetch(downloadResponse.url, {
         headers: {
-          'Authorization': `token ${(octokit as any).auth?.token || ''}`,
           'User-Agent': 'FlakeGuard/1.0',
         },
       });
@@ -292,7 +291,7 @@ export class OctokitHelpers {
     } catch (error) {
       throw new GitHubApiError(
         `Failed to list jobs for run ${runId} in ${owner}/${repo}`,
-        error instanceof Error && 'status' in error ? (error as any).status : undefined,
+        error instanceof Error && 'status' in error ? (error as { status?: number }).status : undefined,
         error instanceof Error ? error : new Error(String(error))
       );
     }
@@ -327,7 +326,7 @@ export class OctokitHelpers {
     } catch (error) {
       throw new GitHubApiError(
         `Failed to get workflow run ${runId} in ${owner}/${repo}`,
-        error instanceof Error && 'status' in error ? (error as any).status : undefined,
+        error instanceof Error && 'status' in error ? (error as { status?: number }).status : undefined,
         error instanceof Error ? error : new Error(String(error))
       );
     }
@@ -360,7 +359,7 @@ export class OctokitHelpers {
     } catch (error) {
       throw new GitHubApiError(
         `Failed to re-run failed jobs for run ${runId} in ${owner}/${repo}`,
-        error instanceof Error && 'status' in error ? (error as any).status : undefined,
+        error instanceof Error && 'status' in error ? (error as { status?: number }).status : undefined,
         error instanceof Error ? error : new Error(String(error))
       );
     }

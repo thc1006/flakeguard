@@ -6,10 +6,36 @@
 
 import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
 
-import { OctokitHelpers, GitHubApiError, ArtifactDownloadError } from '../octokit-helpers.js';
 import { TestCrypto } from '../../utils/test-crypto.js';
+import { 
+  OctokitHelpers, 
+  GitHubApiError, 
+  ArtifactDownloadError,
+  type GitHubArtifact,
+  type GitHubJob,
+  type GitHubWorkflowRun
+} from '../octokit-helpers.js';
 
-// Mock dependencies
+// Mock dependencies with proper types
+interface MockApp {
+  getInstallationOctokit: MockedFunction<(installationId: number) => Promise<MockOctokit>>;
+}
+
+interface MockOctokit {
+  rest: {
+    rateLimit: {
+      get: MockedFunction<() => Promise<{ data: { rate: { remaining: number; limit: number; reset: number } } }>>;
+    };
+    actions: {
+      listWorkflowRunArtifacts: MockedFunction<(params: { owner: string; repo: string; run_id: number; per_page: number }) => Promise<{ data: { artifacts: GitHubArtifact[] } }>>;
+      downloadArtifact: MockedFunction<(params: { owner: string; repo: string; artifact_id: number; archive_format: string }) => Promise<{ url: string }>>;
+      listJobsForWorkflowRun: MockedFunction<(params: { owner: string; repo: string; run_id: number; per_page: number }) => Promise<{ data: { jobs: GitHubJob[] } }>>;
+      getWorkflowRun: MockedFunction<(params: { owner: string; repo: string; run_id: number }) => Promise<{ data: GitHubWorkflowRun }>>;
+      reRunWorkflowFailedJobs: MockedFunction<(params: { owner: string; repo: string; run_id: number }) => Promise<void>>;
+    };
+  };
+}
+
 vi.mock('@octokit/app', () => ({
   App: vi.fn(),
 }));
@@ -45,8 +71,8 @@ global.fetch = vi.fn();
 
 describe('OctokitHelpers - P2', () => {
   let octokitHelpers: OctokitHelpers;
-  let mockOctokit: any;
-  let mockApp: any;
+  let mockOctokit: MockOctokit;
+  let mockApp: MockApp;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -82,7 +108,7 @@ describe('OctokitHelpers - P2', () => {
 
     // Set up App mock implementation
     const { App } = await import('@octokit/app');
-    vi.mocked(App).mockImplementation(() => mockApp);
+    vi.mocked(App).mockImplementation(() => mockApp as never);
 
     octokitHelpers = new OctokitHelpers({
       githubAppId: '12345',
@@ -130,7 +156,7 @@ describe('OctokitHelpers - P2', () => {
     };
 
     it('should list workflow run artifacts', async () => {
-      const mockArtifacts = [
+      const mockArtifacts: GitHubArtifact[] = [
         {
           id: 1,
           name: 'test-results',
@@ -163,9 +189,9 @@ describe('OctokitHelpers - P2', () => {
     });
 
     it('should handle API errors', async () => {
-      mockOctokit.rest.actions.listWorkflowRunArtifacts.mockRejectedValue(
-        Object.assign(new Error('Not found'), { status: 404 })
-      );
+      const error = new Error('Not found') as Error & { status: number };
+      error.status = 404;
+      mockOctokit.rest.actions.listWorkflowRunArtifacts.mockRejectedValue(error);
 
       await expect(octokitHelpers.listRunArtifacts(testParams))
         .rejects.toThrow(GitHubApiError);
@@ -208,7 +234,12 @@ describe('OctokitHelpers - P2', () => {
       vi.mocked(fs.mkdtempSync).mockReturnValue('/tmp/flakeguard-artifact-test');
       vi.mocked(os.tmpdir).mockReturnValue('/tmp');
       vi.mocked(path.join).mockReturnValue('/tmp/flakeguard-artifact-test/artifact-123.zip');
-      vi.mocked(fs.createWriteStream).mockReturnValue({} as any);
+      vi.mocked(fs.createWriteStream).mockReturnValue({
+        write: vi.fn(),
+        end: vi.fn(),
+        destroy: vi.fn(),
+        writable: true,
+      } as unknown as NodeJS.WriteStream);
       vi.mocked(streamPromises.pipeline).mockResolvedValue(undefined);
     });
 
@@ -270,7 +301,7 @@ describe('OctokitHelpers - P2', () => {
     };
 
     it('should list jobs for workflow run', async () => {
-      const mockJobs = [
+      const mockJobs: GitHubJob[] = [
         {
           id: 1,
           name: 'test-job',
@@ -331,7 +362,7 @@ describe('OctokitHelpers - P2', () => {
     };
 
     it('should re-run failed jobs', async () => {
-      mockOctokit.rest.actions.reRunWorkflowFailedJobs.mockResolvedValue({});
+      mockOctokit.rest.actions.reRunWorkflowFailedJobs.mockResolvedValue(undefined);
 
       await octokitHelpers.rerunFailedJobs(testParams);
 

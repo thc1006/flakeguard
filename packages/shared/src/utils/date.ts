@@ -3,7 +3,7 @@ export function formatDate(date: Date | string): string {
   return d.toISOString();
 }
 
-export function isValidDate(date: any): boolean {
+export function isValidDate(date: unknown): boolean {
   return date instanceof Date && !isNaN(date.getTime());
 }
 

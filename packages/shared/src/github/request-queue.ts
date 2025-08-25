@@ -151,7 +151,12 @@ export class RequestQueue {
 
       // Start processing if not already running for this priority
       if (!this.processing.has(priority)) {
-        this.processQueue(priority);
+        void this.processQueue(priority).catch((error) => {
+          this.logger.error(
+            { error, priority, requestId },
+            'Queue processing failed'
+          );
+        });
       }
     });
   }
@@ -194,15 +199,17 @@ export class RequestQueue {
     this.logger.info('Starting request queue shutdown');
 
     // Reject all pending requests
-    for (const [_priority, queue] of Array.from(this.queues.entries())) {
+    for (const [, queue] of Array.from(this.queues.entries())) {
       while (queue.length > 0) {
-        const request = queue.shift()!;
-        this.clearRequestTimeout(request);
-        request.reject(new GitHubApiError(
-          'SERVICE_UNAVAILABLE',
-          'Request queue shutting down',
-          { retryable: true }
-        ));
+        const request = queue.shift();
+        if (request) {
+          this.clearRequestTimeout(request);
+          request.reject(new GitHubApiError(
+            'SERVICE_UNAVAILABLE',
+            'Request queue shutting down',
+            { retryable: true }
+          ));
+        }
       }
     }
 
@@ -243,7 +250,7 @@ export class RequestQueue {
     );
 
     while (queue.length > 0 && !this.isShuttingDown) {
-      const request = queue.shift()!;
+      const request = queue.shift();
       
       if (!request) {
         continue;

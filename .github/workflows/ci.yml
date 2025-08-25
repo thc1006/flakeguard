@@ -205,9 +205,12 @@ jobs:
         run: pnpm --filter=@flakeguard/api generate
 
       - name: Run database migrations
-        run: |
-          pnpm --filter=@flakeguard/api migrate:deploy
-          pnpm --filter=@flakeguard/api seed
+        run: pnpm --filter=@flakeguard/api migrate:deploy
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Seed database
+        run: pnpm --filter=@flakeguard/api seed
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
@@ -302,9 +305,12 @@ jobs:
         run: pnpm --filter=@flakeguard/api generate
 
       - name: Run database migrations
-        run: |
-          pnpm --filter=@flakeguard/api migrate:deploy
-          pnpm --filter=@flakeguard/api seed
+        run: pnpm --filter=@flakeguard/api migrate:deploy
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      - name: Seed database
+        run: pnpm --filter=@flakeguard/api seed
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
