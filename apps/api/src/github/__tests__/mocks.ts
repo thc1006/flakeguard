@@ -15,7 +15,7 @@ import crypto from 'crypto';
 
 import type { Octokit } from '@octokit/rest';
 import type { PrismaClient } from '@prisma/client';
-import { vi } from 'vitest';
+import { vi, expect, beforeEach, afterEach } from 'vitest';
 
 import { GitHubAuthManager } from '../auth.js';
 import { FlakeDetector } from '../flake-detector.js';

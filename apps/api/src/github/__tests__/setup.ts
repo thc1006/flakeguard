@@ -9,7 +9,7 @@
  * - Mock configurations
  */
 
-import { vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { vi, beforeAll, afterAll, beforeEach, afterEach, expect } from 'vitest';
 
 import { mockEnvironmentVariables, setupTestEnvironment } from './mocks.js';
 
@@ -41,13 +41,21 @@ setupTestEnvironment();
 global.fetch = vi.fn();
 
 // Mock WebSocket for real-time features
-global.WebSocket = vi.fn().mockImplementation(() => ({
+const WebSocketMock = vi.fn().mockImplementation(() => ({
   close: vi.fn(),
   send: vi.fn(),
   addEventListener: vi.fn(),
   removeEventListener: vi.fn(),
   readyState: 1,
 }));
+
+// Add static constants required by WebSocket interface
+WebSocketMock.CONNECTING = 0;
+WebSocketMock.OPEN = 1;
+WebSocketMock.CLOSING = 2;
+WebSocketMock.CLOSED = 3;
+
+global.WebSocket = WebSocketMock as any;
 
 // Mock crypto for Node.js compatibility
 Object.defineProperty(global, 'crypto', {

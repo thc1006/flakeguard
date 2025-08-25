@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestCrypto, generateTestSecrets } from '../test-crypto.js';
 
 describe('TestCrypto', () => {

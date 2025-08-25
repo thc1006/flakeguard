@@ -7,13 +7,11 @@
 import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
 
 import { OctokitHelpers, GitHubApiError, ArtifactDownloadError } from '../octokit-helpers.js';
-import { TestCrypto } from '../../../utils/test-crypto.js';
+import { TestCrypto } from '../../utils/test-crypto.js';
 
 // Mock dependencies
 vi.mock('@octokit/app', () => ({
-  App: vi.fn().mockImplementation(() => ({
-    getInstallationOctokit: vi.fn(),
-  })),
+  App: vi.fn(),
 }));
 
 vi.mock('fs', () => ({
@@ -27,6 +25,10 @@ vi.mock('os', () => ({
 
 vi.mock('path', () => ({
   join: vi.fn(),
+}));
+
+vi.mock('stream/promises', () => ({
+  pipeline: vi.fn(),
 }));
 
 // Generate test secrets once for the entire test suite
@@ -46,7 +48,7 @@ describe('OctokitHelpers - P2', () => {
   let mockOctokit: any;
   let mockApp: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     
     // Mock Octokit instance
@@ -73,13 +75,14 @@ describe('OctokitHelpers - P2', () => {
       },
     };
 
-    // Mock App
+    // Mock App instance
     mockApp = {
       getInstallationOctokit: vi.fn().mockResolvedValue(mockOctokit),
     };
 
-    const { App } = require('@octokit/app');
-    (App).mockImplementation(() => mockApp);
+    // Set up App mock implementation
+    const { App } = await import('@octokit/app');
+    vi.mocked(App).mockImplementation(() => mockApp);
 
     octokitHelpers = new OctokitHelpers({
       githubAppId: '12345',
@@ -196,17 +199,17 @@ describe('OctokitHelpers - P2', () => {
       installationId: 789,
     };
 
-    beforeEach(() => {
-      const fs = require('fs');
-      const os = require('os');
-      const path = require('path');
-      const streamPromises = require('stream/promises');
+    beforeEach(async () => {
+      const fs = await import('fs');
+      const os = await import('os');
+      const path = await import('path');
+      const streamPromises = await import('stream/promises');
 
-      fs.mkdtempSync.mockReturnValue('/tmp/flakeguard-artifact-test');
-      os.tmpdir.mockReturnValue('/tmp');
-      path.join.mockReturnValue('/tmp/flakeguard-artifact-test/artifact-123.zip');
-      fs.createWriteStream.mockReturnValue({});
-      streamPromises.pipeline.mockResolvedValue(undefined);
+      vi.mocked(fs.mkdtempSync).mockReturnValue('/tmp/flakeguard-artifact-test');
+      vi.mocked(os.tmpdir).mockReturnValue('/tmp');
+      vi.mocked(path.join).mockReturnValue('/tmp/flakeguard-artifact-test/artifact-123.zip');
+      vi.mocked(fs.createWriteStream).mockReturnValue({} as any);
+      vi.mocked(streamPromises.pipeline).mockResolvedValue(undefined);
     });
 
     it('should download artifact and return file path', async () => {
