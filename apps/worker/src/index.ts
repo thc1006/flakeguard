@@ -74,7 +74,7 @@ async function initializeGitHubClient(): Promise<Octokit | undefined> {
     });
     
     // Get installation access token (would be enhanced for multiple installations)
-    const installations = await (app.octokit as { rest: { apps: { listInstallations: () => Promise<{ data: Array<{ id: number }> }> } } }).rest.apps.listInstallations();
+    const installations = await (app.octokit as unknown as { rest: { apps: { listInstallations: () => Promise<{ data: Array<{ id: number }> }> } } }).rest.apps.listInstallations();
     
     if (installations.data.length === 0) {
       logger.warn('No GitHub App installations found');
@@ -90,7 +90,7 @@ async function initializeGitHubClient(): Promise<Octokit | undefined> {
     const installationOctokit = await app.getInstallationOctokit(installation.id);
     
     logger.info({ installationId: installation.id }, 'GitHub client initialized');
-    return installationOctokit;
+    return installationOctokit as unknown as Octokit;
     
   } catch (error) {
     logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Failed to initialize GitHub client');
@@ -119,7 +119,7 @@ function setupQueues(): {
     connection,
     removeOnComplete: { count: WORKER_CONFIG.REMOVE_ON_COMPLETE },
     removeOnFail: { count: WORKER_CONFIG.REMOVE_ON_FAIL },
-    stalledJobTimeout: WORKER_CONFIG.STALLED_JOB_TIMEOUT_MS,
+    stalledInterval: WORKER_CONFIG.STALLED_JOB_TIMEOUT_MS,
     maxStalledCount: 3,
   };
   
@@ -517,7 +517,7 @@ async function performShutdown(): Promise<void> {
   if (pollingManager) {
     shutdownSteps.push({
       name: 'polling manager',
-      fn: () => pollingManager.shutdown()
+      fn: async () => { if (pollingManager) await pollingManager.shutdown(); }
     });
   }
   
@@ -561,7 +561,7 @@ async function performShutdown(): Promise<void> {
   if (healthManager) {
     shutdownSteps.push({
       name: 'health check server',
-      fn: () => healthManager.stop()
+      fn: async () => { if (healthManager) await healthManager.stop(); }
     });
   }
   
