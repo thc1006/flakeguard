@@ -176,7 +176,7 @@ Add the GitHub App configuration to `apps/api/.env`:
 
 ```bash
 GITHUB_APP_ID="123456"
-GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
+GITHUB_APP_PRIVATE_KEY="FAKE_PRIVATE_KEY_FOR_TESTS"
 GITHUB_WEBHOOK_SECRET="your-generated-webhook-secret"
 ```
 

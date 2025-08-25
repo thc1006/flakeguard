@@ -2,6 +2,7 @@
   "name": "@flakeguard/cli",
   "version": "1.0.0",
   "description": "FlakeGuard interactive setup wizard CLI",
+  "license": "Apache-2.0",
   "main": "dist/index.js",
   "bin": {
     "flakeguard-init": "dist/bin/cli.js"

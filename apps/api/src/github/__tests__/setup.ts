@@ -21,7 +21,7 @@ mockEnvironmentVariables({
   NODE_ENV: 'test',
   LOG_LEVEL: 'error', // Reduce log noise in tests
   GITHUB_APP_ID: '12345',
-  GITHUB_PRIVATE_KEY: '-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEAtest...\n-----END RSA PRIVATE KEY-----',
+  GITHUB_PRIVATE_KEY: 'FAKE_PRIVATE_KEY_FOR_TESTS',
   GITHUB_WEBHOOK_SECRET: 'test-webhook-secret',
   GITHUB_CLIENT_ID: 'test-client-id',
   GITHUB_CLIENT_SECRET: 'test-client-secret',

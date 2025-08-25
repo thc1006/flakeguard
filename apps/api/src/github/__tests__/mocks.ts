@@ -431,7 +431,7 @@ export function createMockAuthManager(): GitHubAuthManager {
   // Set up default successful responses
   (mockAuthManager.getInstallationClient as any).mockResolvedValue(createMockOctokitClient());
   (mockAuthManager.getInstallationToken as any).mockResolvedValue({
-    token: 'ghs_mock_token',
+    token: '<REDACTED_TOKEN>',
     expiresAt: new Date(Date.now() + 3600000).toISOString(),
     permissions: { checks: 'write', actions: 'read' },
     repositorySelection: 'all',

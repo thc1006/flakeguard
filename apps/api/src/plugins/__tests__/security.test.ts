@@ -350,7 +350,7 @@ describe('Security Plugin', () => {
         method: 'GET',
         url: '/api/security/audit-events',
         headers: {
-          'authorization': 'Bearer test-token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
         },
       });
       
@@ -369,7 +369,7 @@ describe('Security Plugin', () => {
         method: 'GET',
         url: '/api/security/audit-events?type=rate_limit&severity=high',
         headers: {
-          'authorization': 'Bearer test-token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
         },
       });
       

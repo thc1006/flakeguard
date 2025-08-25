@@ -734,7 +734,7 @@ describe('API Endpoints', () => {
         method: 'POST',
         url: '/api/github/repos/owner/repo/check-runs',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': '12345',
           'content-type': 'application/json',
         },
@@ -796,7 +796,7 @@ describe('API Endpoints', () => {
         method: 'PATCH',
         url: '/api/github/repos/owner/repo/check-runs/123',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': '12345',
           'content-type': 'application/json',
         },
@@ -845,7 +845,7 @@ describe('API Endpoints', () => {
         method: 'GET',
         url: '/api/github/repos/owner/repo/commits/abc123/check-runs',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': '12345',
         },
       });
@@ -876,7 +876,7 @@ describe('API Endpoints', () => {
         method: 'POST',
         url: '/api/github/repos/owner/repo/actions/runs/123/rerun',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': '12345',
           'content-type': 'application/json',
         },
@@ -902,7 +902,7 @@ describe('API Endpoints', () => {
         method: 'POST',
         url: '/api/github/repos/owner/repo/actions/runs/123/rerun',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': '12345',
           'content-type': 'application/json',
         },
@@ -934,7 +934,7 @@ describe('API Endpoints', () => {
         method: 'POST',
         url: '/api/github/repos/owner/repo/actions/runs/123/cancel',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': '12345',
         },
       });
@@ -968,7 +968,7 @@ describe('API Endpoints', () => {
         method: 'GET',
         url: '/api/github/repos/owner/repo/actions/runs/123/artifacts',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': '12345',
         },
       });
@@ -991,7 +991,7 @@ describe('API Endpoints', () => {
         method: 'GET',
         url: '/api/github/repos/owner/repo/actions/artifacts/123/download-url',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': '12345',
         },
       });
@@ -1011,7 +1011,7 @@ describe('API Endpoints', () => {
         method: 'GET',
         url: '/api/github/repos/owner/repo/actions/artifacts/123/download-url',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': '12345',
         },
       });
@@ -1046,7 +1046,7 @@ describe('API Endpoints', () => {
         method: 'GET',
         url: '/api/github/repos/owner/repo/flakes/status?testName=flaky-test',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
         },
       });
 
@@ -1085,7 +1085,7 @@ describe('API Endpoints', () => {
         method: 'GET',
         url: '/api/github/repos/owner/repo/flakes/summary',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
         },
       });
 
@@ -1103,7 +1103,7 @@ describe('API Endpoints', () => {
         method: 'GET',
         url: '/api/github/repos/owner/nonexistent/flakes/status?testName=test',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
         },
       });
 
@@ -1132,7 +1132,7 @@ describe('API Endpoints', () => {
         method: 'POST',
         url: '/api/github/repos/owner/repo/check-runs',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'content-type': 'application/json',
         },
         payload: {},
@@ -1146,7 +1146,7 @@ describe('API Endpoints', () => {
         method: 'POST',
         url: '/api/github/repos/owner/repo/check-runs',
         headers: {
-          'authorization': 'Bearer token',
+          'authorization': 'Bearer <REDACTED_TOKEN>',
           'x-installation-id': 'invalid',
           'content-type': 'application/json',
         },

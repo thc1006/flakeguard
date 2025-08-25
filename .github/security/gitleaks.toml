@@ -1,0 +1,58 @@
+# Gitleaks Configuration for FlakeGuard
+# This configuration extends the default rules and adds custom allowlists
+
+[extend]
+useDefault = true
+
+# Custom allowlists for false positives
+[[allowlists]]
+description = "Allow documentation example files"
+paths = [
+  '''apps/docs/docs/troubleshooting/.*\.md''',
+  '''docs/.*\.md''',
+  '''.*\.example'''
+]
+
+[[allowlists]]
+description = "Allow safe placeholder tokens"
+regexes = [
+  '''Authorization:\s*<REDACTED_TOKEN>''',
+  '''Authorization:\s*Bearer\s*<REDACTED_TOKEN>''',
+  '''Authorization:\s*token\s*<REDACTED_TOKEN>''',
+  '''FAKE_PRIVATE_KEY_FOR_TESTS''',
+  '''<your_.*>''',
+  '''<base64_encoded_.*>''',
+  '''xoxb-test-.*''',
+  '''xapp-test-.*''',
+  '''test-webhook-secret''',
+  '''your-secret-here''',
+  '''placeholder-.*''',
+  '''example-.*''',
+  '''dummy-.*''',
+  '''fake-.*'''
+]
+
+[[allowlists]]
+description = "Allow test fixtures and mock data"
+paths = [
+  '''.*/__tests__/.*''',
+  '''.*\.test\..*''',
+  '''.*\.spec\..*''',
+  '''test/.*''',
+  '''tests/.*'''
+]
+
+[[allowlists]]
+description = "Allow environment variable examples"
+files = [
+  '''\.env\.example''',
+  '''\.env\..*\.example''',
+  '''example\.env'''
+]
+
+[[allowlists]]
+description = "Allow GitHub Actions placeholders"
+regexes = [
+  '''\$\{\{\s*secrets\..*\s*\}\}''',
+  '''\$\{\{\s*github\.token\s*\}\}'''
+]

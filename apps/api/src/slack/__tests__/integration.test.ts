@@ -36,7 +36,7 @@ describe('FlakeGuard Slack App Integration', () => {
   
   const mockConfig = {
     signingSecret: 'test_signing_secret_for_integration',
-    token: 'xoxb-integration-test-token',
+    token: 'xoxb-test-placeholder-token',
     port: 3002
   };
 

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Production-grade monorepo for flakeguard",
   "engines": {
-    "node": ">=20.0.0",
+    "node": "^20.0.0",
     "pnpm": ">=8.0.0"
   },
   "scripts": {
@@ -40,6 +40,7 @@
     "commander": "^11.1.0"
   },
   "packageManager": "pnpm@8.15.1",
+  "license": "Apache-2.0",
   "bin": {
     "flakeguard-init": "packages/cli/src/bin/cli.js"
   }
