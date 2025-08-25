@@ -7,7 +7,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import type { FGRepository, FGTestCase, FGOccurrence } from '@prisma/client';
+import type { FGRepository, FGTestCase } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -46,7 +46,7 @@ interface FailureCluster {
   }>;
 }
 
-export class FlakeGuardQueries {
+class FlakeGuardQueries {
   
   /**
    * Find the flakiest tests in a repository
@@ -57,7 +57,7 @@ export class FlakeGuardQueries {
     limit: number = 10,
     minScore: number = 0.1
   ): Promise<FlakiestTest[]> {
-    console.log(`🔍 Finding flakiest tests in repository (score >= ${minScore})`);
+    // Finding flakiest tests in repository
     
     const results = await prisma.fGTestCase.findMany({
       where: {
@@ -90,7 +90,7 @@ export class FlakeGuardQueries {
 
     return results.map(test => ({
       testCase: { ...test, repository: test.repository },
-      flakeScore: test.flakeScore!,
+      flakeScore: test.flakeScore || { score: 0, windowN: 0, lastUpdatedAt: new Date() },
       recentFailures: test.occurrences.length,
       totalRuns: test._count.occurrences,
       lastFailureAt: test.occurrences[0]?.createdAt || null,
@@ -105,7 +105,7 @@ export class FlakeGuardQueries {
     testId: string, 
     days: number = 30
   ): Promise<TestHistory> {
-    console.log(`📊 Getting test history for last ${days} days`);
+    // Getting test history
     
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
@@ -141,7 +141,7 @@ export class FlakeGuardQueries {
    * Uses indexes: (testId) and (state)
    */
   async getQuarantineStatus(testId: string) {
-    console.log(`🚧 Checking quarantine status`);
+    // Checking quarantine status
     
     const decisions = await prisma.fGQuarantineDecision.findMany({
       where: { testId },
@@ -180,7 +180,7 @@ export class FlakeGuardQueries {
     repoId: string,
     failureMsgSignature: string
   ): Promise<FailureCluster> {
-    console.log(`🔗 Finding similar failures for signature: ${failureMsgSignature.slice(0, 8)}...`);
+    // Finding similar failures for signature
     
     const cluster = await prisma.fGFailureCluster.findUniqueOrThrow({
       where: {
@@ -209,11 +209,11 @@ export class FlakeGuardQueries {
       exampleMessage: cluster.exampleMessage,
       occurrenceCount: cluster.occurrenceCount,
       affectedTestCount: cluster.testIds.length,
-      testCases: cluster.testCases.map(tc => ({
-        id: tc.id,
-        name: tc.name,
-        suite: tc.suite,
-        flakeScore: tc.flakeScore?.score || 0,
+      testCases: cluster.testCases.map((tc: any) => ({
+        id: tc.id as string,
+        name: tc.name as string,
+        suite: tc.suite as string,
+        flakeScore: (tc.flakeScore?.score as number) || 0,
       })),
     };
   }
@@ -223,7 +223,7 @@ export class FlakeGuardQueries {
    * Uses multiple indexes for efficient aggregation
    */
   async getRepositoryDashboard(repoId: string) {
-    console.log(`📋 Getting repository dashboard data`);
+    // Getting repository dashboard data
     
     const [
       repo,
@@ -296,7 +296,7 @@ export class FlakeGuardQueries {
    * Uses compound indexes for efficient filtering and sorting
    */
   async analyzeTestRunPerformance(repoId: string, days: number = 7) {
-    console.log(`⚡ Analyzing test run performance over ${days} days`);
+    // Analyzing test run performance
     
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
@@ -349,7 +349,7 @@ export class FlakeGuardQueries {
     scoreThreshold: number = 0.6,
     minRuns: number = 10
   ) {
-    console.log(`🎯 Finding quarantine candidates (score >= ${scoreThreshold})`);
+    // Finding quarantine candidates
     
     const candidates = await prisma.fGTestCase.findMany({
       where: {
@@ -404,17 +404,18 @@ export class FlakeGuardQueries {
       testId: test.id,
       testName: `${test.suite}/${test.className || ''}/${test.name}`.replace('//', '/'),
       repository: `${test.repository.owner}/${test.repository.name}`,
-      flakeScore: test.flakeScore!.score,
-      windowSize: test.flakeScore!.windowN,
+      flakeScore: test.flakeScore?.score || 0,
+      windowSize: test.flakeScore?.windowN || 0,
       recentRuns: test._count.occurrences,
       recentFailures: test.occurrences,
-      recommendation: test.flakeScore!.score > 0.8 ? 'IMMEDIATE' : 'REVIEW',
-      rationale: `Test shows ${(test.flakeScore!.score * 100).toFixed(1)}% failure rate over ${test.flakeScore!.windowN} runs. ${test.occurrences.length} recent failures in the last 7 days.`
+      recommendation: (test.flakeScore?.score || 0) > 0.8 ? 'IMMEDIATE' : 'REVIEW',
+      rationale: `Test shows ${((test.flakeScore?.score || 0) * 100).toFixed(1)}% failure rate over ${test.flakeScore?.windowN || 0} runs. ${test.occurrences.length} recent failures in the last 7 days.`
     }));
   }
 }
 
 // Example usage and demonstration
+/* eslint-disable no-console */
 async function runExampleQueries() {
   const queries = new FlakeGuardQueries();
   
@@ -495,7 +496,7 @@ async function runExampleQueries() {
 
 // Run examples if this file is executed directly
 if (require.main === module) {
-  runExampleQueries();
+  void runExampleQueries();
 }
 
 export { FlakeGuardQueries, runExampleQueries };

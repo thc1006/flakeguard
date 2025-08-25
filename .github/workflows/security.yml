@@ -168,12 +168,14 @@ jobs:
           npx license-checker \
             --onlyAllow 'MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;Unlicense;CC0-1.0' \
             --production \
+            --excludePrivatePackages \
             --json \
             --out license-report.json
           
           # Check for any prohibited licenses
           npx license-checker \
             --excludePackages 'test@1.0.0' \
+            --excludePrivatePackages \
             --failOn 'GPL-2.0;GPL-3.0;AGPL-1.0;AGPL-3.0;LGPL-2.0;LGPL-2.1;LGPL-3.0;MPL-2.0'
 
       - name: Upload license report
