@@ -11,7 +11,10 @@ paths = [
   '''apps/docs/docs/.*\.md''',
   '''docs/.*\.md''',
   '''.*\.example''',
-  '''README\.md'''
+  '''README\.md''',
+  '''apps/docs/build/.*''',
+  '''build/.*''',
+  '''dist/.*'''
 ]
 
 [[allowlists]]
@@ -30,11 +33,13 @@ regexes = [
   '''xapp-test-.*''',
   '''test-webhook-secret''',
   '''your-secret-here''',
+  '''your-token-here''',
   '''placeholder-.*''',
   '''example-.*''',
   '''dummy-.*''',
   '''fake-.*''',
-  '''https://hooks\.slack\.com/services/T00000000/B00000000/.*'''
+  '''https://hooks\.slack\.com/services/T00000000/B00000000/.*''',
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'''
 ]
 
 [[allowlists]]
@@ -45,12 +50,14 @@ paths = [
   '''.*\.spec\..*''',
   '''test/.*''',
   '''tests/.*''',
-  '''docker-compose\.test\.yml'''
+  '''docker-compose\.test\.yml''',
+  '''scripts/test-.*\.ps1''',
+  '''scripts/.*test.*'''
 ]
 
 [[allowlists]]
 description = "Allow environment variable examples"
-files = [
+paths = [
   '''\.env\.example''',
   '''\.env\..*\.example''',
   '''example\.env'''
