@@ -91,3 +91,41 @@ regexes = [
   '''postgresql://.*''',
   '''redis://.*'''
 ]
+
+[[allowlists]]
+description = "Allow test private keys and API keys"
+regexes = [
+  '''-----BEGIN.*PRIVATE KEY-----[\s\S]*-----END.*PRIVATE KEY-----''',
+  '''test.*private.*key''',
+  '''private.*key.*test''',
+  '''ghp_test[a-zA-Z0-9]+''',
+  '''gho_test[a-zA-Z0-9]+''',
+  '''ghs_test[a-zA-Z0-9]+'''
+]
+
+[[allowlists]]
+description = "Allow documentation curl examples with auth headers"
+regexes = [
+  '''curl.*-H.*Authorization:.*Bearer.*''',
+  '''curl.*--header.*Authorization:.*Bearer.*''',
+  '''"Authorization":\s*"Bearer\s*[^"]*"''',
+  '''Authorization:\s*Bearer\s*\$\{\{.*\}\}'''
+]
+
+[[allowlists]]
+description = "Allow specific placeholder patterns"
+regexes = [
+  '''YOUR_GITHUB_APP_PRIVATE_KEY_HERE''',
+  '''YOUR_.*_HERE''',
+  '''REPLACE_WITH_.*''',
+  '''INSERT_.*_HERE''',
+  '''<REPLACE.*>'''
+]
+
+[[allowlists]]
+description = "Allow Slack webhook URL examples"
+regexes = [
+  '''https://hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[a-zA-Z0-9]+''',
+  '''https://hooks\.slack\.com/services/YOUR_WORKSPACE/YOUR_CHANNEL/YOUR_TOKEN''',
+  '''webhook.*slack.*example'''
+]
