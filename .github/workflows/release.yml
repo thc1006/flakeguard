@@ -120,6 +120,10 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
+      - name: Authenticate to npm registry
+        if: ${{ secrets.NPM_TOKEN }}
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

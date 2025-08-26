@@ -59,11 +59,22 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Configure npm registry (if token available)
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "Registry authentication configured"
+        continue-on-error: true
 
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --no-frozen-lockfile --prefer-offline
+          # Set pnpm to not fail on missing auth for public packages
+          pnpm config set registry https://registry.npmjs.org/
+          pnpm config set @flakeguard:registry https://registry.npmjs.org/
+          pnpm install --no-frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Build packages
         run: pnpm --filter='./packages/*' build
@@ -100,11 +111,22 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Configure npm registry (if token available)
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "Registry authentication configured"
+        continue-on-error: true
 
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --no-frozen-lockfile --prefer-offline
+          # Set pnpm to not fail on missing auth for public packages
+          pnpm config set registry https://registry.npmjs.org/
+          pnpm config set @flakeguard:registry https://registry.npmjs.org/
+          pnpm install --no-frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Build packages
         run: pnpm --filter='./packages/*' build
@@ -147,11 +169,22 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Configure npm registry (if token available)
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "Registry authentication configured"
+        continue-on-error: true
 
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --no-frozen-lockfile --prefer-offline
+          # Set pnpm to not fail on missing auth for public packages
+          pnpm config set registry https://registry.npmjs.org/
+          pnpm config set @flakeguard:registry https://registry.npmjs.org/
+          pnpm install --no-frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Build packages
         run: pnpm --filter='./packages/*' build
@@ -308,11 +341,22 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+          run_install: false
+
+      - name: Configure npm registry (if token available)
+        if: ${{ secrets.NPM_TOKEN != '' }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "Registry authentication configured"
+        continue-on-error: true
 
       - name: Install dependencies
         run: |
           export NODE_OPTIONS="--max-old-space-size=4096"
-          pnpm install --no-frozen-lockfile --prefer-offline
+          # Set pnpm to not fail on missing auth for public packages
+          pnpm config set registry https://registry.npmjs.org/
+          pnpm config set @flakeguard:registry https://registry.npmjs.org/
+          pnpm install --no-frozen-lockfile --prefer-offline --ignore-scripts
 
       - name: Build packages
         run: pnpm --filter='./packages/*' build
@@ -358,6 +402,7 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: ${{ env.PNPM_VERSION }}
+          run_install: false
 
       - name: Check for updates
         run: |
