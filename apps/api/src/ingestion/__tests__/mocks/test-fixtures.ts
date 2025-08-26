@@ -11,6 +11,13 @@ import { fileURLToPath } from 'url';
 
 import type { TestSuite, TestSuites, TestCase } from '../../types.js';
 
+// Mock expect functions for test fixtures
+const expectMock = {
+  stringContaining: (str: string) => str,
+  arrayContaining: (arr: any[]) => arr,
+  objectContaining: (obj: any) => obj
+};
+
 // Get the directory path for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -187,10 +194,10 @@ export const EXPECTED_SUREFIRE_FAILURES: TestSuites = {
         failure: {
           type: 'org.opentest4j.AssertionFailedError',
           message: 'Assertion failed: Expected 1 record, but found 0',
-          stackTrace: expect.stringContaining('AssertionFailedError')
+          stackTrace: expectMock.stringContaining('AssertionFailedError')
         },
-        systemOut: expect.stringContaining('Starting testInsertRecord'),
-        systemErr: expect.stringContaining('Failed to verify record insertion')
+        systemOut: expectMock.stringContaining('Starting testInsertRecord'),
+        systemErr: expectMock.stringContaining('Failed to verify record insertion')
       },
       {
         name: 'testUpdateRecord',
@@ -200,7 +207,7 @@ export const EXPECTED_SUREFIRE_FAILURES: TestSuites = {
         failure: {
           type: 'org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException',
           message: 'SQL constraint violation: unique key violated',
-          stackTrace: expect.stringContaining('JdbcSQLIntegrityConstraintViolationException')
+          stackTrace: expectMock.stringContaining('JdbcSQLIntegrityConstraintViolationException')
         }
       },
       {
@@ -217,7 +224,7 @@ export const EXPECTED_SUREFIRE_FAILURES: TestSuites = {
         error: {
           type: 'java.sql.SQLTimeoutException',
           message: 'Connection timeout after 5000ms',
-          stackTrace: expect.stringContaining('SQLTimeoutException')
+          stackTrace: expectMock.stringContaining('SQLTimeoutException')
         }
       },
       {
@@ -236,8 +243,8 @@ export const EXPECTED_SUREFIRE_FAILURES: TestSuites = {
         }
       }
     ],
-    systemOut: expect.stringContaining('Starting DatabaseIntegrationTest'),
-    systemErr: expect.stringContaining('Database connection issues detected')
+    systemOut: expectMock.stringContaining('Starting DatabaseIntegrationTest'),
+    systemErr: expectMock.stringContaining('Database connection issues detected')
   }]
 };
 
@@ -285,7 +292,7 @@ export const EXPECTED_GRADLE_RESULTS: TestSuites = {
         failure: {
           type: 'AssertionError',
           message: 'Expected status 204 but was 500',
-          stackTrace: expect.stringContaining('Expected status 204 but was 500')
+          stackTrace: expectMock.stringContaining('Expected status 204 but was 500')
         }
       },
       {
@@ -304,7 +311,7 @@ export const EXPECTED_GRADLE_RESULTS: TestSuites = {
         }
       }
     ],
-    systemOut: expect.stringContaining('API Controller initialized'),
+    systemOut: expectMock.stringContaining('API Controller initialized'),
     systemErr: ''
   }]
 };
@@ -365,7 +372,7 @@ export const EXPECTED_JEST_RESULTS: TestSuites = {
           failure: {
             type: 'AssertionError',
             message: 'Expected validation to fail for invalid email',
-            stackTrace: expect.stringContaining('Expected validation to fail')
+            stackTrace: expectMock.stringContaining('Expected validation to fail')
           }
         }
       ]
@@ -417,7 +424,7 @@ export const EXPECTED_JEST_RESULTS: TestSuites = {
           failure: {
             type: 'AssertionError',
             message: 'Authentication middleware did not reject invalid token',
-            stackTrace: expect.stringContaining('Authentication middleware')
+            stackTrace: expectMock.stringContaining('Authentication middleware')
           }
         }
       ]
@@ -442,34 +449,34 @@ export const EXPECTED_PYTEST_RESULTS: TestSuites = {
     time: 12.456,
     timestamp: '2023-12-01T10:55:30',
     hostname: 'python-test-runner',
-    testCases: expect.arrayContaining([
-      expect.objectContaining({
+    testCases: expectMock.arrayContaining([
+      expectMock.objectContaining({
         name: 'test_user_creation',
         className: 'tests.test_user_model',
         status: 'passed',
         time: 0.123
       }),
-      expect.objectContaining({
+      expectMock.objectContaining({
         name: 'test_user_email_uniqueness',
         className: 'tests.test_user_model',
         status: 'failed',
-        failure: expect.objectContaining({
+        failure: expectMock.objectContaining({
           message: 'AssertionError: User with duplicate email should not be created'
         })
       }),
-      expect.objectContaining({
+      expectMock.objectContaining({
         name: 'test_transaction_rollback',
         className: 'tests.test_database',
         status: 'error',
-        error: expect.objectContaining({
+        error: expectMock.objectContaining({
           message: 'ConnectionError: Database connection lost'
         })
       }),
-      expect.objectContaining({
+      expectMock.objectContaining({
         name: 'test_external_service_integration',
         className: 'tests.test_external_api',
         status: 'skipped',
-        skipped: expect.objectContaining({
+        skipped: expectMock.objectContaining({
           message: 'External API service is not available in test environment'
         })
       })
@@ -493,27 +500,27 @@ export const EXPECTED_PHPUNIT_RESULTS: TestSuites = {
       skipped: 1,
       time: 3.456789,
       timestamp: '2023-12-01T11:00:45+00:00',
-      testCases: expect.arrayContaining([
-        expect.objectContaining({
+      testCases: expectMock.arrayContaining([
+        expectMock.objectContaining({
           name: 'testIndex',
           className: 'Tests\\Unit\\UserControllerTest',
           status: 'passed',
           time: 0.123456
         }),
-        expect.objectContaining({
+        expectMock.objectContaining({
           name: 'testDestroy',
           className: 'Tests\\Unit\\UserControllerTest',
           status: 'failed',
-          failure: expect.objectContaining({
+          failure: expectMock.objectContaining({
             type: 'PHPUnit\\Framework\\ExpectationFailedException',
             message: 'Failed asserting that 500 matches expected 204.'
           })
         }),
-        expect.objectContaining({
+        expectMock.objectContaining({
           name: 'testDatabaseConnectionFailure',
           className: 'Tests\\Unit\\UserControllerTest',
           status: 'skipped',
-          skipped: expect.objectContaining({
+          skipped: expectMock.objectContaining({
             message: 'Database connection test skipped in CI environment'
           })
         })
@@ -527,8 +534,8 @@ export const EXPECTED_PHPUNIT_RESULTS: TestSuites = {
       skipped: 0,
       time: 1.234567,
       timestamp: '2023-12-01T11:00:48+00:00',
-      testCases: expect.arrayContaining([
-        expect.objectContaining({
+      testCases: expectMock.arrayContaining([
+        expectMock.objectContaining({
           name: 'testUserCreation',
           className: 'Tests\\Unit\\UserModelTest',
           status: 'passed',
@@ -547,26 +554,26 @@ export const EXPECTED_LARGE_RESULTS: TestSuites = {
   skipped: 15,
   time: 245.678,
   timestamp: '2023-12-01T11:15:00',
-  suites: expect.arrayContaining([
-    expect.objectContaining({
+  suites: expectMock.arrayContaining([
+    expectMock.objectContaining({
       name: 'com.example.performance.LoadTest',
       tests: 100,
       failures: 5,
       errors: 1,
       skipped: 2,
       time: 45.234,
-      testCases: expect.arrayContaining([
-        expect.objectContaining({
+      testCases: expectMock.arrayContaining([
+        expectMock.objectContaining({
           name: 'testHighLoadStability',
           status: 'failed',
-          failure: expect.objectContaining({
+          failure: expectMock.objectContaining({
             message: 'Performance threshold exceeded: 5678ms > 5000ms'
           })
         }),
-        expect.objectContaining({
+        expectMock.objectContaining({
           name: 'testSystemCrash',
           status: 'error',
-          error: expect.objectContaining({
+          error: expectMock.objectContaining({
             type: 'java.lang.OutOfMemoryError',
             message: 'JVM crashed during test execution'
           })
@@ -667,12 +674,12 @@ export function createTestSuite(options: TestFixtureOptions = {}): TestSuite {
   };
 
   if (withSystemOutput) {
-    suite.systemOut = 'System output content';
-    suite.systemErr = 'System error content';
+    (suite as any).systemOut = 'System output content';
+    (suite as any).systemErr = 'System error content';
   }
 
   if (withProperties) {
-    suite.properties = {
+    (suite as any).properties = {
       'test.property': 'test.value',
       'environment': 'test'
     };
@@ -694,7 +701,7 @@ export function createTestSuites(suiteCount: number, options: TestFixtureOptions
       ...options,
       testCount: options.testCount || 5 + i
     });
-    suite.name = `TestSuite${i + 1}`;
+    (suite as any).name = `TestSuite${i + 1}`;
     suites.push(suite);
 
     totalTests += suite.tests;
@@ -794,9 +801,5 @@ export function validateTestSuite(suite: TestSuite): string[] {
   return errors;
 }
 
-// Export for Jest matchers
-export const expect = {
-  stringContaining: (str: string) => str,
-  arrayContaining: (arr: any[]) => arr,
-  objectContaining: (obj: any) => obj
-};
+// Export for Jest matchers compatibility
+export const expect = expectMock;
