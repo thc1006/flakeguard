@@ -9,7 +9,7 @@
  */
 
 import { Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { Octokit } from '@octokit/rest';
 import { createReadStream, createWriteStream, mkdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
@@ -619,7 +619,7 @@ async function storeTestResults(
 ): Promise<void> {
   try {
     // Use database transaction for consistency
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Create or update workflow run record
       await tx.fGWorkflowRun.upsert({
         where: {

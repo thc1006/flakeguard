@@ -17,8 +17,7 @@ import type {
   SlackConfig,
 } from './types.js';
 
-// Import from local types until shared types are fixed
-import type { TestStabilityMetrics, FlakeNotification } from './types.js';
+// FlakeNotification imported above but not used currently
 
 export class SlackMessageBuilder {
   private templateCache = new Map<string, SlackMessageTemplate>();
@@ -431,7 +430,7 @@ export class SlackMessageBuilder {
     };
   }
 
-  private createHeaderBlock(title: string, priority?: string): any {
+  private createHeaderBlock(title: string, _priority?: string): any {
     return {
       type: 'header',
       text: {
@@ -483,7 +482,7 @@ export class SlackMessageBuilder {
     return `${period.start.toLocaleDateString()} - ${period.end.toLocaleDateString()}`;
   }
 
-  private getFromCache(templateId: string, data: any): SlackMessageTemplate | null {
+  private getFromCache(templateId: string, _data: any): SlackMessageTemplate | null {
     const cached = this.templateCache.get(templateId);
     if (!cached) {return null;}
 
@@ -498,8 +497,8 @@ export class SlackMessageBuilder {
 
   private personalizeTemplate(
     template: SlackMessageTemplate,
-    flakeScore: FlakeScore,
-    repository: string
+    _flakeScore: FlakeScore,
+    _repository: string
   ): SlackMessageTemplate {
     // Deep clone and personalize template
     const personalized = JSON.parse(JSON.stringify(template));
@@ -514,7 +513,9 @@ export class SlackMessageBuilder {
       // Remove oldest template
       const oldest = Array.from(this.templateCache.entries())
         .sort((a, b) => a[1].metadata!.lastUsed.getTime() - b[1].metadata!.lastUsed.getTime())[0];
-      this.templateCache.delete(oldest[0]);
+      if (oldest) {
+        this.templateCache.delete(oldest[0]);
+      }
     }
 
     this.templateCache.set(templateId, template);

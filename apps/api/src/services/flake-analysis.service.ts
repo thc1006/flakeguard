@@ -9,10 +9,7 @@ import { createHash } from 'crypto';
 
 import { PrismaClient } from '@prisma/client';
 import type { 
-  FGRepository, 
-  FGTestCase, 
-  FGOccurrence, 
-  FGFlakeScore,
+  FGTestCase,
   FGQuarantineDecision,
   FGFailureCluster
 } from '@prisma/client';
@@ -124,7 +121,7 @@ export class FlakeAnalysisService {
     
     // Extract failure patterns
     const failurePatterns = Array.from(
-      new Set(failures.map(f => f.failureMsgSignature).filter(Boolean))
+      new Set(failures.map(f => f.failureMsgSignature).filter((sig): sig is string => Boolean(sig)))
     );
 
     // Calculate average duration
@@ -169,7 +166,7 @@ export class FlakeAnalysisService {
     // Get all test cases in the repository
     const testCases = await this.prisma.fGTestCase.findMany({
       where: { repoId },
-      select: { id: true },
+      select: { id: true, repository: { select: { orgId: true } } },
     });
 
     let updatedCount = 0;
@@ -189,11 +186,13 @@ export class FlakeAnalysisService {
               update: {
                 score: analysis.score,
                 windowN: analysis.totalRuns,
+                orgId: testCase.repository.orgId,
               },
               create: {
                 testId: testCase.id,
                 score: analysis.score,
                 windowN: analysis.totalRuns,
+                orgId: testCase.repository.orgId,
               },
             });
             updatedCount++;
@@ -255,8 +254,7 @@ export class FlakeAnalysisService {
       const affectedJobs = Array.from(
         new Set(
           candidate.occurrences
-            .map(o => o.job?.name)
-            .filter(Boolean)
+            .map(o => o.job?.name).filter((name): name is string => Boolean(name))
         )
       );
       
@@ -310,6 +308,16 @@ export class FlakeAnalysisService {
   ): Promise<FGQuarantineDecision> {
     console.log(`Quarantining test: ${testId}`);
 
+    // Get test case to obtain orgId
+    const testCase = await this.prisma.fGTestCase.findUnique({
+      where: { id: testId },
+      select: { repository: { select: { orgId: true } } }
+    });
+
+    if (!testCase) {
+      throw new Error(`Test case not found: ${testId}`);
+    }
+
     // Check if test is already quarantined
     const existingDecision = await this.prisma.fGQuarantineDecision.findFirst({
       where: {
@@ -334,6 +342,7 @@ export class FlakeAnalysisService {
         rationale,
         byUser,
         until,
+        orgId: testCase.repository.orgId,
       },
     });
 
@@ -347,6 +356,16 @@ export class FlakeAnalysisService {
    */
   async clusterFailures(repoId: string): Promise<FGFailureCluster[]> {
     console.log(`Clustering failures for repository: ${repoId}`);
+
+    // Get repository to get orgId
+    const repository = await this.prisma.fGRepository.findUnique({
+      where: { id: repoId },
+      select: { orgId: true }
+    });
+
+    if (!repository) {
+      throw new Error(`Repository not found: ${repoId}`);
+    }
 
     // Get all recent failures with signatures
     const failures = await this.prisma.fGOccurrence.findMany({
@@ -397,13 +416,18 @@ export class FlakeAnalysisService {
       if (clusterData.count >= 2) { // Only create clusters with multiple occurrences
         const cluster = await this.prisma.fGFailureCluster.upsert({
           where: {
-            repoId_failureMsgSignature: { repoId, failureMsgSignature: signature }
+            orgId_repoId_failureMsgSignature: { 
+              orgId: repository.orgId, 
+              repoId, 
+              failureMsgSignature: signature 
+            }
           },
           update: {
             testIds: Array.from(clusterData.testIds),
             occurrenceCount: clusterData.count,
           },
           create: {
+            orgId: repository.orgId,
             repoId,
             failureMsgSignature: signature,
             failureStackDigest: clusterData.stackDigest,
@@ -524,4 +548,3 @@ export function createFailureSignature(message: string): string {
   return createHash('md5').update(normalized).digest('hex');
 }
 
-export { FlakeAnalysisService };

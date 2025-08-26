@@ -69,7 +69,7 @@ export async function databaseMonitoringRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
       const healthStatus = await fastify.databaseMonitoring.getHealthStatus();
       
@@ -100,7 +100,7 @@ export async function databaseMonitoringRoutes(fastify: FastifyInstance) {
         200: DatabaseMetricsSchema,
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
       const performanceData = await fastify.databaseMonitoring.getPerformanceMetrics();
       const stats = performanceData.statistics;

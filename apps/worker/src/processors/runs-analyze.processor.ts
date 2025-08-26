@@ -8,7 +8,7 @@
  */
 
 import { Job } from 'bullmq';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type Prisma } from '@prisma/client';
 import { Octokit } from '@octokit/rest';
 import { logger } from '../utils/logger.js';
 import { 
@@ -595,7 +595,7 @@ async function storeAnalysisResults(
   flakyTests: FlakyTestResult[]
 ): Promise<void> {
   try {
-    await prisma.$transaction(async (_tx) => {
+    await prisma.$transaction(async (_tx: Prisma.TransactionClient) => {
       // Store or update flaky test records
       for (const flakyTest of flakyTests) {
         // Note: fGFlakyTest table doesn't exist in current schema, skipping for now

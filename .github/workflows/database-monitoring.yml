@@ -255,6 +255,7 @@ jobs:
 
       - name: Configure PostgreSQL for performance testing
         env:
+          POSTGRES_USER: postgres
           PGUSER: postgres
         run: |
           # Enable pg_stat_statements for query monitoring
@@ -381,6 +382,7 @@ jobs:
       - name: Analyze query performance
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_perf
+          POSTGRES_USER: postgres
           PGUSER: postgres
         run: |
           # Check for slow queries

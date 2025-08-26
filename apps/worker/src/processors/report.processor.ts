@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any, @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-unsafe-assignment, no-case-declarations */
 
 import { ReportJobData } from '@flakeguard/shared';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, TaskStatus } from '@prisma/client';
 import { Job, Processor } from 'bullmq';
 
 import { logger } from '../utils/logger.js';
@@ -53,7 +53,7 @@ export function reportProcessor(prisma: PrismaClient): Processor {
           reportData = {
             userId,
             period: { startDate, endDate },
-            summary: tasks.map(t => ({
+            summary: tasks.map((t: { status: TaskStatus; _count: { status: number } }) => ({
               status: t.status,
               count: t._count.status,
             })),

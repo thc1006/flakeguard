@@ -47,6 +47,7 @@ const DEFAULT_OPTIONS: BullMQPluginOptions = {
 declare module 'fastify' {
   interface FastifyInstance {
     queue: Queue;
+    ingestionQueue: Queue;
     redis: Redis;
   }
 }
@@ -67,6 +68,7 @@ async function bullmqPlugin(
     } as any;
 
     fastify.decorate('queue', mockQueue);
+    fastify.decorate('ingestionQueue', mockQueue);
     fastify.decorate('redis', {} as any);
     
     return;
@@ -116,8 +118,23 @@ async function bullmqPlugin(
       logger.warn({ jobId }, 'GitHub webhook job stalled');
     });
 
-    // Decorate Fastify instance with queue and Redis connection
+    // Create ingestion queue as well
+    const ingestionQueue = new Queue('ingestion-jobs', {
+      connection: redis,
+      defaultJobOptions: {
+        removeOnComplete: 50,
+        removeOnFail: 25,
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      },
+    });
+
+    // Decorate Fastify instance with queues and Redis connection
     fastify.decorate('queue', githubEventsQueue);
+    fastify.decorate('ingestionQueue', ingestionQueue);
     fastify.decorate('redis', redis);
 
     // Add graceful shutdown
@@ -126,6 +143,7 @@ async function bullmqPlugin(
       
       try {
         await githubEventsQueue.close();
+        await ingestionQueue.close();
         await queueEvents.close();
         await redis.disconnect();
         logger.info('BullMQ connections closed successfully');

@@ -5,43 +5,19 @@
 // Note: Import from shared package when available
 // import type { FlakeScore, QuarantineCandidate, TestStabilityMetrics } from '@flakeguard/shared';
 
-// Temporary type definitions until shared package is properly integrated
-export interface FlakeScore {
-  testName: string;
-  testFullName: string;
-  score: number;
-  confidence: number;
-  features: {
-    failSuccessRatio: number;
-    rerunPassRate: number;
-    intermittencyScore: number;
-    consecutiveFailures: number;
-  };
-  recommendation: {
-    action: 'none' | 'warn' | 'quarantine';
-    reason: string;
-  };
-  lastUpdated: Date;
-}
+// Import types from shared package
+import type {
+  FlakeScore as SharedFlakeScore,
+  QuarantineCandidate as SharedQuarantineCandidate,
+  TestStabilityMetrics as SharedTestStabilityMetrics,
+} from '@flakeguard/shared';
 
-export interface QuarantineCandidate {
-  testId: string;
-  testName: string;
-  score: number;
-  reason: string;
-}
+// Re-export shared types
+export type FlakeScore = SharedFlakeScore;
+export type QuarantineCandidate = SharedQuarantineCandidate;
+export type TestStabilityMetrics = SharedTestStabilityMetrics;
 
-export interface TestStabilityMetrics {
-  testName: string;
-  testFullName: string;
-  repositoryId: string;
-  totalRuns: number;
-  successfulRuns: number;
-  failedRuns: number;
-  avgDuration: number;
-  firstSeen: Date;
-  lastSeen: Date;
-}
+// TestStabilityMetrics is now imported from shared package
 
 export interface SlackConfig {
   botToken: string;

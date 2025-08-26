@@ -2,10 +2,8 @@ import pino from 'pino';
 
 import { config } from '../config/index.js';
 
-// Handle different pino import structures across versions
-const pinoLogger = pino;
-
-export const logger = (pinoLogger as any)({
+const pinoInstance = (pino as any).default || pino;
+export const logger = pinoInstance({
   level: config.logLevel,
   transport:
     config.env === 'development'

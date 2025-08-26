@@ -10,12 +10,12 @@ import type { TestResult } from '@flakeguard/shared';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
-import { validatePolicyConfig, createPolicyConfig } from '../policy/engine.js';
-import { PolicyService } from '../policy/service.js';
+import { validatePolicyConfig } from '../policy/engine.js';
+// import { PolicyService } from '../policy/service.js';
 // Helper to extract installation ID from request
-function extractInstallationIdFromRequest(request: FastifyRequest): number | null {
+function extractInstallationIdFromRequest(_request: FastifyRequest): number | null {
   // Try to get installation ID from headers (for GitHub App requests)
-  const installationHeader = request.headers['x-github-installation-id'];
+  const installationHeader = _request.headers['x-github-installation-id'];
   if (installationHeader && typeof installationHeader === 'string') {
     const id = parseInt(installationHeader, 10);
     if (!isNaN(id)) {
@@ -24,7 +24,7 @@ function extractInstallationIdFromRequest(request: FastifyRequest): number | nul
   }
 
   // Try to get from query params (for API requests)
-  const query = request.query as any;
+  const query = _request.query as any;
   if (query?.installation_id) {
     const id = parseInt(query.installation_id, 10);
     if (!isNaN(id)) {
@@ -176,15 +176,15 @@ export async function policyRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     const startTime = Date.now();
     
     try {
       // Validate request body
-      const validatedRequest = evaluatePolicyRequestSchema.parse(request.body);
+      const validatedRequest = evaluatePolicyRequestSchema.parse(_request.body);
       
       // Extract installation ID from webhook headers or auth
-      const installationId = extractInstallationIdFromRequest(request);
+      const installationId = extractInstallationIdFromRequest(_request);
       if (!installationId) {
         return reply.code(401).send({
           success: false,
@@ -199,7 +199,7 @@ export async function policyRoutes(fastify: FastifyInstance) {
         repository: `${validatedRequest.owner}/${validatedRequest.repo}`,
         testCount: validatedRequest.tests.length,
         installationId,
-        userAgent: request.headers['user-agent'],
+        userAgent: _request.headers['user-agent'],
       });
 
       // Evaluate policy
@@ -305,13 +305,13 @@ export async function policyRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       // Validate query parameters
-      const validatedRequest = loadPolicyRequestSchema.parse(request.query);
+      const validatedRequest = loadPolicyRequestSchema.parse(_request.query);
       
       // Extract installation ID
-      const installationId = extractInstallationIdFromRequest(request);
+      const installationId = extractInstallationIdFromRequest(_request);
       if (!installationId) {
         return reply.code(401).send({
           success: false,
@@ -416,9 +416,9 @@ export async function policyRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const validatedRequest = validatePolicyRequestSchema.parse(request.body);
+      const validatedRequest = validatePolicyRequestSchema.parse(_request.body);
       
       logger.debug('Policy validation request received', {
         hasConfig: !!validatedRequest.config,
@@ -491,9 +491,9 @@ export async function policyRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const validatedRequest = invalidateCacheRequestSchema.parse(request.body);
+      const validatedRequest = invalidateCacheRequestSchema.parse(_request.body);
       
       logger.info('Policy cache invalidation request received', {
         repository: `${validatedRequest.owner}/${validatedRequest.repo}`,
@@ -568,7 +568,7 @@ export async function policyRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       const stats = policyService.getPolicyStats();
       

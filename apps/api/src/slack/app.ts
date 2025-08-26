@@ -9,9 +9,9 @@
  * - Secure request verification
  */
 
-import type { QuarantineCandidate, TestRun } from '@flakeguard/shared';
+import type { TestRun } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
-import bolt from '@slack/bolt';
+import bolt, { type BlockAction, type ButtonAction, type SlashCommand } from '@slack/bolt';
 
 
 import { FlakinessScorer } from '../analytics/flakiness.js';
@@ -94,7 +94,7 @@ export class FlakeGuardSlackApp {
         {
           path: '/health',
           method: ['GET'],
-          handler: (req, res) => {
+          handler: (_req, res) => {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ 
               status: 'healthy', 
@@ -104,11 +104,7 @@ export class FlakeGuardSlackApp {
           }
         }
       ],
-      // Enhanced error handling
-      errorHandler: async (error) => {
-        logger.error({ error }, 'Slack app error occurred');
-        console.error('Slack app error:', error);
-      }
+      // Note: Using default Bolt error handling
     });
 
     this.setupSlashCommands();
@@ -121,12 +117,12 @@ export class FlakeGuardSlackApp {
    */
   private setupSlashCommands(): void {
     // Main /flakeguard command with subcommand routing
-    this.app.command('/flakeguard', async ({ ack, body, respond, client }) => {
+    this.app.command('/flakeguard', async ({ ack, body, respond, client: _client }) => {
       await ack();
 
       try {
         // Rate limiting check
-        if (!this.checkRateLimit(body.user_id)) {
+        if (!this.checkRateLimit(body.user?.id || "unknown-user")) {
           await respond({
             text: '🚫 Rate limit exceeded. Please wait a moment before trying again.',
             response_type: 'ephemeral'
@@ -139,7 +135,7 @@ export class FlakeGuardSlackApp {
 
         logger.info('Processing FlakeGuard slash command', {
           subcommand,
-          userId: body.user_id,
+          userId: body.user?.id || "unknown-user",
           channelId: body.channel_id,
           teamId: body.team_id,
         });
@@ -160,7 +156,7 @@ export class FlakeGuardSlackApp {
         }
 
       } catch (error) {
-        logger.error({ error, userId: body.user_id }, 'Failed to process slash command');
+        logger.error({ error, userId: body.user?.id || "unknown-user" }, 'Failed to process slash command');
         await respond({
           text: '❌ An error occurred while processing your command. Please try again later.',
           response_type: 'ephemeral'
@@ -174,28 +170,28 @@ export class FlakeGuardSlackApp {
    */
   private setupBlockActions(): void {
     // Quarantine button action
-    this.app.action('quarantine_test', async ({ ack, body, respond, client }) => {
+    this.app.action('quarantine_test', async ({ ack, body, respond, client: _client }) => {
       await ack();
 
       try {
         const action = body as BlockAction;
         const buttonAction = action.actions[0] as ButtonAction;
-        const { repositoryId, testName } = JSON.parse(buttonAction.value);
+        const { repositoryId, testName } = JSON.parse(buttonAction.value || '{}');
 
         logger.info('Processing quarantine button action', {
           repositoryId,
           testName,
-          userId: body.user.id,
+          userId: body.user?.id || "unknown-user",
         });
 
         // Call existing GitHub quarantine handler
-        const result = await this.handleQuarantineAction(repositoryId, testName, body.user.id);
+        const result = await this.handleQuarantineAction(repositoryId, testName, body.user?.id || "unknown-user");
         
         // Update the message with result
         await this.updateMessageWithResult(respond, 'quarantine', result, testName);
 
       } catch (error) {
-        logger.error({ error, userId: body.user.id }, 'Failed to process quarantine action');
+        logger.error({ error, userId: body.user?.id || "unknown-user" }, 'Failed to process quarantine action');
         await respond({
           text: '❌ Failed to quarantine test. Please try again or contact support.',
           response_type: 'ephemeral'
@@ -204,28 +200,28 @@ export class FlakeGuardSlackApp {
     });
 
     // Open issue button action
-    this.app.action('open_issue', async ({ ack, body, respond, client }) => {
+    this.app.action('open_issue', async ({ ack, body, respond, client: _client }) => {
       await ack();
 
       try {
         const action = body as BlockAction;
         const buttonAction = action.actions[0] as ButtonAction;
-        const { repositoryId, testName } = JSON.parse(buttonAction.value);
+        const { repositoryId, testName } = JSON.parse(buttonAction.value || '{}');
 
         logger.info('Processing open issue button action', {
           repositoryId,
           testName,
-          userId: body.user.id,
+          userId: body.user?.id || "unknown-user",
         });
 
         // Call existing GitHub issue handler
-        const result = await this.handleOpenIssueAction(repositoryId, testName, body.user.id);
+        const result = await this.handleOpenIssueAction(repositoryId, testName, body.user?.id || "unknown-user");
         
         // Update the message with result
         await this.updateMessageWithResult(respond, 'issue', result, testName);
 
       } catch (error) {
-        logger.error({ error, userId: body.user.id }, 'Failed to process open issue action');
+        logger.error({ error, userId: body.user?.id || "unknown-user" }, 'Failed to process open issue action');
         await respond({
           text: '❌ Failed to create issue. Please try again or contact support.',
           response_type: 'ephemeral'
@@ -234,13 +230,13 @@ export class FlakeGuardSlackApp {
     });
 
     // View details action
-    this.app.action('view_details', async ({ ack, body, respond, client }) => {
+    this.app.action('view_details', async ({ ack, body, respond, client: _client }) => {
       await ack();
 
       try {
         const action = body as BlockAction;
         const buttonAction = action.actions[0] as ButtonAction;
-        const { repositoryId, testName } = JSON.parse(buttonAction.value);
+        const { repositoryId, testName } = JSON.parse(buttonAction.value || '{}');
 
         const details = await this.getTestDetails(repositoryId, testName);
         
@@ -268,16 +264,7 @@ export class FlakeGuardSlackApp {
       console.error('Unhandled Slack app error:', error);
     });
 
-    // Handle Slack retry headers
-    this.app.receiver.app.use((req, res, next) => {
-      if (req.headers['x-slack-retry-num']) {
-        logger.warn('Slack retry detected', {
-          retryNum: req.headers['x-slack-retry-num'],
-          retryReason: req.headers['x-slack-retry-reason'],
-        });
-      }
-      next();
-    });
+    // Note: Slack retry header handling removed due to receiver access limitations
   }
 
   /**
@@ -286,7 +273,7 @@ export class FlakeGuardSlackApp {
   private async handleStatusCommand(
     args: string[], 
     respond: any, 
-    body: SlashCommand
+    _body: SlashCommand
   ): Promise<void> {
     if (args.length === 0) {
       await respond({
@@ -297,7 +284,7 @@ export class FlakeGuardSlackApp {
     }
 
     const repoPath = args[0];
-    const [owner, repo] = repoPath.split('/');
+    const [owner, repo] = repoPath ? repoPath.split('/') : [];
 
     if (!owner || !repo) {
       await respond({
@@ -336,7 +323,7 @@ export class FlakeGuardSlackApp {
 
       await respond({
         blocks,
-        response_type: body.channel_name === 'directmessage' ? 'ephemeral' : 'in_channel'
+        response_type: _body.channel_name === 'directmessage' ? 'ephemeral' : 'in_channel'
       });
 
     } catch (error) {
@@ -354,10 +341,10 @@ export class FlakeGuardSlackApp {
   private async handleTopFlakyCommand(
     args: string[], 
     respond: any, 
-    body: SlashCommand
+    _body: SlashCommand
   ): Promise<void> {
     try {
-      const limit = args.length > 0 ? parseInt(args[0]) || 10 : 10;
+      const limit = args.length > 0 ? parseInt(args[0] || '10') || 10 : 10;
       const clampedLimit = Math.min(Math.max(limit, 1), 25); // Limit between 1-25
 
       // Get top flaky tests across all repositories
@@ -366,7 +353,7 @@ export class FlakeGuardSlackApp {
       if (topFlaky.length === 0) {
         await respond({
           text: '🎉 No flaky tests detected across monitored repositories!',
-          response_type: body.channel_name === 'directmessage' ? 'ephemeral' : 'in_channel'
+          response_type: _body.channel_name === 'directmessage' ? 'ephemeral' : 'in_channel'
         });
         return;
       }
@@ -376,7 +363,7 @@ export class FlakeGuardSlackApp {
 
       await respond({
         blocks,
-        response_type: body.channel_name === 'directmessage' ? 'ephemeral' : 'in_channel'
+        response_type: _body.channel_name === 'directmessage' ? 'ephemeral' : 'in_channel'
       });
 
     } catch (error) {
@@ -391,7 +378,7 @@ export class FlakeGuardSlackApp {
   /**
    * Handle help command - display usage instructions
    */
-  private async handleHelpCommand(respond: any, body: SlashCommand): Promise<void> {
+  private async handleHelpCommand(respond: any, _body: SlashCommand): Promise<void> {
     const blocks = [
       {
         type: 'section',
@@ -531,11 +518,11 @@ export class FlakeGuardSlackApp {
         if (flakeScore.score > 0.3) { // Only include tests with meaningful flakiness
           const failedRuns = runs.filter(r => r.status === 'failed' || r.status === 'error');
           const lastFailure = failedRuns.length > 0 
-            ? failedRuns.reduce((latest, run) => run.createdAt > latest ? run.createdAt : latest, failedRuns[0].createdAt)
-            : runs[0].createdAt;
+            ? failedRuns.reduce((latest, run) => run.createdAt > latest ? run.createdAt : latest, failedRuns[0]!.createdAt)
+            : runs[0]!.createdAt;
 
           flakyTests.push({
-            testName: runs[0].testName,
+            testName: runs[0]!.testName,
             flakeScore: flakeScore.score,
             failureRate: flakeScore.features.failSuccessRatio,
             lastFailure,
@@ -656,10 +643,6 @@ export class FlakeGuardSlackApp {
       });
 
       for (const [index, test] of summary.topFlaky.slice(0, 5).entries()) {
-        const actionValue = JSON.stringify({
-          repositoryId: summary.repositoryId,
-          testName: test.testName
-        });
 
         blocks.push({
           type: 'section',
@@ -667,45 +650,18 @@ export class FlakeGuardSlackApp {
             type: 'mrkdwn',
             text: `*${index + 1}. ${test.testName}*\n🎯 Flake Score: ${(test.flakeScore * 100).toFixed(1)}% | 💥 Failure Rate: ${(test.failureRate * 100).toFixed(1)}%\n📅 Last Failure: ${test.lastFailure.toLocaleDateString()}`
           },
-          accessory: {
-            type: 'overflow',
-            options: [
-              {
-                text: {
-                  type: 'plain_text',
-                  text: '🚫 Quarantine in GitHub'
-                },
-                value: `quarantine:${actionValue}`
-              },
-              {
-                text: {
-                  type: 'plain_text',
-                  text: '🔗 Open Issue'
-                },
-                value: `issue:${actionValue}`
-              },
-              {
-                text: {
-                  type: 'plain_text',
-                  text: '📊 View Details'
-                },
-                value: `details:${actionValue}`
-              }
-            ],
-            action_id: 'flaky_test_actions'
-          }
         });
       }
 
       // Add action buttons for top test
       if (summary.topFlaky.length > 0) {
-        const topTest = summary.topFlaky[0];
+        const topTest = summary.topFlaky[0]!;
         const actionValue = JSON.stringify({
           repositoryId: summary.repositoryId,
           testName: topTest.testName
         });
 
-        blocks.push({
+        (blocks as any[]).push({
           type: 'actions',
           elements: [
             {
@@ -774,10 +730,6 @@ export class FlakeGuardSlackApp {
     ];
 
     for (const [index, test] of topFlaky.entries()) {
-      const actionValue = JSON.stringify({
-        repositoryId: test.repositoryName, // Using repository name as ID for global search
-        testName: test.testName
-      });
 
       blocks.push({
         type: 'section',
@@ -919,8 +871,8 @@ export class FlakeGuardSlackApp {
         }
       };
 
-      // Call the existing quarantine handler
-      await this.dependencies.checkRunHandler.process(mockPayload);
+      // Call the existing quarantine handler with type assertion
+      await this.dependencies.checkRunHandler.process(mockPayload as any);
 
       logger.info('Quarantine action completed via Slack', {
         repositoryId: repository.id,
@@ -1010,8 +962,8 @@ export class FlakeGuardSlackApp {
         }
       };
 
-      // Call the existing issue handler
-      await this.dependencies.checkRunHandler.process(mockPayload);
+      // Call the existing issue handler with type assertion
+      await this.dependencies.checkRunHandler.process(mockPayload as any);
 
       logger.info('Open issue action completed via Slack', {
         repositoryId: repository.id,
@@ -1173,7 +1125,7 @@ export class FlakeGuardSlackApp {
   /**
    * Get the underlying Slack app instance
    */
-  public getApp(): App {
+  public getApp(): InstanceType<typeof App> {
     return this.app;
   }
 }

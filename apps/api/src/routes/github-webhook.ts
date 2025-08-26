@@ -204,17 +204,13 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
       const eventType = request.headers['x-github-event'] as string;
       const deliveryId = request.headers['x-github-delivery'] as string;
       const signature = request.headers['x-hub-signature-256'] as string;
-      const userAgent = request.headers['user-agent'] as string;
+      const _userAgent = request.headers['user-agent'] as string;
 
-      logger.info('GitHub webhook received', {
-        eventType,
-        deliveryId,
-        userAgent,
-      });
+      logger.info('GitHub webhook received');
 
       // P1 Requirement: Check if event is supported
       if (!SUPPORTED_WEBHOOK_EVENTS.includes(eventType as SupportedWebhookEvent)) {
-        logger.warn('Unsupported webhook event', { eventType, deliveryId });
+        logger.warn('Unsupported webhook event');
         
         // Return 202 for unsupported events (per P1 requirements)
         return reply.code(202).send({
@@ -227,7 +223,7 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
       // P1 Requirement: Verify HMAC signature
       let rawPayload: string;
       try {
-        rawPayload = request.rawBody || JSON.stringify(request.body);
+        rawPayload = (request as any).rawBody || JSON.stringify(request.body);
       } catch (error) {
         logger.error('Failed to get raw payload for signature verification', {
           eventType,

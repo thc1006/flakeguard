@@ -108,11 +108,11 @@ export async function quarantineRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (request: any, reply: any) => {
+  }, async (_request: any, reply: any) => {
     const startTime = Date.now();
     
     try {
-      const requestData = quarantinePlanRequestSchema.parse(request.body);
+      const requestData = quarantinePlanRequestSchema.parse(_request.body);
       const { repositoryId, policy, lookbackDays, includeAnnotations } = requestData;
 
       // Verify repository exists
@@ -241,7 +241,7 @@ export async function quarantineRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (request: any, reply: any) => {
+  }, async (_request: any, reply: any) => {
     return reply.send(DEFAULT_QUARANTINE_POLICY);
   });
 }
@@ -320,7 +320,7 @@ async function buildQuarantineCandidate(
   repositoryFullName: string,
   includeAnnotations: boolean
 ): Promise<QuarantineCandidate> {
-  const testName = runs[0].testName;
+  const testName = runs[0]!.testName;
   
   // Get the most recent failures for context
   const recentFailures = runs

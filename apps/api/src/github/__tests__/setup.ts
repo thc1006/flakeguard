@@ -196,21 +196,27 @@ expect.extend({
 const slowTestThreshold = 5000; // 5 seconds
 const originalIt = global.it;
 
-global.it = function(name: string, fn?: any, timeout?: number) {
-  if (!fn) {return originalIt(name);}
-  
-  return originalIt(name, async () => {
-    const start = Date.now();
-    try {
-      await fn();
-    } finally {
-      const duration = Date.now() - start;
-      if (duration > slowTestThreshold) {
-        console.warn(`🐌 Slow test detected: "${name}" took ${duration}ms`);
-      }
-    }
-  }, timeout);
-};
+if (originalIt) {
+  // Override the global it function with proper typing
+  (global as any).it = Object.assign(
+    function(name: string, fn?: any, timeout?: number) {
+      if (!fn) {return originalIt(name);}
+      
+      return originalIt(name, async () => {
+        const start = Date.now();
+        try {
+          await fn();
+        } finally {
+          const duration = Date.now() - start;
+          if (duration > slowTestThreshold) {
+            console.warn(`🐌 Slow test detected: "${name}" took ${duration}ms`);
+          }
+        }
+      }, timeout);
+    },
+    originalIt
+  );
+}
 
 // =============================================================================
 // ERROR HANDLING
@@ -231,11 +237,13 @@ process.on('uncaughtException', (error) => {
 // =============================================================================
 
 // Debug helper for inspecting objects
-(global as any).debug = (obj: any, label = 'Debug') => {
-  console.log(`\n=== ${label} ===`);
-  console.log(JSON.stringify(obj, null, 2));
-  console.log(`=== End ${label} ===\n`);
-};
+if (!(global as any).debug) {
+  (global as any).debug = (obj: any, label = 'Debug') => {
+    console.log(`\n=== ${label} ===`);
+    console.log(JSON.stringify(obj, null, 2));
+    console.log(`=== End ${label} ===\n`);
+  };
+}
 
 // Mock inspection helper
 (global as any).inspectMock = (mock: any, label = 'Mock') => {
@@ -258,9 +266,6 @@ declare global {
       toHaveBeenCalledWithObjectContaining(expected: object): T;
     }
   }
-  
-  function debug(obj: any, label?: string): void;
-  function inspectMock(mock: any, label?: string): void;
 }
 
 console.log('🧪 Test setup complete');

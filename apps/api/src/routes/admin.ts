@@ -30,11 +30,11 @@ const updateOrgSchema = z.object({
   settings: z.record(z.any()).optional(),
 });
 
-const inviteUserSchema = z.object({
-  email: z.string().email(),
-  role: z.enum(['owner', 'admin', 'member', 'viewer']),
-  name: z.string().optional(),
-});
+// const _inviteUserSchema = z.object({
+//   email: z.string().email(),
+//   role: z.enum(['owner', 'admin', 'member', 'viewer']),
+//   name: z.string().optional(),
+// });
 
 const syncRepoSchema = z.object({
   fullSync: z.boolean().default(false),
@@ -117,7 +117,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
       // Get system overview
       const [
@@ -200,9 +200,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
-      const { page = 1, limit = 20, status, plan, search } = request.query as any;
+      const { page = 1, limit = 20, status, plan, search } = _request.query as any;
       const offset = (page - 1) * limit;
 
       const where: any = {};
@@ -279,9 +279,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
       summary: 'Create new organization',
       body: createOrgSchema,
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
-      const data = request.body as z.infer<typeof createOrgSchema>;
+      const data = _request.body as z.infer<typeof createOrgSchema>;
 
       // Find or create owner user
       let ownerUser = await fastify.prisma.user.findUnique({
@@ -305,11 +305,14 @@ export async function adminRoutes(fastify: FastifyInstance) {
         githubLogin: data.githubLogin,
         domain: data.domain,
         plan: data.plan,
-      }, ownerUser);
+      }, {
+        ...ownerUser,
+        name: ownerUser.name || 'Unknown User'
+      });
 
       logger.info('Organization created by admin', {
         orgId: result.organization.id,
-        adminId: request.tenant.userId,
+        adminId: _request.tenant?.userId,
       });
 
       return reply.code(201).send({
@@ -348,10 +351,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
       },
       body: updateOrgSchema,
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
-      const { orgId } = request.params as { orgId: string };
-      const data = request.body as z.infer<typeof updateOrgSchema>;
+      const { orgId } = _request.params as { orgId: string };
+      const data = _request.body as z.infer<typeof updateOrgSchema>;
 
       const organization = await fastify.prisma.organization.findUnique({
         where: { id: orgId },
@@ -376,20 +379,20 @@ export async function adminRoutes(fastify: FastifyInstance) {
       await fastify.prisma.auditLog.create({
         data: {
           orgId,
-          userId: request.tenant.userId!,
+          userId: _request.tenant.userId!,
           action: 'organization_updated_by_admin',
           resource: 'organization',
           resourceId: orgId,
           details: {
             changes: data,
-            adminId: request.tenant.userId,
+            adminId: _request.tenant?.userId,
           },
         },
       });
 
       logger.info('Organization updated by admin', {
         orgId,
-        adminId: request.tenant.userId,
+        adminId: _request.tenant?.userId,
         changes: Object.keys(data),
       });
 
@@ -417,9 +420,9 @@ export async function adminRoutes(fastify: FastifyInstance) {
         required: ['orgId'],
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
-      const { orgId } = request.params as { orgId: string };
+      const { orgId } = _request.params as { orgId: string };
 
       const organization = await fastify.prisma.organization.findUnique({
         where: { id: orgId },
@@ -497,10 +500,10 @@ export async function adminRoutes(fastify: FastifyInstance) {
       },
       body: syncRepoSchema,
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
-      const { orgId } = request.params as { orgId: string };
-      const options = request.body as z.infer<typeof syncRepoSchema>;
+      const { orgId } = _request.params as { orgId: string };
+      const options = _request.body as z.infer<typeof syncRepoSchema>;
 
       // Get organization installations
       const installations = await fastify.prisma.installation.findMany({
@@ -534,7 +537,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       await fastify.prisma.auditLog.create({
         data: {
           orgId,
-          userId: request.tenant.userId!,
+          userId: _request.tenant.userId!,
           action: 'organization_sync_triggered',
           resource: 'organization',
           resourceId: orgId,
@@ -552,7 +555,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
 
       logger.info('Organization sync triggered by admin', {
         orgId,
-        adminId: request.tenant.userId,
+        adminId: _request.tenant?.userId,
         installationCount: installations.length,
       });
 
@@ -573,7 +576,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin'],
       summary: 'Get system health metrics',
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
       // Get database connection info
       const dbResult = await fastify.prisma.$queryRaw`SELECT version()`;

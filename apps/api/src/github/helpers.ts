@@ -88,7 +88,7 @@ export class GitHubHelpers {
         name: params.name,
         head_sha: params.headSha,
         status: params.status as 'queued' | 'in_progress' | 'completed',
-        conclusion: params.conclusion as 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | 'skipped' | null,
+        conclusion: params.conclusion as "success" | "failure" | "neutral" | "cancelled" | "timed_out" | "action_required" | "skipped" | undefined,
         started_at: params.startedAt,
         completed_at: params.completedAt,
         output: params.output,
@@ -104,15 +104,15 @@ export class GitHubHelpers {
         name: data.name,
         headSha: data.head_sha,
         status: data.status as 'queued' | 'in_progress' | 'completed',
-        conclusion: data.conclusion as 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | 'skipped' | null,
+        conclusion: data.conclusion as "success" | "failure" | "neutral" | "cancelled" | "timed_out" | "action_required" | "skipped" | null,
         startedAt: data.started_at,
         completedAt: data.completed_at,
         output: {
           title: data.output?.title || '',
           summary: data.output?.summary || '',
-          text: data.output?.text,
+          text: data.output?.text || undefined,
         },
-        actions: data.actions?.map((action: { label: string; description: string; identifier: string }) => ({
+        actions: (data as any).actions?.map((action: { label: string; description: string; identifier: string }) => ({
           label: action.label,
           description: action.description,
           identifier: action.identifier as CheckRunAction,
@@ -165,7 +165,7 @@ export class GitHubHelpers {
         repo,
         check_run_id: checkRunId,
         status: updates.status as 'queued' | 'in_progress' | 'completed',
-        conclusion: updates.conclusion as 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | 'skipped' | null,
+        conclusion: updates.conclusion as 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | 'skipped' | 'stale' | undefined,
         completed_at: updates.completedAt,
         output: updates.output,
         actions: updates.actions?.map(action => ({
@@ -180,15 +180,15 @@ export class GitHubHelpers {
         name: data.name,
         headSha: data.head_sha,
         status: data.status as 'queued' | 'in_progress' | 'completed',
-        conclusion: data.conclusion as 'success' | 'failure' | 'neutral' | 'cancelled' | 'timed_out' | 'action_required' | 'skipped' | null,
+        conclusion: data.conclusion as "success" | "failure" | "neutral" | "cancelled" | "timed_out" | "action_required" | "skipped" | null,
         startedAt: data.started_at,
         completedAt: data.completed_at,
         output: {
           title: data.output?.title || '',
           summary: data.output?.summary || '',
-          text: data.output?.text,
+          text: data.output?.text || undefined,
         },
-        actions: data.actions?.map((action: { label: string; description: string; identifier: string }) => ({
+        actions: (data as any).actions?.map((action: { label: string; description: string; identifier: string }) => ({
           label: action.label,
           description: action.description,
           identifier: action.identifier as CheckRunAction,
@@ -273,7 +273,7 @@ export class GitHubHelpers {
         label: config.label,
         description: config.description,
         identifier: config.identifier,
-      };
+      } as const;
     });
 
     await this.updateCheckRun(owner, repo, checkRunId, installationId, {
@@ -337,7 +337,7 @@ export class GitHubHelpers {
         label: config.label,
         description: config.description,
         identifier: config.identifier,
-      };
+      } as const;
     });
 
     await this.createCheckRun(owner, repo, {
@@ -391,7 +391,7 @@ export class GitHubHelpers {
       actions.push({
         label: 'Rerun Failed Jobs',
         description: 'Rerun only the failed jobs in this workflow',
-        identifier: 'rerun_failed',
+        identifier: 'rerun_failed' as const,
       });
     }
 
@@ -399,7 +399,7 @@ export class GitHubHelpers {
       actions.push({
         label: 'View Flaky Tests',
         description: 'Open detailed report of flaky tests',
-        identifier: 'open_issue',
+        identifier: 'open_issue' as const,
       });
     }
 
@@ -413,7 +413,7 @@ export class GitHubHelpers {
         title,
         summary: summaryText,
       },
-      actions: actions.slice(0, 3),
+      actions: actions.slice(0, 3) as any,
     }, installationId);
   }
 
@@ -562,14 +562,14 @@ export class GitHubHelpers {
   ): Promise<Array<{
     id: number;
     run_id: number;
-    workflow_name: string;
-    head_branch: string;
+    workflow_name: string | null;
+    head_branch: string | null;
     run_url: string;
-    run_attempt: number;
+    run_attempt: number | undefined;
     node_id: string;
     head_sha: string;
     url: string;
-    html_url: string;
+    html_url: string | null;
     status: string;
     conclusion: string | null;
     started_at: string;
@@ -591,7 +591,7 @@ export class GitHubHelpers {
         run_id: runId,
       });
 
-      return data.jobs;
+      return data.jobs.map(job => ({...job, run_attempt: job.run_attempt ?? 1}));
 
     } catch (error: unknown) {
       logger.error('Failed to get workflow jobs', {
@@ -642,7 +642,7 @@ export class GitHubHelpers {
         url: artifact.url,
         archiveDownloadUrl: artifact.archive_download_url,
         expired: artifact.expired,
-        createdAt: artifact.created_at,
+        createdAt: artifact.created_at ?? new Date().toISOString(),
         expiresAt: artifact.expires_at,
         updatedAt: artifact.updated_at,
       }));
@@ -688,7 +688,7 @@ export class GitHubHelpers {
       // Download URL is the archive_download_url
       return {
         downloadUrl: artifact.archive_download_url,
-        expiresAt: artifact.expires_at,
+        expiresAt: artifact.expires_at || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Default to 24h from now
         sizeInBytes: artifact.size_in_bytes,
       };
 
@@ -808,7 +808,7 @@ export class GitHubHelpers {
     return 'Low';
   }
 
-  private inferArtifactType(artifactName: string): string {
+  private inferArtifactType(artifactName: string): 'test-results' | 'coverage-report' | 'logs' | 'screenshots' {
     const name = artifactName.toLowerCase();
     
     if (name.includes('test') || name.includes('junit') || name.includes('results')) {
@@ -824,7 +824,7 @@ export class GitHubHelpers {
       return ARTIFACT_TYPES.SCREENSHOTS;
     }
     
-    return 'other';
+    return 'logs'; // Default to logs if we can't determine the type
   }
 
   private mapGitHubErrorCode(error: unknown): ErrorCode {

@@ -103,8 +103,8 @@ export class TenantManagementService {
             settings: {
               ...settings,
               ...config.settings,
-              quotas,
-            },
+              quotas: quotas as any,
+            } as any,
             status: 'active',
           },
         });
@@ -319,11 +319,11 @@ export class TenantManagementService {
 
       logger.info('User invited successfully', {
         orgId,
-        userId: user.id,
+        userId: user!.id,
         email: invitation.email,
       });
 
-      return { success: true, userId: user.id };
+      return { success: true, userId: user!.id };
 
     } catch (error: any) {
       logger.error('Failed to invite user', {

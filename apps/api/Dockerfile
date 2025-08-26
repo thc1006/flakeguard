@@ -75,8 +75,13 @@ COPY --chown=builder:builder tsconfig.json ./
 
 # Generate Prisma client and build application
 RUN cd apps/api && \
+    echo "Generating Prisma client..." && \
     pnpm exec prisma generate && \
-    pnpm build
+    echo "Prisma client generated successfully" && \
+    ls -la node_modules/.prisma/client/ || echo "Warning: Prisma client not found" && \
+    echo "Building application..." && \
+    pnpm build && \
+    echo "Application built successfully"
 
 # Prune to production dependencies only
 RUN pnpm --filter @flakeguard/api --prod deploy pruned/api
@@ -133,6 +138,9 @@ COPY --from=builder --chown=flakeguard:flakeguard /app/apps/api/prisma ./prisma
 COPY --from=builder --chown=flakeguard:flakeguard /app/apps/api/package.json ./
 COPY --from=shared-builder --chown=flakeguard:flakeguard /app/packages/shared/dist ./packages/shared/dist
 COPY --from=shared-builder --chown=flakeguard:flakeguard /app/packages/shared/package.json ./packages/shared/
+
+# Ensure Prisma client is properly copied and accessible
+RUN ls -la ./node_modules/.prisma/client/ || echo "Warning: Prisma client not found in runtime stage"
 
 # Set secure permissions
 RUN find /app -type f -exec chmod 644 {} \; && \

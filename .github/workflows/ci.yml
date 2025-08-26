@@ -29,16 +29,21 @@ on:
 env:
   NODE_VERSION: '20'
   NODE_OPTIONS: '--max-old-space-size=4096'
+  # Database configuration - ensure consistent user across all connections
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
   POSTGRES_DB: flakeguard_test
-  REDIS_URL: redis://localhost:6379
   DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
+  # PostgreSQL client environment variables
   PGUSER: postgres
   PGPASSWORD: postgres
   PGDATABASE: flakeguard_test
   PGHOST: localhost
   PGPORT: 5432
+  # Prevent any root user connections
+  USER: postgres
+  # Application configuration
+  REDIS_URL: redis://localhost:6379
   JWT_SECRET: test-jwt-secret-minimum-32-characters-long-for-testing-only
   API_KEY: test-api-key-minimum-16-chars-for-testing
   LOG_LEVEL: error
@@ -168,8 +173,9 @@ jobs:
           POSTGRES_USER: ${{ env.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          PGUSER: ${{ env.POSTGRES_USER }}
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U $POSTGRES_USER"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -217,15 +223,20 @@ jobs:
           pnpm install --no-frozen-lockfile --prefer-offline
 
       - name: Generate Prisma client (initial)
-        run: pnpm --filter=@flakeguard/api generate
+        run: |
+          echo "[PRISMA] Generating Prisma client before migrations..."
+          pnpm --filter=@flakeguard/api generate
+          echo "[PRISMA] Initial Prisma client generated"
 
       - name: Check database connection
         run: |
           echo "[DB] Testing database connection..."
-          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done'
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U $POSTGRES_USER; do sleep 1; done'
           echo "[DB] Database is ready"
         env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
           PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          PGUSER: ${{ env.POSTGRES_USER }}
 
       - name: Show pending migrations
         run: |
@@ -237,6 +248,8 @@ jobs:
           # Note: Skip migrate status check initially as _prisma_migrations table may not exist yet
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          PGUSER: ${{ env.POSTGRES_USER }}
 
       - name: Run database migrations
         run: |
@@ -256,13 +269,18 @@ jobs:
           EOF
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          PGUSER: ${{ env.POSTGRES_USER }}
           PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
 
       - name: Regenerate Prisma client (post-migration)
         run: |
           echo "[PRISMA] Regenerating Prisma client after migrations..."
+          rm -rf apps/api/node_modules/.prisma || true
           pnpm --filter=@flakeguard/api generate
           echo "[PRISMA] Prisma client regenerated"
+          echo "[PRISMA] Verifying client location..."
+          ls -la apps/api/node_modules/.prisma/client/ || echo "Client not found in expected location"
 
       - name: Validate schema integrity
         run: |
@@ -396,8 +414,9 @@ jobs:
           POSTGRES_USER: ${{ env.POSTGRES_USER }}
           POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
           POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          PGUSER: ${{ env.POSTGRES_USER }}
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U $POSTGRES_USER"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -453,10 +472,12 @@ jobs:
       - name: Check database connection
         run: |
           echo "[DB] Testing database connection..."
-          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done'
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U $POSTGRES_USER; do sleep 1; done'
           echo "[DB] Database is ready"
         env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
           PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          PGUSER: ${{ env.POSTGRES_USER }}
 
       - name: Show pending migrations
         run: |
@@ -468,6 +489,8 @@ jobs:
           # Note: Skip migrate status check initially as _prisma_migrations table may not exist yet
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          PGUSER: ${{ env.POSTGRES_USER }}
 
       - name: Run database migrations
         run: |
@@ -487,13 +510,18 @@ jobs:
           EOF
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          PGUSER: ${{ env.POSTGRES_USER }}
           PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
 
       - name: Regenerate Prisma client (post-migration)
         run: |
           echo "[PRISMA] Regenerating Prisma client after migrations..."
+          rm -rf apps/api/node_modules/.prisma || true
           pnpm --filter=@flakeguard/api generate
           echo "[PRISMA] Prisma client regenerated"
+          echo "[PRISMA] Verifying client location..."
+          ls -la apps/api/node_modules/.prisma/client/ || echo "Client not found in expected location"
 
       - name: Validate schema integrity
         run: |
@@ -663,6 +691,13 @@ jobs:
           export NODE_OPTIONS="--max-old-space-size=4096"
           pnpm install --no-frozen-lockfile --prefer-offline
 
+      - name: Generate Prisma client for build
+        if: matrix.app == 'api'
+        run: |
+          echo "[PRISMA] Generating Prisma client for API build..."
+          pnpm --filter=@flakeguard/api generate
+          echo "[PRISMA] Prisma client ready for build"
+          
       - name: Build ${{ matrix.app }}
         run: |
           pnpm --filter=@flakeguard/shared build

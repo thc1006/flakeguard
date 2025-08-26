@@ -364,7 +364,7 @@ export function convertFlakeScoresToTests(
  */
 export function convertStabilityMetricsToTests(
   metrics: readonly TestStabilityMetrics[],
-  repository: Repository
+  _repository: Repository
 ): TestWithLocation[] {
   return metrics.map(metric => {
     const failureRate = metric.totalRuns > 0 ? metric.failedRuns / metric.totalRuns : 0;
@@ -432,7 +432,7 @@ function extractFileLocation(testFullName: string): { file?: string; line?: numb
   if (fileLineMatch) {
     return {
       file: fileLineMatch[1]!,
-      line: parseInt(fileLineMatch[3], 10),
+      line: parseInt(fileLineMatch[3]!, 10),
     };
   }
   

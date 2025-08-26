@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
-import { checkDatabaseHealth, checkConnectionPool, checkMigrationStatus, validateTenantIsolation, checkQueryPerformance } from '../utils/database-health.js';
+import { checkConnectionPool, checkMigrationStatus, validateTenantIsolation, checkQueryPerformance } from '../utils/database-health.js';
 import { logger } from '../utils/logger.js';
-import { activeRepositories, databaseConnections, queueConnectionHealth, recordDatabaseQuery } from '../utils/metrics.js';
+import { activeRepositories, databaseConnections } from '../utils/metrics.js';
 
 const healthResponseSchema = z.object({
   status: z.literal('ok'),
@@ -60,7 +60,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
         200: healthResponseSchema,
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     let databaseStatus: 'connected' | 'disconnected' = 'disconnected';
     
     try {
@@ -88,7 +88,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
         503: z.object({ ready: z.boolean(), reason: z.string() }),
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
       // Test database connectivity
       await fastify.prisma.$queryRaw`SELECT 1`;
@@ -115,7 +115,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
         200: z.object({ alive: z.boolean(), uptime: z.number() }),
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     // Simple liveness check - if we can respond, we're alive
     return reply.send({ 
       alive: true, 
@@ -187,9 +187,9 @@ export async function healthRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
-      const startTime = Date.now();
+      // const _startTime = Date.now(); // Currently unused
       
       // Run all database health checks in parallel
       const [connectivity, connectionPool, migrations, tenantIsolation, performance] = await Promise.allSettled([
@@ -253,8 +253,8 @@ export async function healthRoutes(fastify: FastifyInstance) {
         503: detailedHealthSchema,
       },
     },
-  }, async (request, reply) => {
-    const startTime = Date.now();
+  }, async (_request, reply) => {
+    // const _startTime = Date.now(); // Currently unused
     
     // Parallel health checks for better performance
     const [databaseHealth, memoryHealth, githubHealth] = await Promise.allSettled([
@@ -373,7 +373,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
   /**
    * Check GitHub integration health
    */
-  async function checkGitHubHealth(fastify: FastifyInstance) {
+  async function checkGitHubHealth(_fastify: FastifyInstance) {
     const configured = !!(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY);
     
     if (!configured) {

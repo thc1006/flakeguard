@@ -12,7 +12,7 @@ export async function userRoutes(fastify: FastifyInstance) {
         200: z.array(userSchema),
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     const users = await fastify.prisma.user.findMany();
     return reply.send(users);
   });
@@ -34,8 +34,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (request, reply) => {
-    const { id } = request.params as { id: string };
+  }, async (_request, reply) => {
+    const { id } = _request.params as { id: string };
     
     const user = await fastify.prisma.user.findUnique({
       where: { id },
@@ -62,8 +62,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         201: userSchema,
       },
     },
-  }, async (request, reply) => {
-    const data = createUserSchema.parse(request.body);
+  }, async (_request, reply) => {
+    const data = createUserSchema.parse(_request.body);
     
     const user = await fastify.prisma.user.create({
       data,
@@ -90,9 +90,9 @@ export async function userRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (request, reply) => {
-    const { id } = request.params as { id: string };
-    const data = updateUserSchema.parse(request.body);
+  }, async (_request, reply) => {
+    const { id } = _request.params as { id: string };
+    const data = updateUserSchema.parse(_request.body);
     
     try {
       const user = await fastify.prisma.user.update({
@@ -127,8 +127,8 @@ export async function userRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (request, reply) => {
-    const { id } = request.params as { id: string };
+  }, async (_request, reply) => {
+    const { id } = _request.params as { id: string };
     
     try {
       await fastify.prisma.user.delete({

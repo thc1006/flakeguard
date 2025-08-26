@@ -13,8 +13,8 @@
 
 import crypto from 'crypto';
 
-import type { PrismaClient } from '@prisma/client';
-import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+// import type { PrismaClient } from '@prisma/client';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
 import { config } from '../config/index.js';
@@ -23,26 +23,26 @@ import { logger } from '../utils/logger.js';
 import { ErrorCode, type ErrorFactory } from './api-spec.js';
 import { GitHubAuthManager, createGitHubAuthManager } from './auth.js';
 import {
-  WEBHOOK_EVENTS,
+  // WEBHOOK_EVENTS,
   SUPPORTED_WEBHOOK_EVENTS,
   ERROR_MESSAGES,
-  PAGINATION,
-  RATE_LIMITS,
+  // PAGINATION,
+  // RATE_LIMITS,
 } from './constants.js';
-import { FlakeDetector, createFlakeDetector } from './flake-detector.js';
+import { createFlakeDetector } from './flake-detector.js';
 import {
-  CheckRunHandler,
-  WorkflowRunHandler,
-  InstallationHandler,
+  // CheckRunHandler,
+  // WorkflowRunHandler,
+  // InstallationHandler,
   createWebhookHandlers,
 } from './handlers.js';
 import { GitHubHelpers, createGitHubHelpers } from './helpers.js';
 import {
   githubAppConfigSchema,
-  validateWebhookPayload,
-  webhookHeadersSchema,
+  // validateWebhookPayload,
+  // webhookHeadersSchema,
   repositoryParamsSchema,
-  checkRunListParamsSchema,
+  // checkRunListParamsSchema,
   workflowRunParamsSchema,
 } from './schemas.js';
 import { 
@@ -50,6 +50,14 @@ import {
   createLoggingMiddleware,
   registerWebhookRoutes,
 } from './webhook-router.js';
+
+// Add type declarations for Fastify decorators
+declare module 'fastify' {
+  interface FastifyInstance {
+    githubAuth: GitHubAuthManager;
+    githubHelpers: GitHubHelpers;
+  }
+}
 
 /**
  * Plugin options interface
@@ -158,7 +166,7 @@ class WebhookSignatureValidator {
 /**
  * Main GitHub App plugin
  */
-async function githubAppPlugin(fastify: FastifyInstance, options: GitHubAppPluginOptions) {
+async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPluginOptions) {
   // Validate GitHub configuration
   const githubConfig = githubAppConfigSchema.parse(config.github);
   
@@ -168,12 +176,11 @@ async function githubAppPlugin(fastify: FastifyInstance, options: GitHubAppPlugi
   // Initialize core services
   const errorFactory = new GitHubErrorFactory();
   const authManager = createGitHubAuthManager({ 
-    config: githubConfig, 
-    prisma 
+    config: githubConfig
   });
   const helpers = createGitHubHelpers(authManager);
   const flakeDetector = createFlakeDetector({ prisma });
-  const signatureValidator = new WebhookSignatureValidator(githubConfig.webhookSecret);
+  // const signatureValidator = new WebhookSignatureValidator(githubConfig.webhookSecret);
 
   // Initialize webhook router
   const webhookRouter = new WebhookRouter({
@@ -727,6 +734,10 @@ async function githubAppPlugin(fastify: FastifyInstance, options: GitHubAppPlugi
         return 500;
     }
   }
+
+  // Decorate the Fastify instance with GitHub services
+  fastify.decorate('githubAuth', authManager);
+  fastify.decorate('githubHelpers', helpers);
 
   logger.info('GitHub App plugin registered successfully', {
     webhookPath: '/api/github/webhook',

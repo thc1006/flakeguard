@@ -13,7 +13,7 @@
     "docs:dev": "pnpm --filter=@flakeguard/docs dev",
     "docs:build": "pnpm --filter=@flakeguard/docs build",
     "docs:serve": "pnpm --filter=@flakeguard/docs serve",
-    "build": "pnpm --filter='./packages/*' build && pnpm --filter='./apps/*' build",
+    "build": "pnpm --filter='./packages/*' build && pnpm --filter=@flakeguard/api generate && pnpm --filter='./apps/*' build",
     "test": "pnpm --filter='./apps/*' --filter='./packages/*' test",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
@@ -21,6 +21,7 @@
     "format:check": "prettier --check .",
     "migrate:dev": "pnpm --filter=@flakeguard/api migrate:dev",
     "migrate:deploy": "pnpm --filter=@flakeguard/api migrate:deploy",
+    "generate": "pnpm --filter=@flakeguard/api generate",
     "typecheck": "pnpm --filter='./packages/*' --filter='./apps/*' typecheck",
     "clean": "pnpm --filter='./packages/*' --filter='./apps/*' clean && rm -rf node_modules"
   },
