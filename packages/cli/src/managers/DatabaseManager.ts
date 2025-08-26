@@ -17,7 +17,7 @@ export class DatabaseManager {
   async setupDatabase(): Promise<DatabaseConfig> {
     console.log(chalk.gray(this.i18n.t('database.description')));
 
-    const { dbType } = await inquirer.prompt([
+    const { dbType } = await inquirer.prompt<{ dbType: 'docker' | 'existing' | 'cloud' }>([
       {
         type: 'list',
         name: 'dbType',
@@ -69,7 +69,7 @@ export class DatabaseManager {
   private async setupDockerDatabases(): Promise<{ databaseUrl: string; redisUrl: string }> {
     console.log('\n' + chalk.blue(this.i18n.t('database.dockerSetup')));
     
-    const { startContainers } = await inquirer.prompt([
+    const { startContainers } = await inquirer.prompt<{ startContainers: boolean }>([
       {
         type: 'confirm',
         name: 'startContainers',
@@ -93,7 +93,13 @@ export class DatabaseManager {
       }
     }
 
-    const dbConfig = await inquirer.prompt([
+    const dbConfig = await inquirer.prompt<{
+      host: string;
+      port: number;
+      database: string;
+      username: string;
+      password: string;
+    }>([
       {
         type: 'input',
         name: 'host',
@@ -126,7 +132,11 @@ export class DatabaseManager {
       }
     ]);
 
-    const redisConfig = await inquirer.prompt([
+    const redisConfig = await inquirer.prompt<{
+      host: string;
+      port: number;
+      password: string;
+    }>([
       {
         type: 'input',
         name: 'host',
@@ -158,7 +168,7 @@ export class DatabaseManager {
   private async setupExistingDatabases(): Promise<{ databaseUrl: string; redisUrl: string }> {
     console.log('\n' + chalk.blue(this.i18n.t('database.existingSetup')));
     
-    const { databaseUrl } = await inquirer.prompt([
+    const { databaseUrl } = await inquirer.prompt<{ databaseUrl: string }>([
       {
         type: 'input',
         name: 'databaseUrl',
@@ -172,7 +182,7 @@ export class DatabaseManager {
       }
     ]);
 
-    const { redisUrl } = await inquirer.prompt([
+    const { redisUrl } = await inquirer.prompt<{ redisUrl: string }>([
       {
         type: 'input',
         name: 'redisUrl',
@@ -193,7 +203,7 @@ export class DatabaseManager {
   private async setupCloudDatabases(): Promise<{ databaseUrl: string; redisUrl: string }> {
     console.log('\n' + chalk.blue(this.i18n.t('database.cloudSetup')));
     
-    const { provider } = await inquirer.prompt([
+    const { provider } = await inquirer.prompt<{ provider: string }>([
       {
         type: 'list',
         name: 'provider',
@@ -211,7 +221,7 @@ export class DatabaseManager {
 
     console.log(chalk.yellow(`\n${this.i18n.t('database.cloudInstructions', { provider })}\n`));
 
-    const { databaseUrl } = await inquirer.prompt([
+    const { databaseUrl } = await inquirer.prompt<{ databaseUrl: string }>([
       {
         type: 'input',
         name: 'databaseUrl',
@@ -225,7 +235,7 @@ export class DatabaseManager {
       }
     ]);
 
-    const { redisUrl } = await inquirer.prompt([
+    const { redisUrl } = await inquirer.prompt<{ redisUrl: string }>([
       {
         type: 'input',
         name: 'redisUrl',
@@ -267,7 +277,7 @@ export class DatabaseManager {
       console.log(chalk.red('\n' + this.i18n.t('database.connectionError') + ':'));
       console.log(chalk.red(error instanceof Error ? error.message : String(error)));
       
-      const { continueAnyway } = await inquirer.prompt([
+      const { continueAnyway } = await inquirer.prompt<{ continueAnyway: boolean }>([
         {
           type: 'confirm',
           name: 'continueAnyway',
@@ -303,7 +313,11 @@ export class DatabaseManager {
   async seedAdminUser(databaseUrl: string): Promise<void> {
     const spinner = ora(this.i18n.t('database.seedingAdmin')).start();
     
-    const adminUser = await inquirer.prompt([
+    const adminUser = await inquirer.prompt<{
+      email: string;
+      name: string;
+      password: string;
+    }>([
       {
         type: 'input',
         name: 'email',

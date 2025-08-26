@@ -12,9 +12,16 @@ import { logger } from '../utils/logger.js';
 
 import type {
   SlackMessageTemplate,
-  // FlakeNotification - unused for now
   QualitySummaryData,
   SlackConfig,
+  SlackMessageBlock,
+  SlackSectionBlock,
+  SlackHeaderBlock,
+  SlackActionsBlock,
+  SlackContextBlock,
+  SlackButton,
+  PlainTextElement,
+  MrkdwnElement,
 } from './types.js';
 
 // FlakeNotification imported above but not used currently
@@ -31,7 +38,7 @@ export class SlackMessageBuilder {
    * Build optimized flake alert message with template caching
    */
   public buildFlakeAlert(flakeScore: FlakeScore, repository: string): SlackMessageTemplate {
-    const templateId = `flake_alert_${(flakeScore as any).recommendation?.priority || 'medium'}`;
+    const templateId = `flake_alert_${flakeScore.recommendation.priority || 'medium'}`;
     
     // Check cache first for performance
     const cached = this.getFromCache(templateId, flakeScore);
@@ -196,7 +203,7 @@ export class SlackMessageBuilder {
             text: `*${operation}*\n${progressBar} ${progress.toFixed(0)}%\n\n_${details}_`,
           },
         },
-      ],
+      ] as SlackMessageBlock[],
     };
   }
 
@@ -239,7 +246,7 @@ export class SlackMessageBuilder {
     return optimized;
   }
 
-  private createFlakeAlertBlocks(flakeScore: FlakeScore, repository: string): any[] {
+  private createFlakeAlertBlocks(flakeScore: FlakeScore, repository: string): SlackMessageBlock[] {
     const priorityEmoji = this.getPriorityEmoji(flakeScore.recommendation.priority);
     
     return [
@@ -264,7 +271,7 @@ export class SlackMessageBuilder {
     ];
   }
 
-  private createPriorityGroupBlocks(candidates: QuarantineCandidate[]): any[] {
+  private createPriorityGroupBlocks(candidates: QuarantineCandidate[]): SlackMessageBlock[] {
     const groups = this.groupByPriority(candidates);
     const blocks = [];
 
@@ -284,7 +291,7 @@ export class SlackMessageBuilder {
     return blocks;
   }
 
-  private createTopIssuesBlocks(issues: QualitySummaryData['topIssues']): any[] {
+  private createTopIssuesBlocks(issues: QualitySummaryData['topIssues']): SlackMessageBlock[] {
     if (issues.length === 0) {return [];}
 
     return [
@@ -298,7 +305,7 @@ export class SlackMessageBuilder {
     ];
   }
 
-  private createMetricsBlock(overview: QualitySummaryData['overview']): any {
+  private createMetricsBlock(overview: QualitySummaryData['overview']): SlackSectionBlock {
     const passRateIcon = overview.passRateChange >= 0 ? '📈' : '📉';
     const flakyTestsIcon = overview.flakyTestsChange <= 0 ? '📉' : '📈';
     const testTimeIcon = overview.avgTestTimeChange <= 0 ? '⚡' : '🐌';
@@ -326,7 +333,7 @@ export class SlackMessageBuilder {
     };
   }
 
-  private createFlakeActionBlock(flakeScore: FlakeScore, repository: string): any {
+  private createFlakeActionBlock(flakeScore: FlakeScore, repository: string): SlackActionsBlock {
     return {
       type: 'actions',
       elements: [
@@ -360,7 +367,7 @@ export class SlackMessageBuilder {
     };
   }
 
-  private createQuarantineActionBlock(candidates: QuarantineCandidate[]): any {
+  private createQuarantineActionBlock(candidates: QuarantineCandidate[]): SlackActionsBlock {
     const highPriority = candidates.filter(c => c.flakeScore.recommendation.priority === 'high' || c.flakeScore.recommendation.priority === 'critical').length;
 
     return {
@@ -389,7 +396,7 @@ export class SlackMessageBuilder {
     };
   }
 
-  private createCriticalActionBlock(repository: string): any {
+  private createCriticalActionBlock(repository: string): SlackActionsBlock {
     return {
       type: 'actions',
       elements: [
@@ -416,7 +423,7 @@ export class SlackMessageBuilder {
     };
   }
 
-  private createAnalyticsActionBlock(repository: string): any {
+  private createAnalyticsActionBlock(repository: string): SlackActionsBlock {
     return {
       type: 'actions',
       elements: [
@@ -430,7 +437,7 @@ export class SlackMessageBuilder {
     };
   }
 
-  private createHeaderBlock(title: string, _priority?: string): any {
+  private createHeaderBlock(title: string, _priority?: string): SlackHeaderBlock {
     return {
       type: 'header',
       text: {
@@ -441,7 +448,7 @@ export class SlackMessageBuilder {
     };
   }
 
-  private createContextBlock(text: string): any {
+  private createContextBlock(text: string): SlackContextBlock {
     return {
       type: 'context',
       elements: [
@@ -482,7 +489,7 @@ export class SlackMessageBuilder {
     return `${period.start.toLocaleDateString()} - ${period.end.toLocaleDateString()}`;
   }
 
-  private getFromCache(templateId: string, _data: any): SlackMessageTemplate | null {
+  private getFromCache(templateId: string, _data: unknown): SlackMessageTemplate | null {
     const cached = this.templateCache.get(templateId);
     if (!cached) {return null;}
 
@@ -521,7 +528,7 @@ export class SlackMessageBuilder {
     this.templateCache.set(templateId, template);
   }
 
-  private calculateChecksum(blocks: any[]): string {
+  private calculateChecksum(blocks: SlackMessageBlock[]): string {
     return JSON.stringify(blocks).length.toString(36);
   }
 }

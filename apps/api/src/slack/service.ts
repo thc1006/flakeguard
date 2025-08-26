@@ -10,10 +10,9 @@ import { SlackMessageBuilder } from './message-builder.js';
 import type {
   SlackConfig,
   FlakeNotification,
-  // BatchMessageRequest - unused for now
   SlackMessageState,
-  // SlackInteractionPayload - unused for now
   SlackMetrics,
+  SlackMessageBlock,
 } from './types.js';
 
 export class SlackService {
@@ -79,7 +78,7 @@ export class SlackService {
     return { ...this.metrics, cacheHitRate: this.calculateCacheHitRate() };
   }
 
-  private buildNotificationTemplate(notification: FlakeNotification) {
+  private buildNotificationTemplate(notification: FlakeNotification): { blocks: SlackMessageBlock[]; text: string } {
     switch (notification.type) {
       case 'flake_detected':
         return this.messageBuilder.buildFlakeAlert(
@@ -88,10 +87,21 @@ export class SlackService {
             testFullName: 'unknown',
             score: 0,
             confidence: 0,
-            features: {},
-            recommendation: 'monitor',
+            features: {
+              failSuccessRatio: 0,
+              recentFailures: 0,
+              totalRuns: 0,
+              consecutiveFailures: 0,
+              maxConsecutiveFailures: 0,
+              intermittencyScore: 0
+            },
+            recommendation: {
+              action: 'monitor' as const,
+              priority: 'low' as const,
+              rationale: 'Default unknown test data'
+            },
             lastUpdated: new Date()
-          } as any,
+          },
           notification.repository
         );
       case 'quarantine_recommended':
@@ -135,12 +145,12 @@ export class SlackService {
     return [...new Set(channels)];
   }
 
-  private async sendBatchParallel(channels: string[], template: any, notification: FlakeNotification): Promise<void> {
+  private async sendBatchParallel(channels: string[], template: { blocks: SlackMessageBlock[]; text: string }, notification: FlakeNotification): Promise<void> {
     const promises = channels.map(channel => this.sendToChannel(channel, template, notification));
     await Promise.allSettled(promises);
   }
 
-  private async sendBatchSequential(channels: string[], template: any, notification: FlakeNotification): Promise<void> {
+  private async sendBatchSequential(channels: string[], template: { blocks: SlackMessageBlock[]; text: string }, notification: FlakeNotification): Promise<void> {
     for (const channel of channels) {
       try {
         await this.sendToChannel(channel, template, notification);
@@ -151,7 +161,7 @@ export class SlackService {
     }
   }
 
-  private async sendToChannel(channel: string, template: any, notification: FlakeNotification): Promise<void> {
+  private async sendToChannel(channel: string, template: { blocks: SlackMessageBlock[]; text: string }, notification: FlakeNotification): Promise<void> {
     const client = this.getOptimalClient();
     
     const result = await client.chat.postMessage({

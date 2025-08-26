@@ -216,7 +216,7 @@ async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPlug
   // Create check run
   fastify.post<{
     Params: { owner: string; repo: string };
-    Body: any;
+    Body: CreateCheckRunParams;
   }>('/api/github/repos/:owner/:repo/check-runs', {
     schema: {
       params: repositoryParamsSchema.pick({ owner: true, repo: true }),
@@ -252,7 +252,7 @@ async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPlug
       );
 
       if (!result.success) {
-        const statusCode = getStatusCodeFromErrorCode(result.error!.code);
+        const statusCode = getStatusCodeFromErrorCode(result.error!.code as ErrorCode);
         return reply.code(statusCode).send(result);
       }
 
@@ -268,7 +268,7 @@ async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPlug
   // Update check run
   fastify.patch<{
     Params: { owner: string; repo: string; checkRunId: string };
-    Body: any;
+    Body: UpdateCheckRunParams;
   }>('/api/github/repos/:owner/:repo/check-runs/:checkRunId', {
     schema: {
       params: {
@@ -295,7 +295,7 @@ async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPlug
       );
 
       if (!result.success) {
-        const statusCode = getStatusCodeFromErrorCode(result.error!.code);
+        const statusCode = getStatusCodeFromErrorCode(result.error!.code as ErrorCode);
         return reply.code(statusCode).send(result);
       }
 
@@ -343,7 +343,12 @@ async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPlug
       const installationId = await getInstallationIdFromAuth(request);
 
       // Get check runs from database
-      const where: any = {
+      const where: {
+        headSha: string;
+        repository: { owner: string; name: string };
+        status?: string;
+        conclusion?: string;
+      } = {
         headSha: ref,
         repository: {
           owner,
@@ -388,8 +393,8 @@ async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPlug
           conclusion: run.conclusion,
           startedAt: run.startedAt?.toISOString(),
           completedAt: run.completedAt?.toISOString(),
-          output: run.output as any,
-          actions: run.actions as any,
+          output: run.output as unknown,
+          actions: run.actions as unknown,
         })),
         pagination: {
           page,

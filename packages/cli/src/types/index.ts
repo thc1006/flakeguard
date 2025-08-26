@@ -10,7 +10,7 @@ export interface WizardOptions {
 export interface SetupState {
   currentStage: SetupStage;
   completed: SetupStage[];
-  config: Record<string, any>;
+  config: Record<string, unknown>;
   validations: Record<string, ValidationResult>;
 }
 
@@ -30,7 +30,7 @@ export interface ValidationResult {
   message: string;
   critical?: boolean;
   suggestions?: string[];
-  details?: any;
+  details?: unknown;
 }
 
 export interface DatabaseConfig {
@@ -75,7 +75,7 @@ export interface ConfigTemplate {
   name: string;
   description: string;
   environment: 'development' | 'production' | 'staging' | 'test';
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export interface TranscriptEntry {
@@ -83,7 +83,7 @@ export interface TranscriptEntry {
   level: 'info' | 'error' | 'warn' | 'debug';
   stage: string;
   message: string;
-  data?: any;
+  data?: unknown;
 }
 
 export interface I18nMessages {

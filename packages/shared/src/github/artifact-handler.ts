@@ -107,7 +107,7 @@ export class ArtifactHandler {
 
     try {
       const downloadUrl = await this.getArtifactDownloadUrl(options);
-      const chunkSize = options.chunkSize || this.config.streamChunkSize;
+      const chunkSize = options.chunkSize ?? this.config.streamChunkSize;
       
       this.logger.debug(
         {
@@ -258,7 +258,7 @@ export class ArtifactHandler {
     downloadUrl: string,
     options: ArtifactDownloadOptions
   ): Promise<Buffer> {
-    const maxRetries = options.maxRetries || this.config.maxRetries;
+    const maxRetries = options.maxRetries ?? this.config.maxRetries;
     let lastError: Error = new Error('Download failed');
 
     for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
@@ -319,7 +319,7 @@ export class ArtifactHandler {
     options: ArtifactStreamOptions,
     chunkSize: number
   ): AsyncIterable<Buffer> {
-    const maxRetries = options.maxRetries || this.config.maxRetries;
+    const maxRetries = options.maxRetries ?? this.config.maxRetries;
     let attempt = 1;
     let bytesReceived = 0;
 
@@ -376,7 +376,7 @@ export class ArtifactHandler {
     downloadUrl: string,
     options: ArtifactDownloadOptions
   ): Promise<Buffer> {
-    const timeout = options.timeout || this.config.timeoutMs;
+    const timeout = options.timeout ?? this.config.timeoutMs;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -428,7 +428,7 @@ export class ArtifactHandler {
     options: ArtifactStreamOptions,
     startByte: number = 0
   ): Promise<ReadableStream<Uint8Array>> {
-    const timeout = options.timeout || this.config.timeoutMs;
+    const timeout = options.timeout ?? this.config.timeoutMs;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -570,9 +570,9 @@ export class ArtifactHandler {
     // Network errors are generally retryable
     if (error && typeof error === 'object' && 'code' in error) {
       const code = error.code;
-      if (code === 'ECONNRESET' || 
-          code === 'ENOTFOUND' || 
-          code === 'ECONNREFUSED' || 
+      if (code === 'ECONNRESET' ?? 
+          code === 'ENOTFOUND' ?? 
+          code === 'ECONNREFUSED' ?? 
           code === 'ETIMEDOUT') {
         return true;
       }
@@ -584,7 +584,7 @@ export class ArtifactHandler {
         const statusMatch = error.message.match(/HTTP (\d+)/);
         if (statusMatch?.[1]) {
           const status = parseInt(statusMatch[1], 10);
-          return status >= 500 || status === 429; // Server errors or rate limiting
+          return status >= 500 ?? status === 429; // Server errors or rate limiting
         }
       }
     }
@@ -598,8 +598,8 @@ export class ArtifactHandler {
   private isUrlExpiredError(error: unknown): boolean {
     if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
       const message = error.message.toLowerCase();
-      return message.includes('expired') || 
-             message.includes('not found') || 
+      return message.includes('expired') ?? 
+             message.includes('not found') ?? 
              message.includes('404');
     }
     return false;

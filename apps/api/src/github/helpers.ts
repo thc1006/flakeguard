@@ -112,7 +112,7 @@ export class GitHubHelpers {
           summary: data.output?.summary || '',
           text: data.output?.text || undefined,
         },
-        actions: (data as any).actions?.map((action: { label: string; description: string; identifier: string }) => ({
+        actions: (data as { actions?: Array<{ label: string; description: string; identifier: string }> }).actions?.map((action: { label: string; description: string; identifier: string }) => ({
           label: action.label,
           description: action.description,
           identifier: action.identifier as CheckRunAction,
@@ -188,7 +188,7 @@ export class GitHubHelpers {
           summary: data.output?.summary || '',
           text: data.output?.text || undefined,
         },
-        actions: (data as any).actions?.map((action: { label: string; description: string; identifier: string }) => ({
+        actions: (data as { actions?: Array<{ label: string; description: string; identifier: string }> }).actions?.map((action: { label: string; description: string; identifier: string }) => ({
           label: action.label,
           description: action.description,
           identifier: action.identifier as CheckRunAction,
@@ -413,7 +413,7 @@ export class GitHubHelpers {
         title,
         summary: summaryText,
       },
-      actions: actions.slice(0, 3) as any,
+      actions: actions.slice(0, 3),
     }, installationId);
   }
 
@@ -634,10 +634,10 @@ export class GitHubHelpers {
         name: options.name,
       });
 
-      return data.artifacts.map(artifact => ({
+      return data.artifacts.map((artifact): TestArtifact => ({
         id: artifact.id,
         name: artifact.name,
-        type: this.inferArtifactType(artifact.name),
+        type: this.inferArtifactType(artifact.name) as 'test-results' | 'coverage-report' | 'logs' | 'screenshots',
         sizeInBytes: artifact.size_in_bytes,
         url: artifact.url,
         archiveDownloadUrl: artifact.archive_download_url,

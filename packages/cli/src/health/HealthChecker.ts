@@ -13,21 +13,21 @@ export class HealthChecker {
     this.i18n = i18n;
   }
 
-  async runHealthChecks(config: Record<string, any>): Promise<Record<string, HealthCheckResult>> {
+  async runHealthChecks(config: Record<string, unknown>): Promise<Record<string, HealthCheckResult>> {
     const results: Record<string, HealthCheckResult> = {};
     
     // Database health check
-    if (config.DATABASE_URL) {
+    if (config.DATABASE_URL && typeof config.DATABASE_URL === 'string') {
       results.database = await this.checkDatabase(config.DATABASE_URL);
     }
     
     // Redis health check
-    if (config.REDIS_URL) {
+    if (config.REDIS_URL && typeof config.REDIS_URL === 'string') {
       results.redis = await this.checkRedis(config.REDIS_URL);
     }
     
     // API endpoint health check
-    if (config.PORT && config.HOST) {
+    if (config.PORT && config.HOST && typeof config.HOST === 'string' && typeof config.PORT === 'number') {
       results.api = await this.checkApiEndpoint(config.HOST, config.PORT);
     }
     
@@ -162,7 +162,7 @@ export class HealthChecker {
     }
   }
 
-  private async checkGitHubIntegration(config: Record<string, any>): Promise<HealthCheckResult> {
+  private async checkGitHubIntegration(config: Record<string, unknown>): Promise<HealthCheckResult> {
     const startTime = Date.now();
     
     try {
@@ -204,7 +204,7 @@ export class HealthChecker {
     }
   }
 
-  private async checkSlackIntegration(config: Record<string, any>): Promise<HealthCheckResult> {
+  private async checkSlackIntegration(config: Record<string, unknown>): Promise<HealthCheckResult> {
     const startTime = Date.now();
     
     try {
@@ -256,7 +256,7 @@ export class HealthChecker {
       
       const cpuCount = os.cpus().length;
       const loadAvg = os.loadavg();
-      const avgLoad = (loadAvg[0] ?? 0) / cpuCount * 100;
+      const avgLoad = ((loadAvg[0] ?? 0) / cpuCount) * 100;
       
       const responseTime = Date.now() - startTime;
       
@@ -290,7 +290,7 @@ export class HealthChecker {
   }
 
   async runContinuousHealthCheck(
-    config: Record<string, any>, 
+    config: Record<string, unknown>, 
     intervalMs: number = 30000,
     callback?: (results: Record<string, HealthCheckResult>) => void
   ): Promise<void> {
@@ -340,7 +340,7 @@ export class HealthChecker {
     }
   }
 
-  async generateHealthReport(config: Record<string, any>): Promise<ServiceHealth[]> {
+  async generateHealthReport(config: Record<string, unknown>): Promise<ServiceHealth[]> {
     const healthResults = await this.runHealthChecks(config);
     
     return Object.entries(healthResults).map(([name, result]) => ({

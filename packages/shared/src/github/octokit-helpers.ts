@@ -429,9 +429,9 @@ export class OctokitHelpers {
  */
 export function createOctokitHelpers(): OctokitHelpers {
   const config: OctokitHelpersConfig = {
-    githubAppId: process.env.GITHUB_APP_ID || '',
-    githubAppPrivateKey: process.env.GITHUB_APP_PRIVATE_KEY_BASE64 || '',
-    webhookSecret: process.env.GITHUB_WEBHOOK_SECRET || '',
+    githubAppId: process.env.GITHUB_APP_ID ?? '',
+    githubAppPrivateKey: process.env.GITHUB_APP_PRIVATE_KEY_BASE64 ?? '',
+    webhookSecret: process.env.GITHUB_WEBHOOK_SECRET ?? '',
     installationId: process.env.GITHUB_APP_INSTALLATION_ID,
   };
 

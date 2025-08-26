@@ -11,10 +11,10 @@ import { PrismaClient } from '@prisma/client';
 
 // Configuration from environment variables
 const SEED_CONFIG = {
-  NUM_REPOS: parseInt(process.env.SEED_NUM_REPOS || '3'),
-  NUM_RUNS_PER_REPO: parseInt(process.env.SEED_NUM_RUNS_PER_REPO || '50'),
-  NUM_TEST_CASES_PER_REPO: parseInt(process.env.SEED_NUM_TEST_CASES_PER_REPO || '6'),
-  BATCH_SIZE: parseInt(process.env.SEED_BATCH_SIZE || '100'),
+  NUM_REPOS: parseInt(process.env.SEED_NUM_REPOS ?? '3'),
+  NUM_RUNS_PER_REPO: parseInt(process.env.SEED_NUM_RUNS_PER_REPO ?? '50'),
+  NUM_TEST_CASES_PER_REPO: parseInt(process.env.SEED_NUM_TEST_CASES_PER_REPO ?? '6'),
+  BATCH_SIZE: parseInt(process.env.SEED_BATCH_SIZE ?? '100'),
   ENABLE_PROGRESS_LOGS: process.env.SEED_PROGRESS_LOGS !== 'false',
   CLEAN_EXISTING_DATA: process.env.SEED_CLEAN_EXISTING !== 'false',
 } as const;
@@ -36,7 +36,7 @@ function generateStackDigest(stackTrace: string): string {
 }
 
 function logProgress(message: string, force = false) {
-  if (SEED_CONFIG.ENABLE_PROGRESS_LOGS || force) {
+  if (SEED_CONFIG.ENABLE_PROGRESS_LOGS ?? force) {
     console.log(message);
   }
 }
@@ -174,7 +174,7 @@ async function seedData() {
     // Map test cases with flakiness
     const testCasesWithFlakiness = createdTestCases.map((testCase, idx) => ({
       ...testCase,
-      flakiness: allTestCases[idx]?.flakiness || 0,
+      flakiness: allTestCases[idx]?.flakiness ?? 0,
     }));
 
     // Create workflow runs, jobs, and occurrences (batched)
@@ -336,8 +336,8 @@ async function seedData() {
     const totalCountMap = new Map(totalOccurrenceCounts.map(stat => [stat.testId, stat._count.id]));
 
     for (const testCase of testCasesWithFlakiness) {
-      const totalOccurrences = totalCountMap.get(testCase.id) || 0;
-      const failedOccurrences = failureCountMap.get(testCase.id) || 0;
+      const totalOccurrences = totalCountMap.get(testCase.id) ?? 0;
+      const failedOccurrences = failureCountMap.get(testCase.id) ?? 0;
       const score = totalOccurrences > 0 ? failedOccurrences / totalOccurrences : 0;
 
       flakeScoreData.push({

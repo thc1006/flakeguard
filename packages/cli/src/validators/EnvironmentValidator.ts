@@ -72,7 +72,7 @@ export class EnvironmentValidator {
         valid: false,
         critical: true,
         message: this.i18n.t('validation.node.error'),
-        details: error
+        details: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -112,7 +112,7 @@ export class EnvironmentValidator {
         valid: false,
         critical: true,
         message: this.i18n.t('validation.packageManager.error'),
-        details: error
+        details: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -150,7 +150,7 @@ export class EnvironmentValidator {
       return {
         valid: false,
         message: this.i18n.t('validation.docker.error'),
-        details: error
+        details: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -190,7 +190,7 @@ export class EnvironmentValidator {
       return {
         valid: false,
         message: this.i18n.t('validation.system.error'),
-        details: error
+        details: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -243,7 +243,7 @@ export class EnvironmentValidator {
         valid: false,
         critical: true,
         message: this.i18n.t('validation.permissions.invalid'),
-        details: error,
+        details: error instanceof Error ? error.message : String(error),
         suggestions: [
           this.i18n.t('validation.permissions.checkOwnership'),
           this.i18n.t('validation.permissions.runAsAdmin')
@@ -279,7 +279,7 @@ export class EnvironmentValidator {
       return {
         valid: false,
         message: this.i18n.t('validation.network.error'),
-        details: error
+        details: error instanceof Error ? error.message : String(error)
       };
     }
   }
@@ -306,7 +306,7 @@ export class EnvironmentValidator {
         if (code === 0) {
           // Extract version number from output
           const versionMatch = output.match(/\d+\.\d+\.\d+/);
-          resolve(versionMatch ? versionMatch[0] : output.trim());
+          resolve(versionMatch?.[0] ?? output.trim());
         } else {
           resolve(null);
         }

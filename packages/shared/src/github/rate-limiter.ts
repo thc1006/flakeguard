@@ -64,11 +64,11 @@ export class PrimaryRateLimiter {
    * Update rate limit info from GitHub API response headers
    */
   updateRateLimit(headers: Record<string, string>, resource: string = 'core'): void {
-    const limit = parseInt(headers['x-ratelimit-limit'] || '0', 10);
-    const remaining = parseInt(headers['x-ratelimit-remaining'] || '0', 10);
-    const reset = parseInt(headers['x-ratelimit-reset'] || '0', 10);
+    const limit = parseInt(headers['x-ratelimit-limit'] ?? '0', 10);
+    const remaining = parseInt(headers['x-ratelimit-remaining'] ?? '0', 10);
+    const reset = parseInt(headers['x-ratelimit-reset'] ?? '0', 10);
     
-    if (limit === 0 || reset === 0) {
+    if (limit === 0 ?? reset === 0) {
       return; // Invalid or missing rate limit headers
     }
 
@@ -117,7 +117,7 @@ export class PrimaryRateLimiter {
    * Get current rate limit info for resource
    */
   getRateLimitInfo(resource: string = 'core'): RateLimitInfo | null {
-    return this.currentLimits.get(resource) || null;
+    return this.currentLimits.get(resource) ?? null;
   }
 
   /**
@@ -247,8 +247,8 @@ export class SecondaryRateLimiter {
    */
   isSecondaryRateLimit(error: RequestError): boolean {
     return error.status === 403 && (
-      error.message.toLowerCase().includes('rate limit') ||
-      error.message.toLowerCase().includes('abuse') ||
+      error.message.toLowerCase().includes('rate limit') ??
+      error.message.toLowerCase().includes('abuse') ??
       error.response?.headers?.['retry-after'] !== undefined
     );
   }

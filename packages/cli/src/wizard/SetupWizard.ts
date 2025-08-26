@@ -90,7 +90,7 @@ export class FlakeGuardSetupWizard {
       console.log(chalk.yellow('\n⚠️  ' + this.i18n.t('common.dryRunMode')));
     }
 
-    const { proceed } = await inquirer.prompt([
+    const { proceed } = await inquirer.prompt<{ proceed: boolean }>([
       {
         type: 'confirm',
         name: 'proceed',
@@ -151,7 +151,7 @@ export class FlakeGuardSetupWizard {
           )
         );
         
-        const { continueAnyway } = await inquirer.prompt([
+        const { continueAnyway } = await inquirer.prompt<{ continueAnyway: boolean }>([
           {
             type: 'confirm',
             name: 'continueAnyway',
@@ -212,7 +212,12 @@ export class FlakeGuardSetupWizard {
       }
     ];
 
-    const envAnswers = await inquirer.prompt(envQuestions);
+    const envAnswers = await inquirer.prompt<{
+      nodeEnv: string;
+      port: number;
+      host: string;
+      corsOrigin: string;
+    }>(envQuestions);
     this.state.config = { ...this.state.config, ...envAnswers };
 
     await this.logger.log('Environment setup completed', envAnswers);
@@ -234,7 +239,7 @@ export class FlakeGuardSetupWizard {
     
     console.log('\n' + chalk.bold(this.i18n.t('github.title')) + '\n');
     
-    const { setupGitHub } = await inquirer.prompt([
+    const { setupGitHub } = await inquirer.prompt<{ setupGitHub: boolean }>([
       {
         type: 'confirm',
         name: 'setupGitHub',
@@ -257,7 +262,7 @@ export class FlakeGuardSetupWizard {
     
     console.log('\n' + chalk.bold(this.i18n.t('slack.title')) + '\n');
     
-    const { setupSlack } = await inquirer.prompt([
+    const { setupSlack } = await inquirer.prompt<{ setupSlack: boolean }>([
       {
         type: 'confirm',
         name: 'setupSlack',

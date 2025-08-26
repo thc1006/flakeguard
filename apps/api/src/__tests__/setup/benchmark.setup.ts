@@ -5,13 +5,14 @@
  */
 
 import { beforeAll, afterAll, beforeEach } from 'vitest';
+import { performance } from 'perf_hooks';
 
 // Performance monitoring utilities
 const performanceMarks: Map<string, number> = new Map();
 
 beforeAll(() => {
   // Set up performance monitoring
-  global.performance = global.performance || require('perf_hooks').performance;
+  global.performance = global.performance || performance;
   
   // Disable console output for cleaner benchmark results
   console.log = () => {};

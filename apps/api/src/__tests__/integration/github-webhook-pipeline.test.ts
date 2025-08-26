@@ -21,7 +21,7 @@ import IORedis from 'ioredis-mock';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 
 // Mock implementation of the webhook processor
-const createGitHubWebhookProcessor = (_prisma: any) => {
+const createGitHubWebhookProcessor = (_prisma: PrismaClient) => {
   return async (_job: Job<GitHubEventJob>) => {
     // Mock processing logic for testing
     return {
@@ -57,15 +57,23 @@ const TEST_CONFIG = {
 
 // Mock implementations for testing
 
+interface MockJob {
+  id: string;
+  name: string;
+  data: GitHubEventJob;
+  opts?: Record<string, unknown>;
+  updateProgress: ReturnType<typeof vi.fn>;
+}
+
 class MockQueue {
-  private jobs: Map<string, any> = new Map();
+  private jobs: Map<string, MockJob> = new Map();
   
   constructor(private _name: string) {
   }
 
-  async add(name: string, data: any, opts?: any): Promise<{ id: string }> {
-    const jobId = opts?.jobId || crypto.randomUUID();
-    const job = {
+  async add(name: string, data: GitHubEventJob, opts?: Record<string, unknown>): Promise<{ id: string }> {
+    const jobId = opts?.jobId as string ?? crypto.randomUUID();
+    const job: MockJob = {
       id: jobId,
       name,
       data,
@@ -76,15 +84,15 @@ class MockQueue {
     return { id: jobId };
   }
 
-  getJob(id: string) {
+  getJob(id: string): MockJob | undefined {
     return this.jobs.get(id);
   }
 
-  getJobs() {
+  getJobs(): MockJob[] {
     return Array.from(this.jobs.values());
   }
 
-  clear() {
+  clear(): void {
     this.jobs.clear();
   }
 }
@@ -122,14 +130,33 @@ const createMockOctokitHelpers = () => ({
   }),
 });
 
+interface MockWorkflowRun {
+  id: number;
+  [key: string]: unknown;
+}
+
+interface MockTestCase {
+  id: number;
+  [key: string]: unknown;
+}
+
+interface MockOccurrence {
+  id: number;
+  [key: string]: unknown;
+}
+
 // Mock Prisma client for database operations
 class MockPrismaClient {
-  private workflowRuns: Map<number, any> = new Map();
-  private testCases: Map<string, any> = new Map();
-  private occurrences: any[] = [];
+  private workflowRuns: Map<number, MockWorkflowRun> = new Map();
+  private testCases: Map<string, MockTestCase> = new Map();
+  private occurrences: MockOccurrence[] = [];
   
   workflowRun = {
-    upsert: vi.fn().mockImplementation(async ({ where, create, update }) => {
+    upsert: vi.fn().mockImplementation(async ({ where, create, update }: {
+      where: { id: number };
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    }) => {
       const id = where.id;
       const existing = this.workflowRuns.get(id);
       const result = existing ? { ...existing, ...update } : { id, ...create };
@@ -139,7 +166,11 @@ class MockPrismaClient {
   };
   
   testCase = {
-    upsert: vi.fn().mockImplementation(async ({ where, create, update }) => {
+    upsert: vi.fn().mockImplementation(async ({ where, create, update }: {
+      where: { repoId_suite_className_name: { repoId: number; suite: string; className: string; name: string } };
+      create: Record<string, unknown>;
+      update: Record<string, unknown>;
+    }) => {
       const key = `${where.repoId_suite_className_name.repoId}-${where.repoId_suite_className_name.suite}-${where.repoId_suite_className_name.className}-${where.repoId_suite_className_name.name}`;
       const existing = this.testCases.get(key);
       const result = existing ? { ...existing, ...update } : { id: this.testCases.size + 1, ...create };
@@ -149,31 +180,31 @@ class MockPrismaClient {
   };
   
   occurrence = {
-    create: vi.fn().mockImplementation(async ({ data }) => {
+    create: vi.fn().mockImplementation(async ({ data }: { data: Record<string, unknown> }) => {
       const occurrence = { id: this.occurrences.length + 1, ...data };
       this.occurrences.push(occurrence);
       return occurrence;
     }),
   };
   
-  $transaction = vi.fn().mockImplementation(async (callback) => {
+  $transaction = vi.fn().mockImplementation(async (callback: (prisma: MockPrismaClient) => Promise<unknown>) => {
     return await callback(this);
   });
   
   // Helper methods for testing
-  getWorkflowRuns() {
+  getWorkflowRuns(): MockWorkflowRun[] {
     return Array.from(this.workflowRuns.values());
   }
   
-  getTestCases() {
+  getTestCases(): MockTestCase[] {
     return Array.from(this.testCases.values());
   }
   
-  getOccurrences() {
+  getOccurrences(): MockOccurrence[] {
     return this.occurrences;
   }
   
-  reset() {
+  reset(): void {
     this.workflowRuns.clear();
     this.testCases.clear();
     this.occurrences.length = 0;
@@ -189,7 +220,7 @@ describe('GitHub Webhook Processing Pipeline Integration', () => {
   beforeAll(async () => {
     // Set test environment variables
     process.env.GITHUB_WEBHOOK_SECRET = TEST_CONFIG.webhookSecret;
-    (process.env as any).NODE_ENV = 'test';
+    process.env.NODE_ENV = 'test';
     process.env.DATABASE_URL = TEST_CONFIG.databaseUrl;
     process.env.REDIS_URL = TEST_CONFIG.redisUrl;
     process.env.GITHUB_APP_ID = 'test-app-id';
@@ -219,7 +250,7 @@ describe('GitHub Webhook Processing Pipeline Integration', () => {
     webhookProcessor = createGitHubWebhookProcessor(mockPrisma as unknown as PrismaClient);
     
     // Register raw body parser for signature verification
-    app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req: any, body: any, done: any) => {
+    app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req: { rawBody?: string }, body: Buffer, done: (error: Error | null, data?: unknown) => void) => {
       req.rawBody = body.toString();
       done(null, JSON.parse(body.toString()));
     });
@@ -239,7 +270,7 @@ describe('GitHub Webhook Processing Pipeline Integration', () => {
   afterAll(() => {
     // Clean up environment variables
     delete process.env.GITHUB_WEBHOOK_SECRET;
-    delete (process.env as any).NODE_ENV;
+    delete process.env.NODE_ENV;
     delete process.env.DATABASE_URL;
     delete process.env.REDIS_URL;
     delete process.env.GITHUB_APP_ID;

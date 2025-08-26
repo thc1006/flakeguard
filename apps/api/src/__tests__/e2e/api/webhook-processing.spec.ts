@@ -86,7 +86,7 @@ test.describe('GitHub Webhook Processing', () => {
       fullName: workflowRunCompleted.repository.full_name,
       name: workflowRunCompleted.repository.name,
       owner: workflowRunCompleted.repository.owner.login,
-      installationId: (workflowRunCompleted as any).installation?.id,
+      installationId: (workflowRunCompleted as { installation?: { id: number } }).installation?.id,
     });
   });
 
@@ -131,7 +131,7 @@ test.describe('GitHub Webhook Processing', () => {
     expect(jobs.length).toBeGreaterThan(0);
     
     // Verify at least one job is for our repository
-    const relevantJobs = jobs.filter((job: any) => 
+    const relevantJobs = jobs.filter((job: { data?: { repositoryFullName?: string } }) => 
       job.data?.repositoryFullName === checkRunCompleted.repository.full_name
     );
     expect(relevantJobs.length).toBeGreaterThan(0);
@@ -266,7 +266,7 @@ test.describe('GitHub Webhook Processing', () => {
     expect(response2.status()).toBe(200);
 
     // Both should succeed, but second should be detected as duplicate
-    const responseData2 = await response2.json();
+    const responseData2: { message?: string } = await response2.json();
     expect(responseData2.message).toContain('already processed');
   });
 
@@ -307,7 +307,7 @@ test.describe('GitHub Webhook Processing', () => {
     );
     expect(analysisResponse.status()).toBe(200);
 
-    const analysis = await analysisResponse.json();
+    const analysis: { flakyTests?: unknown[] } = await analysisResponse.json();
     expect(analysis).toBeDefined();
     expect(Array.isArray(analysis.flakyTests)).toBe(true);
   });

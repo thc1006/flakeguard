@@ -154,9 +154,9 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
       totalFailures: failedRequests,
       successRate: totalRequests > 0 ? successfulRequests / totalRequests : 1,
       avgResponseTimeMs: avgResponseTime,
-      p95ResponseTimeMs: responseTimes[p95Index] || 0,
-      p99ResponseTimeMs: responseTimes[p99Index] || 0,
-      rateLimitStatus: this.primaryRateLimiter.getRateLimitInfo() || {
+      p95ResponseTimeMs: responseTimes[p95Index] ?? 0,
+      p99ResponseTimeMs: responseTimes[p99Index] ?? 0,
+      rateLimitStatus: this.primaryRateLimiter.getRateLimitInfo() ?? {
         remaining: 5000,
         limit: 5000,
         resetAt: new Date(Date.now() + 3600000),
@@ -174,7 +174,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
    * Get current rate limit status
    */
   get rateLimitStatus(): RateLimitInfo {
-    return this.primaryRateLimiter.getRateLimitInfo() || {
+    return this.primaryRateLimiter.getRateLimitInfo() ?? {
       remaining: 5000,
       limit: 5000,
       resetAt: new Date(Date.now() + 3600000),
@@ -323,7 +323,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
     } finally {
       requestMetric.endTime = new Date();
       requestMetric.duration = requestMetric.endTime.getTime() - startTime.getTime();
-      requestMetric.rateLimitInfo = this.primaryRateLimiter.getRateLimitInfo() || undefined;
+      requestMetric.rateLimitInfo = this.primaryRateLimiter.getRateLimitInfo() ?? undefined;
       requestMetric.circuitBreakerState = this.circuitBreaker.getStatus().state;
       
       this.requestMetrics.push(requestMetric);
@@ -388,7 +388,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
 
         return response.data as T;
       } catch (error) {
-        lastError = error instanceof Error || error instanceof RequestError 
+        lastError = error instanceof Error ?? error instanceof RequestError 
           ? error 
           : new Error(String(error));
 
@@ -645,7 +645,7 @@ export function createGitHubApiWrapper(
     security: { ...DEFAULT_SECURITY_CONFIG, ...overrides.security },
     artifactDownload: { ...DEFAULT_ARTIFACT_DOWNLOAD_CONFIG, ...overrides.artifactDownload },
     logger,
-    debug: overrides.debug || false,
+    debug: overrides.debug ?? false,
   };
 
   return new EnhancedGitHubApiWrapper(config);
@@ -655,13 +655,13 @@ export function createGitHubApiWrapper(
  * Utility to create wrapper from environment variables
  */
 export function createGitHubApiWrapperFromEnv(logger: Logger): EnhancedGitHubApiWrapper {
-  const appId = parseInt(process.env.GITHUB_APP_ID || '0', 10);
-  const privateKey = process.env.GITHUB_PRIVATE_KEY || '';
+  const appId = parseInt(process.env.GITHUB_APP_ID ?? '0', 10);
+  const privateKey = process.env.GITHUB_PRIVATE_KEY ?? '';
   const installationId = process.env.GITHUB_INSTALLATION_ID 
     ? parseInt(process.env.GITHUB_INSTALLATION_ID, 10)
     : undefined;
 
-  if (!appId || !privateKey) {
+  if (!appId ?? !privateKey) {
     throw new GitHubApiError(
       'CONFIGURATION_INVALID',
       'Missing required GitHub App configuration (GITHUB_APP_ID, GITHUB_PRIVATE_KEY)',

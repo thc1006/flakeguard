@@ -24,7 +24,7 @@ export class TranscriptLogger {
     await this.writeHeader();
   }
 
-  async log(message: string, data?: any, level: 'info' | 'error' | 'warn' | 'debug' = 'info'): Promise<void> {
+  async log(message: string, data?: unknown, level: 'info' | 'error' | 'warn' | 'debug' = 'info'): Promise<void> {
     const entry: TranscriptEntry = {
       timestamp: new Date().toISOString(),
       level,
@@ -40,7 +40,7 @@ export class TranscriptLogger {
     }
   }
 
-  async error(message: string, error?: any): Promise<void> {
+  async error(message: string, error?: unknown): Promise<void> {
     await this.log(message, {
       error: error instanceof Error ? {
         name: error.name,
@@ -50,11 +50,11 @@ export class TranscriptLogger {
     }, 'error');
   }
 
-  async warn(message: string, data?: any): Promise<void> {
+  async warn(message: string, data?: unknown): Promise<void> {
     await this.log(message, data, 'warn');
   }
 
-  async debug(message: string, data?: any): Promise<void> {
+  async debug(message: string, data?: unknown): Promise<void> {
     await this.log(message, data, 'debug');
   }
 
@@ -108,7 +108,7 @@ export class TranscriptLogger {
     return 'setup';
   }
 
-  private formatData(data: any): string {
+  private formatData(data: unknown): string {
     if (typeof data === 'string') {
       return `  Data: ${data}`;
     }
@@ -125,7 +125,7 @@ export class TranscriptLogger {
     }
   }
 
-  private maskSensitiveData(data: any): any {
+  private maskSensitiveData(data: unknown): unknown {
     if (typeof data !== 'object' || data === null) {
       return data;
     }
@@ -140,7 +140,11 @@ export class TranscriptLogger {
       'private'
     ];
     
-    const masked = Array.isArray(data) ? [...data] : { ...data };
+    if (Array.isArray(data)) {
+      return data.map(item => this.maskSensitiveData(item));
+    }
+    
+    const masked: Record<string, unknown> = { ...(data as Record<string, unknown>) };
     
     for (const [key, value] of Object.entries(masked)) {
       const lowerKey = key.toLowerCase();
@@ -187,8 +191,10 @@ export class TranscriptLogger {
     
     const stages = [...new Set(this.entries.map(e => e.stage))];
     
-    const startTime = this.entries.length > 0 ? new Date(this.entries[0]!.timestamp).getTime() : 0;
-    const endTime = this.entries.length > 0 ? new Date(this.entries[this.entries.length - 1]!.timestamp).getTime() : 0;
+    const firstEntry = this.entries[0];
+    const lastEntry = this.entries[this.entries.length - 1];
+    const startTime = firstEntry ? new Date(firstEntry.timestamp).getTime() : 0;
+    const endTime = lastEntry ? new Date(lastEntry.timestamp).getTime() : 0;
     const duration = endTime - startTime;
     
     return {

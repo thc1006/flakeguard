@@ -34,20 +34,20 @@ export async function runScoringBenchmarks() {
   
   // Single test scoring
   await benchmark.runBenchmark("Original Scorer - Single Test (100 runs)", async () => {
-    await originalScorer.computeFlakeScore(testRuns);
+    return originalScorer.computeFlakeScore(testRuns);
   }, 10);
   
   await benchmark.runBenchmark("Optimized Scorer - Single Test (100 runs)", async () => {
-    await optimizedScorer.computeFlakeScore(testRuns);
+    return optimizedScorer.computeFlakeScore(testRuns);
   }, 10);
   
   // Large dataset scoring
   await benchmark.runBenchmark("Original Scorer - Large Dataset (1000 runs)", async () => {
-    await originalScorer.computeFlakeScore(largeTestRuns);
+    return originalScorer.computeFlakeScore(largeTestRuns);
   }, 5);
   
   await benchmark.runBenchmark("Optimized Scorer - Large Dataset (1000 runs)", async () => {
-    await optimizedScorer.computeFlakeScore(largeTestRuns);
+    return optimizedScorer.computeFlakeScore(largeTestRuns);
   }, 5);
   
   // Batch scoring
@@ -57,7 +57,7 @@ export async function runScoringBenchmarks() {
   }
   
   await benchmark.runBenchmark("Optimized Scorer - Batch Processing (50 tests, 50 runs each)", async () => {
-    await optimizedScorer.computeMultipleFlakeScores(testGroups, { maxConcurrency: 10 });
+    return optimizedScorer.computeMultipleFlakeScores(testGroups, { maxConcurrency: 10 });
   }, 1);
   
   return benchmark.generateReport();

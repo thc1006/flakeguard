@@ -18,7 +18,7 @@ export class GitHubSetupGuide {
   async setupGitHubApp(): Promise<GitHubConfig> {
     console.log(chalk.gray(this.i18n.t('github.description')));
     
-    const { hasGitHubApp } = await inquirer.prompt([
+    const { hasGitHubApp } = await inquirer.prompt<{ hasGitHubApp: boolean }>([
       {
         type: 'confirm',
         name: 'hasGitHubApp',
@@ -83,7 +83,7 @@ export class GitHubSetupGuide {
       console.log(chalk.gray(`   - ${event}`));
     });
 
-    const { openBrowser } = await inquirer.prompt([
+    const { openBrowser } = await inquirer.prompt<{ openBrowser: boolean }>([
       {
         type: 'confirm',
         name: 'openBrowser',
@@ -100,7 +100,7 @@ export class GitHubSetupGuide {
       console.log(chalk.blue(`\n${this.i18n.t('github.manualUrl')}: https://github.com/settings/apps/new`));
     }
 
-    await inquirer.prompt([
+    await inquirer.prompt<{ continue: string }>([
       {
         type: 'input',
         name: 'continue',
@@ -112,7 +112,12 @@ export class GitHubSetupGuide {
   private async configureNewApp(): Promise<GitHubConfig> {
     console.log('\n' + chalk.blue(this.i18n.t('github.configureApp')));
     
-    const config = await inquirer.prompt([
+    const config = await inquirer.prompt<{
+      appId: string;
+      clientId: string;
+      clientSecret: string;
+      webhookSecret: string;
+    }>([
       {
         type: 'input',
         name: 'appId',
@@ -183,7 +188,12 @@ export class GitHubSetupGuide {
   private async configureExistingApp(): Promise<GitHubConfig> {
     console.log('\n' + chalk.blue(this.i18n.t('github.existingApp')));
     
-    const config = await inquirer.prompt([
+    const config = await inquirer.prompt<{
+      appId: string;
+      clientId: string;
+      clientSecret: string;
+      webhookSecret: string;
+    }>([
       {
         type: 'input',
         name: 'appId',
@@ -251,7 +261,7 @@ export class GitHubSetupGuide {
   }
 
   private async configurePrivateKey(): Promise<Partial<GitHubConfig>> {
-    const { keyMethod } = await inquirer.prompt([
+    const { keyMethod } = await inquirer.prompt<{ keyMethod: 'file' | 'paste' }>([
       {
         type: 'list',
         name: 'keyMethod',
@@ -270,7 +280,7 @@ export class GitHubSetupGuide {
     ]);
 
     if (keyMethod === 'file') {
-      const { keyPath } = await inquirer.prompt([
+      const { keyPath } = await inquirer.prompt<{ keyPath: string }>([
         {
           type: 'input',
           name: 'keyPath',
@@ -295,7 +305,7 @@ export class GitHubSetupGuide {
         GITHUB_PRIVATE_KEY_PATH: path.resolve(keyPath)
       };
     } else {
-      const { privateKey } = await inquirer.prompt([
+      const { privateKey } = await inquirer.prompt<{ privateKey: string }>([
         {
           type: 'editor',
           name: 'privateKey',
@@ -334,7 +344,7 @@ export class GitHubSetupGuide {
       console.log(chalk.red('\n' + this.i18n.t('github.validationError') + ':'));
       console.log(chalk.red(error instanceof Error ? error.message : String(error)));
       
-      const { continueAnyway } = await inquirer.prompt([
+      const { continueAnyway } = await inquirer.prompt<{ continueAnyway: boolean }>([
         {
           type: 'confirm',
           name: 'continueAnyway',

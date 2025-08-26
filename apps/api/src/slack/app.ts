@@ -11,8 +11,13 @@
 
 import type { TestRun } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
-import bolt, { type BlockAction, type ButtonAction, type SlashCommand } from '@slack/bolt';
-
+import bolt, {
+  type BlockAction,
+  type ButtonAction,
+  type SlashCommand,
+  type RespondFn,
+} from '@slack/bolt';
+import type { SlackMessageBlock } from './types.js';
 
 import { FlakinessScorer } from '../analytics/flakiness.js';
 import { GitHubAuthManager } from '../github/auth.js';
@@ -272,7 +277,7 @@ export class FlakeGuardSlackApp {
    */
   private async handleStatusCommand(
     args: string[], 
-    respond: any, 
+    respond: RespondFn, 
     _body: SlashCommand
   ): Promise<void> {
     if (args.length === 0) {
@@ -340,7 +345,7 @@ export class FlakeGuardSlackApp {
    */
   private async handleTopFlakyCommand(
     args: string[], 
-    respond: any, 
+    respond: RespondFn, 
     _body: SlashCommand
   ): Promise<void> {
     try {
@@ -378,7 +383,7 @@ export class FlakeGuardSlackApp {
   /**
    * Handle help command - display usage instructions
    */
-  private async handleHelpCommand(respond: any, _body: SlashCommand): Promise<void> {
+  private async handleHelpCommand(respond: RespondFn, _body: SlashCommand): Promise<void> {
     const blocks = [
       {
         type: 'section',
@@ -597,7 +602,7 @@ export class FlakeGuardSlackApp {
   /**
    * Build repository status response blocks
    */
-  private buildRepositoryStatusBlocks(summary: RepositoryFlakeSummary): any[] {
+  private buildRepositoryStatusBlocks(summary: RepositoryFlakeSummary): SlackMessageBlock[] {
     const blocks = [
       {
         type: 'section',
@@ -715,7 +720,7 @@ export class FlakeGuardSlackApp {
   /**
    * Build top flaky tests response blocks
    */
-  private buildTopFlakyBlocks(topFlaky: GlobalFlakyTest[], limit: number): any[] {
+  private buildTopFlakyBlocks(topFlaky: GlobalFlakyTest[], limit: number): SlackMessageBlock[] {
     const blocks = [
       {
         type: 'section',
@@ -756,7 +761,13 @@ export class FlakeGuardSlackApp {
   /**
    * Build test details blocks for detailed view
    */
-  private buildTestDetailsBlocks(details: any): any[] {
+  private buildTestDetailsBlocks(details: {
+    testName: string;
+    repositoryName: string;
+    totalRuns: number;
+    failureRate: number;
+    avgDuration: number;
+  }): SlackMessageBlock[] {
     return [
       {
         type: 'section',
@@ -872,6 +883,7 @@ export class FlakeGuardSlackApp {
       };
 
       // Call the existing quarantine handler with type assertion
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await this.dependencies.checkRunHandler.process(mockPayload as any);
 
       logger.info('Quarantine action completed via Slack', {
@@ -963,6 +975,7 @@ export class FlakeGuardSlackApp {
       };
 
       // Call the existing issue handler with type assertion
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await this.dependencies.checkRunHandler.process(mockPayload as any);
 
       logger.info('Open issue action completed via Slack', {
@@ -992,7 +1005,13 @@ export class FlakeGuardSlackApp {
   /**
    * Get detailed test information
    */
-  private async getTestDetails(repositoryId: string, testName: string): Promise<any> {
+  private async getTestDetails(repositoryId: string, testName: string): Promise<{
+    testName: string;
+    repositoryName: string;
+    totalRuns: number;
+    failureRate: number;
+    avgDuration: number;
+  }> {
     const repository = await this.dependencies.prisma.repository.findUnique({
       where: { id: repositoryId },
       select: { fullName: true }
@@ -1031,9 +1050,9 @@ export class FlakeGuardSlackApp {
    * Update message with action result
    */
   private async updateMessageWithResult(
-    respond: any, 
+    respond: RespondFn, 
     action: 'quarantine' | 'issue', 
-    result: { success: boolean; message: string; details?: any },
+    result: { success: boolean; message: string; details?: unknown },
     testName: string
   ): Promise<void> {
     const emoji = result.success ? '✅' : '❌';

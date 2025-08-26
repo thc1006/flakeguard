@@ -74,7 +74,7 @@ export class RequestQueue {
       );
     }
 
-    const priority = options.priority || 'normal';
+    const priority = options.priority ?? 'normal';
     const requestId = this.generateRequestId();
     
     // Check queue size limits
@@ -109,7 +109,7 @@ export class RequestQueue {
         priority,
         options,
         timestamp: new Date(),
-        timeoutMs: options.timeout || this.config.maxWaitTimeMs,
+        timeoutMs: options.timeout ?? this.config.maxWaitTimeMs,
         resolve: resolve as (value: unknown) => void,
         reject: reject as (error: unknown) => void,
         operation,
@@ -489,7 +489,19 @@ export class RequestPrioritizer {
    * Get queue statistics by priority
    */
   static analyzeQueueDistribution(
-    queueStatus: ReturnType<RequestQueue['getStatus']>
+    queueStatus: {
+      totalSize: number;
+      priorityQueues: Record<string, number>;
+      processing: string[];
+      metrics: {
+        totalEnqueued: number;
+        totalProcessed: number;
+        totalFailed: number;
+        totalTimeout: number;
+        currentSize: number;
+        avgWaitTime: number;
+      };
+    }
   ): {
     priorityDistribution: Record<string, { count: number; percentage: number }>;
     recommendations: string[];

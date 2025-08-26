@@ -16,7 +16,7 @@ export class SlackSetupGuide {
   async setupSlackApp(): Promise<SlackConfig> {
     console.log(chalk.gray(this.i18n.t('slack.description')));
     
-    const { hasSlackApp } = await inquirer.prompt([
+    const { hasSlackApp } = await inquirer.prompt<{ hasSlackApp: boolean }>([
       {
         type: 'confirm',
         name: 'hasSlackApp',
@@ -89,7 +89,7 @@ export class SlackSetupGuide {
       console.log(chalk.gray(`   - ${event}`));
     });
 
-    const { openBrowser } = await inquirer.prompt([
+    const { openBrowser } = await inquirer.prompt<{ openBrowser: boolean }>([
       {
         type: 'confirm',
         name: 'openBrowser',
@@ -106,7 +106,7 @@ export class SlackSetupGuide {
       console.log(chalk.blue(`\n${this.i18n.t('slack.manualUrl')}: https://api.slack.com/apps`));
     }
 
-    await inquirer.prompt([
+    await inquirer.prompt<{ continue: string }>([
       {
         type: 'input',
         name: 'continue',
@@ -118,7 +118,12 @@ export class SlackSetupGuide {
   private async configureNewApp(): Promise<SlackConfig> {
     console.log('\n' + chalk.blue(this.i18n.t('slack.configureApp')));
     
-    const config = await inquirer.prompt([
+    const config = await inquirer.prompt<{
+      botToken: string;
+      signingSecret: string;
+      appToken: string;
+      port: number;
+    }>([
       {
         type: 'input',
         name: 'botToken',
@@ -187,7 +192,12 @@ export class SlackSetupGuide {
   private async configureExistingApp(): Promise<SlackConfig> {
     console.log('\n' + chalk.blue(this.i18n.t('slack.existingApp')));
     
-    const config = await inquirer.prompt([
+    const config = await inquirer.prompt<{
+      botToken: string;
+      signingSecret: string;
+      appToken: string;
+      port: number;
+    }>([
       {
         type: 'input',
         name: 'botToken',
@@ -281,7 +291,7 @@ export class SlackSetupGuide {
       console.log(chalk.red('\n' + this.i18n.t('slack.validationError') + ':'));
       console.log(chalk.red(error instanceof Error ? error.message : String(error)));
       
-      const { continueAnyway } = await inquirer.prompt([
+      const { continueAnyway } = await inquirer.prompt<{ continueAnyway: boolean }>([
         {
           type: 'confirm',
           name: 'continueAnyway',

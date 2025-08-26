@@ -12,7 +12,7 @@ export class I18nManager {
     this.messages = language === 'zh-TW' ? chineseMessages : englishMessages;
   }
 
-  t(key: string, params?: Record<string, any>): string {
+  t(key: string, params?: Record<string, unknown>): string {
     const message = this.getMessage(key);
     
     if (typeof message !== 'string') {
@@ -31,11 +31,16 @@ export class I18nManager {
 
   private getMessage(key: string): string | I18nMessages {
     const keys = key.split('.');
-    let current: any = this.messages;
+    let current: I18nMessages | string = this.messages;
     
     for (const k of keys) {
       if (current && typeof current === 'object' && k in current) {
-        current = current[k];
+        const nextCurrent: I18nMessages | string | undefined = (current as I18nMessages)[k];
+        if (nextCurrent !== undefined) {
+          current = nextCurrent;
+        } else {
+          return key;
+        }
       } else {
         return key; // Return key if not found
       }

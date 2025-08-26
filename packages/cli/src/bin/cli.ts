@@ -3,8 +3,8 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 
-import { version } from '../../package.json';
-import { FlakeGuardSetupWizard } from '../wizard/SetupWizard';
+import { version } from '../../package.json' with { type: 'json' };
+import { FlakeGuardSetupWizard } from '../wizard/SetupWizard.js';
 
 const program = new Command();
 

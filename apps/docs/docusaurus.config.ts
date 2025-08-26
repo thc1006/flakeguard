@@ -1,6 +1,7 @@
 import type * as Preset from '@docusaurus/preset-classic';
 import type {Config} from '@docusaurus/types';
 import {themes as prismThemes} from 'prism-react-renderer';
+import npm2yarn from '@docusaurus/remark-plugin-npm2yarn';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -60,7 +61,7 @@ const config: Config = {
           editUrl:
             'https://github.com/flakeguard/flakeguard/tree/main/apps/docs/',
           remarkPlugins: [
-            [require('@docusaurus/remark-plugin-npm2yarn'), {sync: true}],
+            [npm2yarn, {sync: true}],
           ],
         },
         blog: {

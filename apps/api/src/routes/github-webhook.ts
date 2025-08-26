@@ -100,7 +100,7 @@ function verifyWebhookSignature(
 function createJobPayload(
   eventType: SupportedWebhookEvent,
   deliveryId: string,
-  payload: any
+  payload: Record<string, unknown>
 ): GitHubEventJob {
   return {
     eventType,
@@ -270,7 +270,7 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
       }
 
       // Payload is already validated by Fastify schema
-      const payload = request.body as any;
+      const payload = request.body as Record<string, unknown>;
 
       // P1 Requirement: Create minimal job payload for BullMQ
       const jobPayload = createJobPayload(

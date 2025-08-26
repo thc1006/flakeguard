@@ -126,7 +126,7 @@ describe('Migration 01: Initial Schema (20240824000000_init)', () => {
         ORDER BY enumsortorder
       `;
       
-      const values = enumValues.map((row: any) => row.enumlabel);
+      const values = enumValues.map((row: { enumlabel: string }) => row.enumlabel);
       expect(values).toEqual(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']);
     });
 
@@ -142,7 +142,7 @@ describe('Migration 01: Initial Schema (20240824000000_init)', () => {
         ORDER BY enumsortorder
       `;
       
-      const values = enumValues.map((row: any) => row.enumlabel);
+      const values = enumValues.map((row: { enumlabel: string }) => row.enumlabel);
       expect(values).toEqual(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
     });
   });

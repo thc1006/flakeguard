@@ -18,7 +18,7 @@ export class ConfigurationManager {
     // this.cryptr = new Cryptr('flakeguard-setup-encryption-key');
   }
 
-  async generateConfig(config: Record<string, any>): Promise<string> {
+  async generateConfig(config: Record<string, unknown>): Promise<string> {
     const envPath = path.join(process.cwd(), '.env');
     // const envExamplePath = path.join(process.cwd(), '.env.example');
     
@@ -91,7 +91,7 @@ export class ConfigurationManager {
       .substring(0, length);
   }
 
-  private generateEnvContent(config: Record<string, any>): string {
+  private generateEnvContent(config: Record<string, unknown>): string {
     const sections = [
       {
         title: 'Database Configuration',
@@ -172,7 +172,7 @@ export class ConfigurationManager {
     return envContent;
   }
 
-  private formatEnvValue(value: any): string {
+  private formatEnvValue(value: unknown): string {
     if (typeof value === 'string') {
       // Quote values that contain spaces or special characters
       if (value.includes(' ') || value.includes('\n') || value.includes('"')) {
@@ -232,7 +232,7 @@ export class ConfigurationManager {
     }
   }
 
-  async loadConfigTemplate(templatePath: string): Promise<Record<string, any>> {
+  async loadConfigTemplate(templatePath: string): Promise<Record<string, unknown>> {
     try {
       const templateContent = await fs.readFile(templatePath, 'utf8');
       
@@ -254,7 +254,7 @@ export class ConfigurationManager {
     }
   }
 
-  async validateConfiguration(config: Record<string, any>): Promise<{
+  async validateConfiguration(config: Record<string, unknown>): Promise<{
     valid: boolean;
     errors: string[];
     warnings: string[];
@@ -272,28 +272,33 @@ export class ConfigurationManager {
     }
 
     // URL format validation
-    if (config.DATABASE_URL && !config.DATABASE_URL.startsWith('postgresql://')) {
+    const databaseUrl = config.DATABASE_URL;
+    if (databaseUrl && typeof databaseUrl === 'string' && !databaseUrl.startsWith('postgresql://')) {
       errors.push(this.i18n.t('config.validation.invalidDatabaseUrl'));
     }
     
-    if (config.REDIS_URL && !config.REDIS_URL.startsWith('redis://')) {
+    const redisUrl = config.REDIS_URL;
+    if (redisUrl && typeof redisUrl === 'string' && !redisUrl.startsWith('redis://')) {
       errors.push(this.i18n.t('config.validation.invalidRedisUrl'));
     }
 
     // Port validation
-    if (config.PORT) {
-      const port = parseInt(config.PORT);
+    const portValue = config.PORT;
+    if (portValue) {
+      const port = typeof portValue === 'string' ? parseInt(portValue) : Number(portValue);
       if (isNaN(port) || port < 1 || port > 65535) {
         errors.push(this.i18n.t('config.validation.invalidPort'));
       }
     }
 
     // Secret strength validation
-    if (config.JWT_SECRET && config.JWT_SECRET.length < 32) {
+    const jwtSecret = config.JWT_SECRET;
+    if (jwtSecret && typeof jwtSecret === 'string' && jwtSecret.length < 32) {
       warnings.push(this.i18n.t('config.validation.weakJwtSecret'));
     }
     
-    if (config.API_KEY && config.API_KEY.length < 16) {
+    const apiKey = config.API_KEY;
+    if (apiKey && typeof apiKey === 'string' && apiKey.length < 16) {
       warnings.push(this.i18n.t('config.validation.weakApiKey'));
     }
 
@@ -314,7 +319,7 @@ export class ConfigurationManager {
     };
   }
 
-  async exportConfiguration(config: Record<string, any>, format: 'json' | 'yaml' = 'json'): Promise<string> {
+  async exportConfiguration(config: Record<string, unknown>, format: 'json' | 'yaml' = 'json'): Promise<string> {
     const exportPath = path.join(
       process.cwd(), 
       `flakeguard-config.${format}`

@@ -2,6 +2,84 @@
  * Slack integration types for FlakeGuard P6 implementation
  */
 
+import type {
+  Block as SlackBlock,
+  KnownBlock,
+} from '@slack/web-api';
+
+// Use broader types to avoid strict typing issues with Slack blocks
+export type SlackSectionBlock = {
+  type: 'section';
+  text?: {
+    type: 'mrkdwn' | 'plain_text';
+    text: string;
+  };
+  fields?: Array<{
+    type: 'mrkdwn' | 'plain_text';
+    text: string;
+  }>;
+  accessory?: unknown;
+};
+
+export type SlackHeaderBlock = {
+  type: 'header';
+  text: {
+    type: 'plain_text';
+    text: string;
+    emoji?: boolean;
+  };
+};
+
+export type SlackActionsBlock = {
+  type: 'actions';
+  elements: SlackButton[];
+};
+
+export type SlackContextBlock = {
+  type: 'context';
+  elements: Array<{
+    type: 'mrkdwn' | 'plain_text';
+    text: string;
+  }>;
+};
+
+export type SlackDividerBlock = {
+  type: 'divider';
+};
+
+// Union of all common block types
+export type SlackMessageBlock = 
+  | SlackSectionBlock 
+  | SlackHeaderBlock 
+  | SlackActionsBlock 
+  | SlackContextBlock 
+  | SlackDividerBlock;
+
+// Additional types for Slack elements
+export interface SlackButton {
+  type: 'button';
+  text: {
+    type: 'plain_text';
+    text: string;
+    emoji?: boolean;
+  };
+  action_id: string;
+  value?: string;
+  url?: string;
+  style?: 'primary' | 'danger';
+}
+
+export interface PlainTextElement {
+  type: 'plain_text';
+  text: string;
+  emoji?: boolean;
+}
+
+export interface MrkdwnElement {
+  type: 'mrkdwn';
+  text: string;
+}
+
 // Note: Import from shared package when available
 // import type { FlakeScore, QuarantineCandidate, TestStabilityMetrics } from '@flakeguard/shared';
 
@@ -16,6 +94,12 @@ import type {
 export type FlakeScore = SharedFlakeScore;
 export type QuarantineCandidate = SharedQuarantineCandidate;
 export type TestStabilityMetrics = SharedTestStabilityMetrics;
+
+// Re-export Slack types for convenience
+export type {
+  SlackBlock,
+  KnownBlock,
+};
 
 // TestStabilityMetrics is now imported from shared package
 
@@ -49,7 +133,7 @@ export interface SlackConfig {
 
 export interface SlackMessageTemplate {
   id: string;
-  blocks: any[];
+  blocks: SlackMessageBlock[];
   text: string;
   metadata?: {
     version: string;
@@ -107,7 +191,7 @@ export interface SlackMessageState {
   messageTs: string;
   channelId: string;
   type: FlakeNotification['type'];
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   interactions: number;
   lastUpdated: Date;
 }
@@ -135,9 +219,9 @@ export interface BatchMessageRequest {
   channel: string;
   messages: Array<{
     text: string;
-    blocks?: any[];
+    blocks?: SlackMessageBlock[];
     threadTs?: string;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   }>;
   options?: {
     parallel?: boolean;

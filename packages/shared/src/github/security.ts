@@ -46,8 +46,8 @@ function isValidObject(value: unknown): value is Record<string, unknown> {
  * Type guard to check if a value is sanitizable
  */
 function isSanitizableData(value: unknown): value is SanitizableData {
-  if (value === null || value === undefined) {return true;}
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {return true;}
+  if (value === null ?? value === undefined) {return true;}
+  if (typeof value === 'string' ?? typeof value === 'number' ?? typeof value === 'boolean') {return true;}
   if (Array.isArray(value)) {return value.every(isSanitizableData);}
   if (isValidObject(value)) {
     return Object.values(value).every(isSanitizableData);
@@ -198,7 +198,7 @@ export class SecurityManager {
     }
 
     // Log security-relevant events
-    if (!entry.success || (entry.error && this.isSecurityRelevantError(entry.error))) {
+    if (!entry.success ?? (entry.error && this.isSecurityRelevantError(entry.error))) {
       this.logger.warn(
         {
           requestId: entry.requestId,
@@ -265,11 +265,11 @@ export class SecurityManager {
 
     const failedEntries = entries.filter(e => !e.success);
     const authFailures = failedEntries.filter(e => 
-      e.error?.code === 'AUTHENTICATION_FAILED' ||
+      e.error?.code === 'AUTHENTICATION_FAILED' ??
       e.error?.message?.toLowerCase().includes('auth')
     );
     const rateLimitHits = failedEntries.filter(e =>
-      e.error?.code === 'RATE_LIMITED' ||
+      e.error?.code === 'RATE_LIMITED' ??
       e.error?.message?.toLowerCase().includes('rate limit')
     );
 
@@ -280,8 +280,8 @@ export class SecurityManager {
     // Count failure reasons
     const failureReasons = new Map<string, number>();
     failedEntries.forEach(entry => {
-      const reason = entry.error?.code || entry.error?.message || 'Unknown';
-      failureReasons.set(reason, (failureReasons.get(reason) || 0) + 1);
+      const reason = entry.error?.code ?? entry.error?.message ?? 'Unknown';
+      failureReasons.set(reason, (failureReasons.get(reason) ?? 0) + 1);
     });
 
     const topFailureReasons = Array.from(failureReasons.entries())
@@ -312,7 +312,7 @@ export class SecurityManager {
       return '[MAX_DEPTH_REACHED]';
     }
 
-    if (obj === null || obj === undefined) {
+    if (obj === null ?? obj === undefined) {
       return obj as SanitizableData;
     }
 
@@ -320,7 +320,7 @@ export class SecurityManager {
       return this.sanitizeString(obj);
     }
 
-    if (typeof obj === 'number' || typeof obj === 'boolean') {
+    if (typeof obj === 'number' ?? typeof obj === 'boolean') {
       return obj;
     }
 
@@ -382,7 +382,7 @@ export class SecurityManager {
    */
   private detectSuspiciousPatterns(options: RequestValidationOptions): void {
     // Check for path traversal attempts
-    if (options.endpoint.includes('..') || options.endpoint.includes('//')) {
+    if (options.endpoint.includes('..') ?? options.endpoint.includes('//')) {
       this.logger.warn(
         { endpoint: options.endpoint },
         'Potential path traversal attempt detected'
@@ -480,7 +480,7 @@ export class SecurityManager {
       }
 
       // Check for header injection
-      if (value.includes('\n') || value.includes('\r')) {
+      if (value.includes('\n') ?? value.includes('\r')) {
         throw new GitHubApiError(
           'PERMISSION_DENIED',
           'Header injection attempt detected',
@@ -500,8 +500,8 @@ export class SecurityManager {
       'WEBHOOK_VERIFICATION_FAILED',
     ];
 
-    return securityCodes.includes(error.code || '') ||
-           error.message?.toLowerCase().includes('unauthorized') === true ||
+    return securityCodes.includes(error.code ?? '') ??
+           error.message?.toLowerCase().includes('unauthorized') === true ??
            error.message?.toLowerCase().includes('forbidden') === true;
   }
 
@@ -520,7 +520,7 @@ export class SecurityManager {
 
     entries.forEach(entry => {
       const key = `${entry.method} ${entry.endpoint}`;
-      const stats = endpointStats.get(key) || { count: 0, failures: 0, avgDuration: 0 };
+      const stats = endpointStats.get(key) ?? { count: 0, failures: 0, avgDuration: 0 };
       
       stats.count++;
       stats.avgDuration = (stats.avgDuration * (stats.count - 1) + entry.duration) / stats.count;

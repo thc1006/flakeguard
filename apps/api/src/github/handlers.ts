@@ -38,6 +38,54 @@ import type {
   WorkflowJobWebhookPayload,
   WorkflowRunWebhookPayload,
 } from './types.js';
+
+// Type definitions for GitHub API objects
+interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  owner: {
+    login: string;
+    id: number;
+  };
+}
+
+interface GitHubCheckRun {
+  id: number;
+  name: string;
+  head_sha: string;
+  status: string;
+  conclusion: string | null;
+}
+
+interface GitHubWorkflowRun {
+  id: number;
+  name: string;
+  head_sha: string;
+  status: string;
+  conclusion: string | null;
+}
+
+interface GitHubOctokit {
+  rest: {
+    actions: {
+      reRunWorkflowFailedJobs: (params: unknown) => Promise<unknown>;
+      reRunWorkflow: (params: unknown) => Promise<unknown>;
+    };
+    issues: {
+      create: (params: unknown) => Promise<unknown>;
+    };
+    checks: {
+      update: (params: unknown) => Promise<unknown>;
+    };
+    pulls: {
+      get: (params: unknown) => Promise<{ data: { commits: Array<{ sha: string }> } }>;
+    };
+    search: {
+      issuesAndPullRequests: (params: unknown) => Promise<{ data: { items: Array<unknown> } }>;
+    };
+  };
+}
 import {
   BaseWebhookProcessor,
 } from './webhook-router.js';
@@ -284,15 +332,15 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
    */
   public static async handleRequestedAction(
     payload: CheckRunWebhookPayload,
-    _octokit: any
-  ): Promise<{ success: boolean; message: string; error?: any }> {
+    _octokit: unknown
+  ): Promise<{ success: boolean; message: string; error?: Error }> {
     const { requested_action, check_run, repository } = payload;
     
     if (!requested_action) {
       return {
         success: false,
         message: 'No requested action found in payload',
-        error: { code: 'MISSING_ACTION', message: 'requested_action is required' },
+        error: new Error('requested_action is required'),
       };
     }
 
@@ -345,10 +393,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
           return {
             success: false,
             message: `Unsupported action: ${requested_action.identifier}`,
-            error: {
-              code: 'UNSUPPORTED_ACTION',
-              message: `Action '${requested_action.identifier}' is not supported`,
-            },
+            error: new Error(`Action '${requested_action.identifier}' is not supported`),
           };
       }
     } catch (error) {
@@ -360,10 +405,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
       return {
         success: false,
         message: `Failed to process ${requested_action.identifier} action`,
-        error: {
-          code: 'ACTION_PROCESSING_FAILED',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        },
+        error: error instanceof Error ? error : new Error('Unknown error'),
       };
     }
   }
@@ -437,12 +479,12 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
             repository.name,
             branchName,
             detection.testName,
-            (detection as any).testFilePath
+            (detection as { testFilePath?: string }).testFilePath
           );
           
           testResults.push({
             testName: detection.testName,
-            filePath: (detection as any).testFilePath || undefined,
+            filePath: (detection as { testFilePath?: string }).testFilePath || undefined,
             success: result.success,
           });
 
@@ -457,7 +499,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
           
           testResults.push({
             testName: detection.testName,
-            filePath: (detection as any).testFilePath || undefined,
+            filePath: (detection as { testFilePath?: string }).testFilePath || undefined,
             success: false,
           });
         }
@@ -929,7 +971,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
    * Quarantine a specific test by modifying its file content
    */
   private async quarantineTest(
-    octokit: any,
+    octokit: GitHubOctokit,
     owner: string,
     repo: string,
     branchName: string,
@@ -1139,7 +1181,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
    */
   private generateQuarantinePRDescription(
     testResults: Array<{ testName: string; filePath?: string; success: boolean }>,
-    checkRun: any,
+    checkRun: GitHubCheckRun,
     modifiedFiles: string[]
   ): string {
     const successfulQuarantines = testResults.filter(r => r.success);
@@ -1264,7 +1306,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
    * Find associated pull request for a commit
    */
   private async findAssociatedPullRequest(
-    octokit: any,
+    octokit: GitHubOctokit,
     owner: string,
     repo: string,
     headSha: string
@@ -1299,7 +1341,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
             per_page: 100,
           });
 
-          if (commits.some((commit: any) => commit.sha === headSha)) {
+          if (commits.some((commit: { sha: string }) => commit.sha === headSha)) {
             return {
               number: pr.number,
               title: pr.title,
@@ -1326,12 +1368,12 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
    * Create rerun comment on PR
    */
   private async createRerunComment(
-    octokit: any,
+    octokit: GitHubOctokit,
     owner: string,
     repo: string,
     prNumber: number,
-    workflowRun: any,
-    failedJobs: any[],
+    workflowRun: GitHubWorkflowRun,
+    failedJobs: Array<{ id: number; name: string }>,
     workflowUrl: string
   ): Promise<void> {
     const jobsList = failedJobs.length > 0 
@@ -1370,11 +1412,11 @@ This rerun was automatically triggered to help identify flaky test behavior by r
    * Create persistent failure issue for workflows that repeatedly fail
    */
   private async createPersistentFailureIssue(
-    octokit: any,
+    octokit: GitHubOctokit,
     owner: string,
     repo: string,
-    workflowRun: any,
-    checkRun: any,
+    workflowRun: GitHubWorkflowRun,
+    checkRun: GitHubCheckRun,
     failedJobs: any[]
   ): Promise<void> {
     const title = `[FlakeGuard] Persistent workflow failures: ${workflowRun.name}`;
@@ -1423,7 +1465,7 @@ ${jobsList}
    * Find existing flake issues
    */
   private async findExistingFlakeIssues(
-    octokit: any,
+    octokit: GitHubOctokit,
     owner: string,
     repo: string,
 _testNames: string[]
@@ -1438,7 +1480,7 @@ _testNames: string[]
         per_page: 100,
       });
 
-      return data.items.map((issue: any) => ({
+      return data.items.map((issue: { number: number; title: string; html_url: string }) => ({
         number: issue.number,
         title: issue.title,
         body: issue.body || undefined,
@@ -1458,15 +1500,15 @@ _testNames: string[]
    * Create detailed issue for individual flaky test
    */
   private async createDetailedFlakeIssue(
-    octokit: any,
+    octokit: GitHubOctokit,
     owner: string,
     repo: string,
-    detection: any,
-    checkRun: any,
+    detection: { testFilePath?: string; [key: string]: unknown },
+    checkRun: GitHubCheckRun,
     context: {
-      workflowRun?: any;
-      pullRequest?: any;
-      repository: any;
+      workflowRun?: GitHubWorkflowRun;
+      pullRequest?: { number: number; [key: string]: unknown };
+      repository: GitHubRepository;
     }
   ): Promise<{ number: number; title: string; html_url: string }> {
     const title = `[FlakeGuard] Flaky test detected: ${detection.testName}`;
@@ -1582,7 +1624,7 @@ A flaky test produces both passing and failing results without changes to the co
    * Create summary comment about created flake issues
    */
   private async createFlakeIssuesSummaryComment(
-    octokit: any,
+    octokit: GitHubOctokit,
     owner: string,
     repo: string,
     prNumber: number,
@@ -1660,7 +1702,7 @@ Tests with higher confidence scores should be addressed first as they have stron
     }
   }
 
-  private async ensureRepository(repository: any, installationId: string): Promise<any> {
+  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<unknown> {
     return this.prisma.repository.upsert({
       where: { githubId: repository.id },
       update: {
@@ -1685,13 +1727,13 @@ Tests with higher confidence scores should be addressed first as they have stron
     });
   }
 
-  private async getRepositoryRecord(repository: any): Promise<any> {
+  private async getRepositoryRecord(repository: GitHubRepository): Promise<unknown> {
     return this.prisma.repository.findUnique({
       where: { githubId: repository.id },
     });
   }
 
-  private async findAssociatedWorkflowRun(headSha: string, repository: any): Promise<any> {
+  private async findAssociatedWorkflowRun(headSha: string, repository: GitHubRepository): Promise<unknown> {
     return this.prisma.workflowRun.findFirst({
       where: {
         headSha,
@@ -1844,7 +1886,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     }
   }
 
-  private async analyzeFailedJob(job: any, payload: WorkflowRunWebhookPayload): Promise<void> {
+  private async analyzeFailedJob(job: { id: number; name: string; [key: string]: unknown }, payload: WorkflowRunWebhookPayload): Promise<void> {
     const { repository, installation } = payload;
     
     try {
@@ -1889,7 +1931,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
   }
 
   private async extractTestContextsFromJob(
-    job: any,
+    job: { id: number; name: string; [key: string]: unknown },
     repositoryId: string,
     installationId: string
   ): Promise<TestExecutionContext[]> {
@@ -2105,10 +2147,10 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
   }
 
   private async createFlakeGuardCheckRun(
-    repository: any,
+    repository: GitHubRepository,
     installationId: number,
     headSha: string,
-    analysis: any,
+    analysis: { [key: string]: unknown },
     suggestedActions: readonly CheckRunAction[]
   ): Promise<void> {
     await this.helpers.createFlakeGuardCheckRun(
@@ -2166,7 +2208,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     }
   }
 
-  private async ensureRepository(repository: any, installationId: string): Promise<any> {
+  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<unknown> {
     return this.prisma.repository.upsert({
       where: { githubId: repository.id },
       update: {
@@ -2191,7 +2233,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     });
   }
 
-  private async getRepositoryRecord(repository: any): Promise<any> {
+  private async getRepositoryRecord(repository: GitHubRepository): Promise<unknown> {
     return this.prisma.repository.findUnique({
       where: { githubId: repository.id },
     });
@@ -2296,7 +2338,7 @@ export class WorkflowJobHandler extends BaseWebhookProcessor<'workflow_job'> {
   /**
    * Check if this is a test-related job based on name patterns
    */
-  private isTestJob(workflowJob: any): boolean {
+  private isTestJob(workflowJob: { name: string; [key: string]: unknown }): boolean {
     const jobName = workflowJob.name.toLowerCase();
     const testPatterns = ['test', 'unittest', 'integration', 'e2e', 'spec', 'junit'];
     
@@ -2483,7 +2525,7 @@ export class WorkflowJobHandler extends BaseWebhookProcessor<'workflow_job'> {
     }
   }
 
-  private async ensureRepository(repository: any, installationId: string): Promise<any> {
+  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<unknown> {
     return this.prisma.repository.upsert({
       where: { githubId: repository.id },
       update: {

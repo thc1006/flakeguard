@@ -21,21 +21,17 @@ import type {
   WebhookMiddleware,
   WebhookDispatcher,
   ApiMetrics,
- ErrorCode, type ErrorFactory } from './api-spec.js';
+  ErrorCode,
+  ErrorFactory
+} from './api-spec.js';
 import {
-  WEBHOOK_EVENTS,
   SUPPORTED_WEBHOOK_EVENTS,
   ERROR_MESSAGES,
   TIMEOUTS,
-  METRICS,
 } from './constants.js';
 import type {
   CheckRunWebhookPayload,
-  CheckSuiteWebhookPayload,
   WorkflowRunWebhookPayload,
-  WorkflowJobWebhookPayload,
-  PullRequestWebhookPayload,
-  PushWebhookPayload,
   InstallationWebhookPayload,
 } from './schemas.js';
 import { validateWebhookPayload, webhookHeadersSchema } from './schemas.js';
@@ -49,16 +45,16 @@ import { validateWebhookPayload, webhookHeadersSchema } from './schemas.js';
  * Main webhook router class for handling GitHub webhook events
  */
 export class WebhookRouter implements WebhookDispatcher {
-  private readonly processors = new Map<string, WebhookProcessor<any>>();
+  private readonly processors = new Map<string, WebhookProcessor<keyof WebhookEventMap>>();
   private readonly middleware: WebhookMiddleware[] = [];
   private readonly errorFactory: ErrorFactory;
   private readonly metrics?: ApiMetrics;
-  private readonly logger: any;
+  private readonly logger: { info: (msg: string, ...args: unknown[]) => void; error: (msg: string, ...args: unknown[]) => void; warn: (msg: string, ...args: unknown[]) => void; debug: (msg: string, ...args: unknown[]) => void };
 
   constructor(options: {
     errorFactory: ErrorFactory;
     metrics?: ApiMetrics;
-    logger: any;
+    logger: { info: (msg: string, ...args: unknown[]) => void; error: (msg: string, ...args: unknown[]) => void; warn: (msg: string, ...args: unknown[]) => void; debug: (msg: string, ...args: unknown[]) => void };
   }) {
     this.errorFactory = options.errorFactory;
     this.metrics = options.metrics;
@@ -132,7 +128,7 @@ export class WebhookRouter implements WebhookDispatcher {
         eventType = headers['x-github-event'];
 
         // Check if event is supported
-        if (!SUPPORTED_WEBHOOK_EVENTS.includes(eventType as any)) {
+        if (!SUPPORTED_WEBHOOK_EVENTS.includes(eventType as keyof WebhookEventMap)) {
           this.logger.warn(`Unsupported webhook event: ${eventType}`);
           return reply.code(200).send({
             success: true,
@@ -141,7 +137,7 @@ export class WebhookRouter implements WebhookDispatcher {
         }
 
         // Validate webhook signature
-        await this.validateWebhookSignature(request, headers);
+        this.validateWebhookSignature(request, headers);
 
         // Process middleware pipeline
         await this.processMiddleware(request, reply, request.body);
@@ -159,13 +155,13 @@ export class WebhookRouter implements WebhookDispatcher {
           );
         }
 
-        reply.code(200).send({
+        await reply.code(200).send({
           success: true,
           message: 'Webhook processed successfully',
         });
 
       } catch (error) {
-        await this.handleError(error, request, reply, {
+        this.handleError(error, request, reply, {
           eventType,
           startTime,
           deliveryId: request.headers['x-github-delivery'] as string,
@@ -180,7 +176,7 @@ export class WebhookRouter implements WebhookDispatcher {
   private async routeEvent(eventType: string, payload: unknown): Promise<void> {
     try {
       // Validate payload structure
-      const validatedPayload = validateWebhookPayload(eventType as any, payload);
+      const validatedPayload = validateWebhookPayload(eventType as keyof WebhookEventMap, payload);
       
       // Route to processor
       await this.emit(eventType as keyof WebhookEventMap, validatedPayload);
@@ -231,10 +227,10 @@ export class WebhookRouter implements WebhookDispatcher {
   /**
    * Validate webhook signature for security using security plugin
    */
-  private async validateWebhookSignature(
-    request: FastifyRequest & { verifyWebhookSignature?: any },
+  private validateWebhookSignature(
+    request: FastifyRequest & { verifyWebhookSignature?: (params: { payload: string; signature: string; provider: string }) => boolean },
     headers: { 'x-hub-signature-256': string }
-  ): Promise<void> {
+  ): void {
     const signature = headers['x-hub-signature-256'];
     
     if (!signature || !signature.startsWith('sha256=')) {
@@ -275,7 +271,7 @@ export class WebhookRouter implements WebhookDispatcher {
   /**
    * Comprehensive error handling for webhook processing
    */
-  private async handleError(
+  private handleError(
     error: unknown,
     request: FastifyRequest,
     reply: FastifyReply,
@@ -284,7 +280,7 @@ export class WebhookRouter implements WebhookDispatcher {
       startTime: number;
       deliveryId?: string;
     }
-  ): Promise<void> {
+  ): void {
     const { eventType, startTime, deliveryId } = context;
     const duration = Date.now() - startTime;
 
@@ -312,7 +308,7 @@ export class WebhookRouter implements WebhookDispatcher {
     if (error && typeof error === 'object' && 'code' in error) {
       // Handle our custom errors
       errorResponse = error;
-      statusCode = this.getStatusCodeFromError(error as any);
+      statusCode = this.getStatusCodeFromError(error as { error?: { code?: string } });
     } else if (error instanceof Error) {
       // Handle generic errors
       errorResponse = this.errorFactory.fromError(error);
@@ -333,14 +329,14 @@ export class WebhookRouter implements WebhookDispatcher {
         duration
       );
       this.metrics.recordError(
-        (errorResponse as any).error?.code || ErrorCode.INTERNAL_SERVER_ERROR,
+        (errorResponse as { error?: { code?: string } }).error?.code ?? ErrorCode.INTERNAL_SERVER_ERROR,
         request.method,
         request.url
       );
     }
 
     // Send error response
-    reply.code(statusCode).send(errorResponse);
+    void reply.code(statusCode).send(errorResponse);
   }
 
   /**
@@ -349,7 +345,7 @@ export class WebhookRouter implements WebhookDispatcher {
   private getStatusCodeFromError(error: { error?: { code?: string } }): number {
     const errorCode = error.error?.code;
     
-    switch (errorCode) {
+    switch (errorCode as ErrorCode) {
       case ErrorCode.INVALID_PAYLOAD:
       case ErrorCode.VALIDATION_ERROR:
       case ErrorCode.MISSING_REQUIRED_FIELD:
@@ -383,10 +379,10 @@ export class WebhookRouter implements WebhookDispatcher {
 export abstract class BaseWebhookProcessor<T extends keyof WebhookEventMap> 
   implements WebhookProcessor<T> {
   
-  protected readonly logger: any;
+  protected readonly logger: { info: (msg: string, ...args: unknown[]) => void; error: (msg: string, ...args: unknown[]) => void; warn: (msg: string, ...args: unknown[]) => void; debug: (msg: string, ...args: unknown[]) => void };
   protected readonly metrics?: ApiMetrics;
 
-  constructor(options: { logger: any; metrics?: ApiMetrics }) {
+  constructor(options: { logger: { info: (msg: string, ...args: unknown[]) => void; error: (msg: string, ...args: unknown[]) => void; warn: (msg: string, ...args: unknown[]) => void; debug: (msg: string, ...args: unknown[]) => void }; metrics?: ApiMetrics }) {
     this.logger = options.logger;
     this.metrics = options.metrics;
   }
@@ -396,7 +392,7 @@ export abstract class BaseWebhookProcessor<T extends keyof WebhookEventMap>
   /**
    * Validate webhook payload - default implementation uses schemas
    */
-  async validate(payload: unknown): Promise<WebhookEventMap[T]> {
+  validate(payload: unknown): WebhookEventMap[T] {
     try {
       return validateWebhookPayload(this.eventType, payload);
     } catch (error) {
@@ -416,7 +412,7 @@ export abstract class BaseWebhookProcessor<T extends keyof WebhookEventMap>
   /**
    * Default error handler with logging and metrics
    */
-  async handleError(error: Error, payload?: unknown): Promise<void> {
+  handleError(error: Error, payload?: unknown): void {
     this.logger.error(`Error processing ${this.eventType} webhook`, {
       error: error.message,
       stack: error.stack,
@@ -466,7 +462,7 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
         await this.handleCheckRunRequestedAction(payload);
         break;
       default:
-        this.logger.warn(`Unhandled check run action: ${action}`);
+        this.logger.warn(`Unhandled check run action: ${String(action)}`);
     }
   }
 
@@ -586,7 +582,7 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
    * Get authenticated Octokit instance for installation
    * This is a placeholder - actual implementation would depend on auth setup
    */
-  private async getInstallationOctokit(installationId: number): Promise<any> {
+  private async getInstallationOctokit(installationId: number): Promise<{ rest: { actions: { reRunWorkflow: (params: unknown) => Promise<unknown>; reRunWorkflowFailedJobs: (params: unknown) => Promise<unknown> }; issues: { create: (params: unknown) => Promise<unknown> }; checks: { update: (params: unknown) => Promise<unknown> } } } | null> {
     // This would integrate with the existing auth manager
     // For now, return a placeholder that would work with the auth system
     this.logger.debug('Getting installation Octokit', { installationId });
@@ -720,7 +716,7 @@ export class InstallationProcessor extends BaseWebhookProcessor<'installation'> 
 /**
  * Request logging middleware
  */
-export function createLoggingMiddleware(logger: any): WebhookMiddleware {
+export function createLoggingMiddleware(logger: { info: (msg: string, ...args: unknown[]) => void }): WebhookMiddleware {
   return async (request: FastifyRequest, reply: FastifyReply, payload: unknown): Promise<void> => {
     const eventType = request.headers['x-github-event'];
     const deliveryId = request.headers['x-github-delivery'];

@@ -1,8 +1,27 @@
 /**
  * Performance Report Generator
  */
+interface PerformanceMetric {
+  timestamp: Date;
+  component: string;
+  operation: string;
+  duration: number;
+  throughput: number;
+  memoryUsage: NodeJS.MemoryUsage;
+  success: boolean;
+}
+
+interface PerformanceReport {
+  summary: {
+    testDate: Date;
+    totalOperations: number;
+    successRate: number;
+  };
+  metrics: PerformanceMetric[];
+}
+
 export class PerformanceReporter {
-  private metrics: any[] = [];
+  private metrics: PerformanceMetric[] = [];
 
   recordMetric(component: string, operation: string, duration: number, throughput: number, success: boolean): void {
     this.metrics.push({
@@ -16,7 +35,7 @@ export class PerformanceReporter {
     });
   }
 
-  generateReport(): any {
+  generateReport(): PerformanceReport {
     return {
       summary: {
         testDate: new Date(),

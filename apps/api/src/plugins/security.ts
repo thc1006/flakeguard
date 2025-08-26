@@ -12,6 +12,7 @@
  */
 
 import crypto from 'crypto';
+import fs from 'fs';
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
@@ -522,7 +523,6 @@ export class SecretsManager {
 
   private loadFromFile(filePath: string, secretKey: string): string | undefined {
     try {
-      const fs = require('fs');
       const content = fs.readFileSync(filePath, 'utf8').trim();
       logger.info(`Loaded secret from file`, { secretKey, filePath });
       return content;
@@ -538,7 +538,6 @@ export class SecretsManager {
 
   private loadFromDockerSecret(secretKey: string): string | undefined {
     try {
-      const fs = require('fs');
       const secretPath = `${this.dockerSecretsPath}/${secretKey.toLowerCase()}`;
       const content = fs.readFileSync(secretPath, 'utf8').trim();
       logger.info(`Loaded secret from Docker secret`, { secretKey });
@@ -551,7 +550,6 @@ export class SecretsManager {
 
   private hasDockerSecret(secretKey: string): boolean {
     try {
-      const fs = require('fs');
       const secretPath = `${this.dockerSecretsPath}/${secretKey.toLowerCase()}`;
       return fs.existsSync(secretPath);
     } catch {

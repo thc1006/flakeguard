@@ -108,10 +108,10 @@ class FlakeGuardQueries {
 
     return results.map(test => ({
       testCase: { ...test, repository: test.repository },
-      flakeScore: test.flakeScore || { score: 0, windowN: 0, lastUpdatedAt: new Date() },
+      flakeScore: test.flakeScore ?? { score: 0, windowN: 0, lastUpdatedAt: new Date() },
       recentFailures: test.occurrences.length,
       totalRuns: test._count.occurrences,
-      lastFailureAt: test.occurrences[0]?.createdAt || null,
+      lastFailureAt: test.occurrences[0]?.createdAt ?? null,
     }));
   }
 
@@ -149,7 +149,7 @@ class FlakeGuardQueries {
 
     return {
       testId,
-      testName: `${testCase.suite}/${testCase.className || ''}/${testCase.name}`.replace('//', '/'),
+      testName: `${testCase.suite}/${testCase.className ?? ''}/${testCase.name}`.replace('//', '/'),
       occurrences,
     };
   }
@@ -182,7 +182,7 @@ class FlakeGuardQueries {
     
     return {
       isQuarantined: isQuarantined && !isExpired,
-      currentState: currentDecision?.state || 'NONE',
+      currentState: currentDecision?.state ?? 'NONE',
       expiresAt: currentDecision?.until,
       rationale: currentDecision?.rationale,
       decidedBy: currentDecision?.byUser,
@@ -232,7 +232,7 @@ class FlakeGuardQueries {
         id: tc.id,
         name: tc.name,
         suite: tc.suite,
-        flakeScore: tc.flakeScore?.score || 0,
+        flakeScore: tc.flakeScore?.score ?? 0,
       })),
     };
   }
@@ -421,14 +421,14 @@ class FlakeGuardQueries {
 
     return candidates.map(test => ({
       testId: test.id,
-      testName: `${test.suite}/${test.className || ''}/${test.name}`.replace('//', '/'),
+      testName: `${test.suite}/${test.className ?? ''}/${test.name}`.replace('//', '/'),
       repository: `${test.repository.owner}/${test.repository.name}`,
-      flakeScore: test.flakeScore?.score || 0,
-      windowSize: test.flakeScore?.windowN || 0,
+      flakeScore: test.flakeScore?.score ?? 0,
+      windowSize: test.flakeScore?.windowN ?? 0,
       recentRuns: test._count.occurrences,
       recentFailures: test.occurrences,
-      recommendation: (test.flakeScore?.score || 0) > 0.8 ? 'IMMEDIATE' : 'REVIEW',
-      rationale: `Test shows ${((test.flakeScore?.score || 0) * 100).toFixed(1)}% failure rate over ${test.flakeScore?.windowN || 0} runs. ${test.occurrences.length} recent failures in the last 7 days.`
+      recommendation: (test.flakeScore?.score ?? 0) > 0.8 ? 'IMMEDIATE' : 'REVIEW',
+      rationale: `Test shows ${((test.flakeScore?.score ?? 0) * 100).toFixed(1)}% failure rate over ${test.flakeScore?.windowN ?? 0} runs. ${test.occurrences.length} recent failures in the last 7 days.`
     }));
   }
 }
@@ -466,7 +466,7 @@ async function runExampleQueries() {
       console.log(`   Suite: ${test.testCase.suite}`);
       console.log(`   Flake Score: ${(test.flakeScore.score * 100).toFixed(1)}%`);
       console.log(`   Total Runs: ${test.totalRuns}`);
-      console.log(`   Last Failure: ${test.lastFailureAt?.toISOString().split('T')[0] || 'Never'}`);
+      console.log(`   Last Failure: ${test.lastFailureAt?.toISOString().split('T')[0] ?? 'Never'}`);
       console.log('');
     });
 
