@@ -7,7 +7,6 @@ import { useState } from 'react';
 import { RepositoryHealthCard } from '@/components/dashboard/repository-health-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useRepositories } from '@/hooks/use-repositories';
 
 export default function RepositoriesPage() {
