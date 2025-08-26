@@ -46,3 +46,6 @@ Dockerfile*
 docker-compose*.yml
 README*.md
 *.md
+
+# CLI package (dev only)
+packages/cli/

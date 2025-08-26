@@ -102,8 +102,9 @@ RUN cd apps/api && \
     echo "Application built successfully"
 
 # Prune to production dependencies only
-# Note: Using --ignore-scripts to prevent build scripts from running during deploy
-RUN pnpm --filter @flakeguard/api --prod --ignore-scripts deploy pruned/api
+# First remove CLI package from workspace to avoid dependency issues
+RUN sed -i '/@flakeguard\/cli/d' package.json && \
+    pnpm --filter @flakeguard/api --prod --ignore-scripts deploy pruned/api
 
 # =============================================================================
 # SECURITY SCANNING STAGE (Optional)
