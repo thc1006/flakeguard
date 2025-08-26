@@ -48,7 +48,7 @@ interface MockFlakeDetection {
 
 const mockPrisma = {
   repository: {
-    findFirst: async (query: MockQuery): Promise<MockRepository | null> => {
+    findFirst: (query: MockQuery): MockRepository | null => {
       if (query.where.fullName === 'facebook/react') {
         return {
           id: 'repo-123',
@@ -60,7 +60,7 @@ const mockPrisma = {
       }
       return null;
     },
-    findUnique: async (_query: MockQuery): Promise<MockRepository | null> => {
+    findUnique: (_query: MockQuery): MockRepository | null => {
       return {
         id: 'repo-123',
         fullName: 'facebook/react'
@@ -68,7 +68,7 @@ const mockPrisma = {
     }
   },
   testResult: {
-    findMany: async (_query: MockQuery): Promise<MockTestResult[]> => {
+    findMany: (_query: MockQuery): MockTestResult[] => {
       return [
         {
           testFullName: 'ReactDOM.test.js::should render without crashing',
@@ -104,7 +104,7 @@ const mockPrisma = {
     }
   },
   flakeDetection: {
-    findFirst: async (_query: MockQuery): Promise<MockFlakeDetection | null> => {
+    findFirst: (_query: MockQuery): MockFlakeDetection | null => {
       return {
         testName: 'should render without crashing',
         repositoryId: 'repo-123',
@@ -112,7 +112,7 @@ const mockPrisma = {
         failureRate: 0.67
       };
     },
-    findMany: async (_query: MockQuery): Promise<MockFlakeDetection[]> => {
+    findMany: (_query: MockQuery): MockFlakeDetection[] => {
       return [
         {
           testName: 'should render without crashing',
@@ -133,14 +133,7 @@ const mockPrisma = {
   }
 };
 
-const mockGithubAuth = {
-  getInstallationOctokit: async () => ({
-    rest: {
-      pulls: { create: async () => ({ data: { number: 123, html_url: 'https://github.com/org/repo/pull/123' } }) },
-      issues: { create: async () => ({ data: { number: 456, html_url: 'https://github.com/org/repo/issues/456' } }) }
-    }
-  })
-};
+// Removed unused mockGithubAuth
 
 interface MockPayload {
   requested_action?: { identifier: string };
@@ -149,7 +142,7 @@ interface MockPayload {
 }
 
 const mockCheckRunHandler = {
-  process: async (payload: MockPayload) => {
+  process: (payload: MockPayload) => {
     console.log(`  📋 GitHub Handler: Processing ${payload.requested_action?.identifier} action`);
     return { success: true };
   }
@@ -197,7 +190,7 @@ class SlackIntegrationTester {
     await this.testButtonActions();
     this.testMessageFormatting();
     this.testRateLimiting();
-    await this.testErrorHandling();
+    this.testErrorHandling();
 
     this.printResults();
   }
@@ -224,19 +217,11 @@ class SlackIntegrationTester {
         text: 'help'
       };
 
-      // Parse command
-      const [_subcommand] = mockBody.text.split(/\s+/);
+      // Parse command (simplified for test)
+      mockBody.text.split(/\s+/);
       
-      // Generate help response
-      const helpBlocks = [
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: '*FlakeGuard Slack Bot* 🛡️\\n\\nManage flaky tests directly from Slack!'
-          }
-        }
-      ];
+      // Generate help response (simplified for test)
+      '*FlakeGuard Slack Bot* 🛡️\\n\\nManage flaky tests directly from Slack!';
 
       if (this.verbose) {
         console.log('  📝 Help command response generated with Block Kit format');
@@ -249,7 +234,7 @@ class SlackIntegrationTester {
     }
   }
 
-  private async testStatusCommand(): Promise<void> {
+  private testStatusCommand(): void {
     const start = Date.now();
     
     try {
@@ -262,7 +247,7 @@ class SlackIntegrationTester {
         text: 'status facebook/react'
       };
 
-      const [_subcommand, ...args] = mockBody.text.split(/\s+/);
+      const [, ...args] = mockBody.text.split(/\s+/);
       const repoPath = args[0];
       const [owner, repo] = repoPath.split('/');
 
@@ -271,7 +256,7 @@ class SlackIntegrationTester {
       }
 
       // Mock repository lookup
-      const repository = await mockPrisma.repository.findFirst({
+      const repository = mockPrisma.repository.findFirst({
         where: { fullName: `${owner}/${repo}` }
       });
 
@@ -280,7 +265,7 @@ class SlackIntegrationTester {
       }
 
       // Mock test results
-      const testResults = await mockPrisma.testResult.findMany({
+      const testResults = mockPrisma.testResult.findMany({
         where: { repositoryId: repository.id }
       });
 
@@ -306,7 +291,7 @@ class SlackIntegrationTester {
     }
   }
 
-  private async testTopFlakyCommand(): Promise<void> {
+  private testTopFlakyCommand(): void {
     const start = Date.now();
     
     try {
@@ -319,12 +304,12 @@ class SlackIntegrationTester {
         text: 'topflaky 10'
       };
 
-      const [_subcommand, ...args] = mockBody.text.split(/\s+/);
+      const [, ...args] = mockBody.text.split(/\s+/);
       const limit = args.length > 0 ? parseInt(args[0]) ?? 10 : 10;
       const clampedLimit = Math.min(Math.max(limit, 1), 25);
 
       // Mock flake detections
-      const flakeDetections = await mockPrisma.flakeDetection.findMany({
+      const flakeDetections = mockPrisma.flakeDetection.findMany({
         where: {},
         take: clampedLimit * 2
       });
@@ -355,12 +340,12 @@ class SlackIntegrationTester {
   private async testButtonActions(): Promise<void> {
     console.log('🔘 Testing Button Actions...');
 
-    await this.testQuarantineAction();
-    await this.testOpenIssueAction();
-    await this.testViewDetailsAction();
+    this.testQuarantineAction();
+    this.testOpenIssueAction();
+    this.testViewDetailsAction();
   }
 
-  private async testQuarantineAction(): Promise<void> {
+  private testQuarantineAction(): void {
     const start = Date.now();
     
     try {
@@ -379,12 +364,12 @@ class SlackIntegrationTester {
       const { repositoryId, testName } = JSON.parse(mockAction.actions[0].value) as { repositoryId: string; testName: string };
 
       // Mock repository lookup
-      const repository = await mockPrisma.repository.findUnique({
+      const repository = mockPrisma.repository.findUnique({
         where: { id: repositoryId }
       });
 
-      // Mock flake detection
-      const flakeDetection = await mockPrisma.flakeDetection.findFirst({
+      // Mock flake detection (simplified for test)
+      mockPrisma.flakeDetection.findFirst({
         where: { testName, repositoryId }
       });
 
@@ -395,7 +380,7 @@ class SlackIntegrationTester {
         repository: { full_name: repository.fullName }
       };
 
-      await mockCheckRunHandler.process(mockPayload);
+      mockCheckRunHandler.process(mockPayload);
 
       if (this.verbose) {
         console.log(`  🚫 Quarantined test: ${testName}`);
@@ -410,7 +395,7 @@ class SlackIntegrationTester {
     }
   }
 
-  private async testOpenIssueAction(): Promise<void> {
+  private testOpenIssueAction(): void {
     const start = Date.now();
     
     try {
@@ -425,7 +410,7 @@ class SlackIntegrationTester {
         }]
       };
 
-      const { repositoryId, testName } = JSON.parse(mockAction.actions[0].value) as { repositoryId: string; testName: string };
+      const { testName } = JSON.parse(mockAction.actions[0].value) as { repositoryId: string; testName: string };
 
       // Mock GitHub handler call
       const mockPayload = {
@@ -434,7 +419,7 @@ class SlackIntegrationTester {
         repository: { full_name: 'facebook/react' }
       };
 
-      await mockCheckRunHandler.process(mockPayload);
+      mockCheckRunHandler.process(mockPayload);
 
       if (this.verbose) {
         console.log(`  🔗 Opened issue for test: ${testName}`);
@@ -448,7 +433,7 @@ class SlackIntegrationTester {
     }
   }
 
-  private async testViewDetailsAction(): Promise<void> {
+  private testViewDetailsAction(): void {
     const start = Date.now();
     
     try {
@@ -456,13 +441,13 @@ class SlackIntegrationTester {
       const repositoryId = 'repo-123';
       const testName = 'should render without crashing';
 
-      // Mock repository lookup
-      const repository = await mockPrisma.repository.findUnique({
-        where: { id: repositoryId }
+      // Mock repository lookup (simplified for test)
+      mockPrisma.repository.findUnique({
+        where: { id: 'repo-123' }
       });
 
       // Mock test results
-      const results = await mockPrisma.testResult.findMany({
+      const results = mockPrisma.testResult.findMany({
         where: { repositoryId, name: testName }
       });
 
@@ -613,7 +598,7 @@ class SlackIntegrationTester {
     }
   }
 
-  private async testErrorHandling(): Promise<void> {
+  private testErrorHandling(): void {
     console.log('🚨 Testing Error Handling...');
 
     this.testDatabaseError();
@@ -697,7 +682,7 @@ class SlackIntegrationTester {
           }
         } else if (command === 'topflaky') {
           const limit = args.length > 0 ? parseInt(args[0]) ?? 10 : 10;
-          const clampedLimit = Math.min(Math.max(limit, 1), 25);
+          Math.min(Math.max(limit, 1), 25);
           // Should clamp invalid limits
         }
       }
@@ -748,7 +733,7 @@ class SlackIntegrationTester {
       this.results
         .filter(r => r.status === 'FAIL')
         .forEach(result => {
-          console.log(`  • ${result.name}: ${result.details || 'No details'}`);
+          console.log(`  • ${result.name}: ${result.details ?? 'No details'}`);
         });
     }
 

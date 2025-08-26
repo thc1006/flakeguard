@@ -73,7 +73,7 @@ COPY --from=shared-builder --chown=builder:builder /app/packages/shared ./packag
 
 # Copy web app source
 COPY --chown=builder:builder apps/web ./apps/web
-COPY --chown=builder:builder package.json pnpm-workspace.yaml ./
+COPY --chown=builder:builder package.json pnpm-workspace.yaml tsconfig.json ./
 
 # Set build environment variables
 ENV NEXT_TELEMETRY_DISABLED=1
