@@ -49,7 +49,7 @@ interface MockFlakeDetection {
 const mockPrisma = {
   repository: {
     findFirst: (query: MockQuery): MockRepository | null => {
-      if (query.where.fullName === 'facebook/react') {
+      if (query.where && query.where.fullName === 'facebook/react') {
         return {
           id: 'repo-123',
           fullName: 'facebook/react',
@@ -182,12 +182,12 @@ class SlackIntegrationTester {
     this.verbose = verbose;
   }
 
-  async runTests(): Promise<void> {
+  runTests(): void {
     console.log('🧪 FlakeGuard Slack Integration Test Suite');
     console.log('==========================================\n');
 
-    await this.testSlashCommands();
-    await this.testButtonActions();
+    this.testSlashCommands();
+    this.testButtonActions();
     this.testMessageFormatting();
     this.testRateLimiting();
     this.testErrorHandling();
@@ -195,13 +195,13 @@ class SlackIntegrationTester {
     this.printResults();
   }
 
-  private async testSlashCommands(): Promise<void> {
+  private testSlashCommands(): void {
     console.log('⚡ Testing Slash Commands...');
 
     // Test help command
     this.testHelpCommand();
-    await this.testStatusCommand();
-    await this.testTopFlakyCommand();
+    this.testStatusCommand();
+    this.testTopFlakyCommand();
   }
 
   private testHelpCommand(): void {
@@ -249,6 +249,9 @@ class SlackIntegrationTester {
 
       const [, ...args] = mockBody.text.split(/\s+/);
       const repoPath = args[0];
+      if (!repoPath) {
+        throw new Error('Repository path missing');
+      }
       const [owner, repo] = repoPath.split('/');
 
       if (!owner || !repo) {
@@ -305,7 +308,7 @@ class SlackIntegrationTester {
       };
 
       const [, ...args] = mockBody.text.split(/\s+/);
-      const limit = args.length > 0 ? parseInt(args[0]) ?? 10 : 10;
+      const limit = args.length > 0 ? (parseInt(args[0] ?? '10') || 10) : 10;
       const clampedLimit = Math.min(Math.max(limit, 1), 25);
 
       // Mock flake detections
@@ -316,7 +319,7 @@ class SlackIntegrationTester {
 
       const topFlaky = flakeDetections.map(detection => ({
         testName: detection.testName,
-        repositoryName: detection.repository.fullName,
+        repositoryName: detection.repository?.fullName ?? 'unknown',
         flakeScore: detection.confidence,
         failureRate: detection.failureRate,
         lastFailure: detection.lastUpdatedAt
@@ -337,7 +340,7 @@ class SlackIntegrationTester {
     }
   }
 
-  private async testButtonActions(): Promise<void> {
+  private testButtonActions(): void {
     console.log('🔘 Testing Button Actions...');
 
     this.testQuarantineAction();
@@ -368,23 +371,31 @@ class SlackIntegrationTester {
         where: { id: repositoryId }
       });
 
+      if (!repository) {
+        throw new Error('Repository not found');
+      }
+
       // Mock flake detection (simplified for test)
-      mockPrisma.flakeDetection.findFirst({
+      const flakeDetection = mockPrisma.flakeDetection.findFirst({
         where: { testName, repositoryId }
       });
+
+      if (!flakeDetection) {
+        throw new Error('Flake detection not found');
+      }
 
       // Mock GitHub handler call
       const mockPayload = {
         action: 'requested_action',
         requested_action: { identifier: 'quarantine' },
-        repository: { full_name: repository.fullName }
+        repository: { full_name: repository?.fullName ?? 'unknown' }
       };
 
       mockCheckRunHandler.process(mockPayload);
 
       if (this.verbose) {
         console.log(`  🚫 Quarantined test: ${testName}`);
-        console.log(`  🏢 Repository: ${repository.fullName}`);
+        console.log(`  🏢 Repository: ${repository?.fullName ?? 'unknown'}`);
       }
 
       this.addResult('Quarantine Action', 'PASS', Date.now() - start, 
@@ -442,9 +453,13 @@ class SlackIntegrationTester {
       const testName = 'should render without crashing';
 
       // Mock repository lookup (simplified for test)
-      mockPrisma.repository.findUnique({
+      const repository = mockPrisma.repository.findUnique({
         where: { id: 'repo-123' }
       });
+
+      if (!repository) {
+        throw new Error('Repository not found for details view');
+      }
 
       // Mock test results
       const results = mockPrisma.testResult.findMany({
@@ -674,14 +689,14 @@ class SlackIntegrationTester {
         if (command === 'status') {
           if (args.length === 0) {
             // Should show error message
-          } else if (args.length === 1) {
+          } else if (args.length === 1 && args[0]) {
             const [owner, repo] = args[0].split('/');
             if (!owner || !repo) {
               // Should show format error
             }
           }
         } else if (command === 'topflaky') {
-          const limit = args.length > 0 ? parseInt(args[0]) ?? 10 : 10;
+          const limit = args.length > 0 ? (parseInt(args[0] ?? '10') || 10) : 10;
           Math.min(Math.max(limit, 1), 25);
           // Should clamp invalid limits
         }
@@ -748,7 +763,7 @@ class SlackIntegrationTester {
 }
 
 // Main execution
-async function main() {
+function main() {
   const verbose = process.argv.includes('--verbose') || process.argv.includes('-v');
   
   if (verbose) {
@@ -756,14 +771,16 @@ async function main() {
   }
 
   const tester = new SlackIntegrationTester(verbose);
-  await tester.runTests();
+  tester.runTests();
 }
 
 if (require.main === module) {
-  main().catch(error => {
+  try {
+    main();
+  } catch (error) {
     console.error('❌ Test suite failed:', error);
     process.exit(1);
-  });
+  }
 }
 
 export { SlackIntegrationTester };

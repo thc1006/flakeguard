@@ -621,7 +621,7 @@ async function storeTestResults(
     // Use database transaction for consistency
     await prisma.$transaction(async (tx) => {
       // Create or update workflow run record
-      const workflowRun = await tx.fGWorkflowRun.upsert({
+      await tx.fGWorkflowRun.upsert({
         where: {
           id: String(data.workflowRunId)
         },
@@ -632,12 +632,9 @@ async function storeTestResults(
         },
         create: {
           id: String(data.workflowRunId),
-          repository: `${data.repository.owner}/${data.repository.repo}`,
-          installationId: String(data.repository.installationId),
           orgId: data.repository.owner,
-          headSha: data.metadata?.headSha || '',
-          headBranch: data.metadata?.headBranch || 'main',
-          runNumber: data.metadata?.runNumber || 0,
+          repoId: `${data.repository.owner}/${data.repository.repo}`,
+          runId: String(data.workflowRunId),
           status: data.metadata?.runStatus || 'completed',
           conclusion: data.metadata?.conclusion || 'success',
           createdAt: new Date(),
@@ -645,34 +642,46 @@ async function storeTestResults(
         }
       });
       
-      // Store test suites and test cases
+      // Store test cases and occurrences
       for (const suite of testSuites) {
-        const _testSuite = await tx.fGWorkflowRun.create({
-          data: {
-            workflowRunId: workflowRun.id,
-            name: suite.name,
-            tests: suite.tests,
-            failures: suite.failures,
-            errors: suite.errors,
-            skipped: suite.skipped,
-            time: suite.time,
-            runStartedAt: new Date(suite.timestamp),
-            createdAt: new Date()
-          }
-        });
-        
         // Store test cases
         for (const testCase of suite.testCases) {
-          await tx.fGTestCase.create({
-            data: {
-              // testSuiteId: testSuite.id, // Field might not exist in schema
-              name: testCase.name,
-              className: testCase.className,
+          const fgTestCase = await tx.fGTestCase.upsert({
+            where: {
+              orgId_repoId_suite_className_name: {
+                orgId: data.repository.owner,
+                repoId: `${data.repository.owner}/${data.repository.repo}`,
+                suite: suite.name,
+                className: testCase.className || '',
+                name: testCase.name
+              }
+            },
+            update: {
+              updatedAt: new Date()
+            },
+            create: {
+              orgId: data.repository.owner,
               repoId: `${data.repository.owner}/${data.repository.repo}`,
               suite: suite.name,
-              status: testCase.status,
+              className: testCase.className,
+              name: testCase.name,
               file: null,
               ownerTeam: null,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+          });
+          
+          // Create occurrence record
+          await tx.fGOccurrence.create({
+            data: {
+              orgId: data.repository.owner,
+              testId: fgTestCase.id,
+              runId: String(data.workflowRunId),
+              status: testCase.status,
+              durationMs: Math.round(testCase.time * 1000), // Convert seconds to milliseconds
+              failureMessage: testCase.failure?.message || testCase.error?.message,
+              failureStackTrace: testCase.failure?.stackTrace || testCase.error?.stackTrace,
               createdAt: new Date()
             }
           });

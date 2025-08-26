@@ -5,7 +5,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/await-thenable */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
@@ -34,6 +33,7 @@ import { WebClient } from '@slack/web-api';
 import { FlakinessScorer } from '../apps/api/src/analytics/flakiness.js';
 import { GitHubAuthManager } from '../apps/api/src/github/auth.js';
 import { CheckRunHandler } from '../apps/api/src/github/handlers.js';
+import { GitHubHelpers } from '../apps/api/src/github/helpers.js';
 import { FlakeGuardSlackApp, createFlakeGuardSlackApp } from '../apps/api/src/slack/app.js';
 
 // Configuration
@@ -72,11 +72,11 @@ class SlackIntegrationValidator {
       this.validateEnvironment();
       await this.validateAuthentication();
       this.validateAppInitialization();
-      await this.validateSlashCommands();
+      this.validateSlashCommands();
       this.validateButtonInteractions();
-      this.validateMessageFormatting();
+      this.testMessageFormatting();
       this.validateErrorHandling();
-      this.validateRateLimiting();
+      this.testRateLimiting();
       await this.validateIntegrationFlow();
     } catch (error) {
       this.addResult('SYSTEM', 'Overall Validation', 'FAIL', 0, String(error));
@@ -148,28 +148,32 @@ class SlackIntegrationValidator {
           throw new Error(`Auth test failed: ${String(authTest.error)}`);
         }
 
+        // Add null checks for authTest properties
+        const authTestData = authTest as any;
+        const user = authTestData?.user ? String(authTestData.user) : '';
+        const team = authTestData?.team ? String(authTestData.team) : '';
+
         this.addResult('AUTHENTICATION', 'Bot Token', 'PASS', 
-          performance.now() - start, { 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            user: String(authTest.user), 
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            team: String(authTest.team) 
-          });
+          performance.now() - start, undefined, { user, team });
 
         // Test bot info
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const botInfo = await this.slackClient.bots.info({
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          bot: String(authTest.user_id ?? '')
-        });
+        // Add null check for user_id before making bot info request
+        const authTestForBotInfo = authTest as any;
+        const userId = authTestForBotInfo?.user_id ? String(authTestForBotInfo.user_id) : '';
+        
+        if (userId) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+          const botInfo = await this.slackClient.bots.info({ bot: userId });
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        if (botInfo.ok) {
-          this.addResult('AUTHENTICATION', 'Bot Info', 'PASS', 
-            performance.now() - start, { 
-              name: String((botInfo).bot?.name),
-              appId: String((botInfo).bot?.app_id) 
-            });
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          if (botInfo.ok) {
+            const botData = (botInfo as any).bot;
+            const name = botData?.name ? String(botData.name) : '';
+            const appId = botData?.app_id ? String(botData.app_id) : '';
+            
+            this.addResult('AUTHENTICATION', 'Bot Info', 'PASS', 
+              performance.now() - start, undefined, { name, appId });
+          }
         }
 
       } else {
@@ -192,12 +196,21 @@ class SlackIntegrationValidator {
       this.prisma = new PrismaClient();
       
       const githubAuth = new GitHubAuthManager({
-        appId: process.env.GITHUB_APP_ID!,
-        privateKey: Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY_BASE64!, 'base64').toString(),
-        webhookSecret: process.env.GITHUB_WEBHOOK_SECRET!
+        config: {
+          appId: parseInt(process.env.GITHUB_APP_ID!, 10),
+          privateKey: Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY_BASE64!, 'base64').toString(),
+          webhookSecret: process.env.GITHUB_WEBHOOK_SECRET!,
+          clientId: process.env.GITHUB_CLIENT_ID ?? '',
+          clientSecret: process.env.GITHUB_CLIENT_SECRET ?? ''
+        }
       });
 
-      const checkRunHandler = new CheckRunHandler(this.prisma, githubAuth);
+      const helpers = new GitHubHelpers(githubAuth);
+      const checkRunHandler = new CheckRunHandler({
+        prisma: this.prisma,
+        authManager: githubAuth,
+        helpers
+      });
       const flakinessScorer = new FlakinessScorer();
 
       // Create Slack app
@@ -205,7 +218,7 @@ class SlackIntegrationValidator {
         {
           signingSecret: process.env.SLACK_SIGNING_SECRET!,
           token: process.env.SLACK_BOT_TOKEN!,
-          port: parseInt(process.env.SLACK_PORT ?? '3001')
+          port: parseInt(process.env.SLACK_PORT ?? '3001', 10)
         },
         {
           prisma: this.prisma,
@@ -233,12 +246,12 @@ class SlackIntegrationValidator {
     }
   }
 
-  private async validateSlashCommands(): Promise<void> {
+  private validateSlashCommands(): void {
     console.log('⚡ Validating Slash Commands...');
     
     // Test command parsers and handlers
     this.validateHelpCommand();
-    await this.validateStatusCommand();
+    this.validateStatusCommand();
     this.validateTopFlakyCommand();
   }
 
@@ -291,7 +304,7 @@ class SlackIntegrationValidator {
             const [owner, repo] = args[0].split('/');
             if (owner && repo && testCase.expected === 'valid') {
               this.addResult('SLASH_COMMANDS', 'Status Command Parsing', 'PASS', 0);
-            } else if (!owner || !repo && testCase.expected === 'error') {
+            } else if ((!owner || !repo) && testCase.expected === 'error') {
               this.addResult('SLASH_COMMANDS', 'Status Command Validation', 'PASS', 0);
             }
           }
@@ -312,13 +325,13 @@ class SlackIntegrationValidator {
       const testLimits = ['10', '100', '0', 'invalid'];
       
       for (const limit of testLimits) {
-        const parsed = parseInt(limit) || 10;
-        const clamped = Math.min(Math.max(parsed, 1), 25);
+        const parsed = parseInt(limit, 10) || 10;
+        const clampedLimit = Math.min(Math.max(parsed, 1), 25);
         
-        if ((limit === '10' && clamped === 10) ||
-            (limit === '100' && clamped === 25) ||
-            (limit === '0' && clamped === 1) ||
-            (limit === 'invalid' && clamped === 10)) {
+        if ((limit === '10' && clampedLimit === 10) ||
+            (limit === '100' && clampedLimit === 25) ||
+            (limit === '0' && clampedLimit === 1) ||
+            (limit === 'invalid' && clampedLimit === 10)) {
           // Limit parsing works correctly
         } else {
           throw new Error(`Limit clamping failed for: ${limit}`);
@@ -357,7 +370,8 @@ class SlackIntegrationValidator {
         }]
       };
 
-      const parsed = JSON.parse((mockAction.actions[0] as any).value);
+      const actionValue = (mockAction.actions[0] as any).value as string;
+      const parsed = JSON.parse(actionValue) as { repositoryId?: unknown; testName?: unknown };
       if (parsed.repositoryId && parsed.testName) {
         this.addResult('BUTTON_INTERACTIONS', 'Quarantine Payload', 'PASS', 
           performance.now() - start);
@@ -427,7 +441,7 @@ class SlackIntegrationValidator {
     }
   }
 
-  private validateMessageFormatting(): void {
+  private testMessageFormatting(): void {
     console.log('💬 Validating Block Kit Message Formatting...');
     
     const start = performance.now();
@@ -494,8 +508,12 @@ class SlackIntegrationValidator {
         }
       ];
 
-      if (mockBlocks[0].type === 'section' && 
-          mockBlocks[0].text?.type === 'mrkdwn') {
+      // Add null checks for block structure validation
+      const firstBlock = mockBlocks[0];
+      if (firstBlock && 
+          firstBlock.type === 'section' && 
+          firstBlock.text && 
+          firstBlock.text.type === 'mrkdwn') {
         this.addResult('MESSAGE_FORMATTING', 'Block Kit Structure', 'PASS', 0);
       } else {
         this.addResult('MESSAGE_FORMATTING', 'Block Kit Structure', 'FAIL', 0, 
@@ -555,7 +573,7 @@ class SlackIntegrationValidator {
     }
   }
 
-  private validateRateLimiting(): void {
+  private testRateLimiting(): void {
     console.log('🚦 Validating Rate Limiting...');
     
     const start = performance.now();
@@ -577,6 +595,7 @@ class SlackIntegrationValidator {
           return false;
         }
 
+        // userLimit is guaranteed to exist here due to the checks above
         userLimit.count++;
         return true;
       };
@@ -596,7 +615,7 @@ class SlackIntegrationValidator {
 
       if (allowedRequests === 10 && blockedRequests === 5) {
         this.addResult('RATE_LIMITING', 'Request Limiting', 'PASS', 
-          performance.now() - start, { allowedRequests, blockedRequests });
+          performance.now() - start, undefined, { allowedRequests, blockedRequests });
       } else {
         throw new Error(
           `Rate limiting failed: ${allowedRequests} allowed, ${blockedRequests} blocked`
@@ -660,7 +679,7 @@ class SlackIntegrationValidator {
       
       if (flakeScore.score >= 0 && flakeScore.score <= 1) {
         this.addResult('INTEGRATION', 'Flakiness Scoring', 'PASS', 0, 
-          { score: flakeScore.score });
+          undefined, { score: flakeScore.score });
       } else {
         throw new Error(`Invalid flake score: ${flakeScore.score}`);
       }
@@ -811,4 +830,5 @@ if (require.main === module) {
   });
 }
 
-export { SlackIntegrationValidator, ValidationConfig, ValidationResult };
+export { SlackIntegrationValidator };
+export type { ValidationConfig, ValidationResult };

@@ -10,7 +10,7 @@ import { beforeEach, afterEach, beforeAll, vi } from 'vitest';
 // Set up environment variables BEFORE any imports that use config
 beforeAll(() => {
   // Set environment variables for test
-  process.env.NODE_ENV = 'test';
+  (process.env as any).NODE_ENV = 'test';
   process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/flakeguard_test';
   process.env.REDIS_URL = 'redis://localhost:6379';
   process.env.JWT_SECRET = 'test-jwt-secret-32-chars-minimum-length';

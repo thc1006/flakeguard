@@ -534,7 +534,9 @@ function createMixedStatusRuns(count: number): TestRun[] {
   
   for (let i = 0; i < count; i++) {
     const status = statuses[i % statuses.length];
-    runs.push(createTestRun('mixed_test', status, 1, `run${i}`));
+    if (status) {
+      runs.push(createTestRun('mixed_test', status, 1, `run${i}`));
+    }
   }
   return runs;
 }

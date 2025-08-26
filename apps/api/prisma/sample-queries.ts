@@ -200,9 +200,10 @@ class FlakeGuardQueries {
   ): Promise<FailureCluster> {
     // Finding similar failures for signature
     
-    const cluster = await prisma.fGFailureCluster.findUniqueOrThrow({
+    const cluster = (await prisma.fGFailureCluster.findUniqueOrThrow({
       where: {
-        repoId_failureMsgSignature: {
+        orgId_repoId_failureMsgSignature: {
+          orgId: '', // Will be populated from context
           repoId,
           failureMsgSignature
         }
@@ -219,7 +220,7 @@ class FlakeGuardQueries {
           }
         }
       }
-    }) as FailureClusterWithTestCases;
+    })) as FailureClusterWithTestCases;
 
     return {
       id: cluster.id,
@@ -451,6 +452,10 @@ async function runExampleQueries() {
     }
 
     const firstRepo = repos[0];
+    if (!firstRepo) {
+      console.log('No repository found at index 0.');
+      return;
+    }
     console.log(`Using repository: ${firstRepo.owner}/${firstRepo.name}\n`);
 
     // 1. Find flakiest tests

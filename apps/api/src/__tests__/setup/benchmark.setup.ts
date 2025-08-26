@@ -19,7 +19,7 @@ beforeAll(() => {
   console.error = () => {};
   
   // Set NODE_ENV to production for realistic performance
-  process.env.NODE_ENV = 'production';
+  (process.env as any).NODE_ENV = 'production';
   
   console.info('Benchmark environment initialized');
 });

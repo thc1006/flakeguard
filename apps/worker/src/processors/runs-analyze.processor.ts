@@ -269,9 +269,9 @@ async function loadTestExecutionHistories(
         }
       },
       include: {
-        fGOccurrences: {
+        occurrences: {
           include: {
-            fGWorkflowRun: true
+            workflowRun: true
           }
         }
       },
@@ -299,15 +299,15 @@ async function loadTestExecutionHistories(
       const history = testHistoryMap.get(testKey);
       if (!history) {continue;}
       history.executions.push({
-        workflowRunId: testCase.fGOccurrences[0]?.fGWorkflowRun?.id || 0,
-        status: (testCase.fGOccurrences[0]?.status || 'passed') as 'passed' | 'failed' | 'error' | 'skipped',
-        executionTime: testCase.fGOccurrences[0]?.durationMs || 0,
+        workflowRunId: parseInt(testCase.occurrences[0]?.workflowRun?.id || '0'),
+        status: (testCase.occurrences[0]?.status || 'passed') as 'passed' | 'failed' | 'error' | 'skipped',
+        executionTime: testCase.occurrences[0]?.durationMs || 0,
         timestamp: testCase.createdAt,
-        branch: testCase.fGOccurrences[0]?.fGWorkflowRun?.headBranch || 'main',
-        commitSha: testCase.fGOccurrences[0]?.fGWorkflowRun?.headSha || '',
-        runNumber: testCase.fGOccurrences[0]?.fGWorkflowRun?.runNumber || 0,
-        failureMessage: testCase.fGOccurrences[0]?.failureMsgSignature || undefined,
-        errorMessage: testCase.fGOccurrences[0]?.failureStackDigest || undefined
+        branch: 'main', // Note: workflowRun doesn't have headBranch in the schema
+        commitSha: '', // Note: workflowRun doesn't have headSha in the schema
+        runNumber: 0, // Note: workflowRun doesn't have runNumber in the schema
+        failureMessage: testCase.occurrences[0]?.failureMsgSignature || undefined,
+        errorMessage: testCase.occurrences[0]?.failureStackDigest || undefined
       });
     }
     
@@ -595,7 +595,7 @@ async function storeAnalysisResults(
   flakyTests: FlakyTestResult[]
 ): Promise<void> {
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (_tx) => {
       // Store or update flaky test records
       for (const flakyTest of flakyTests) {
         // Note: fGFlakyTest table doesn't exist in current schema, skipping for now

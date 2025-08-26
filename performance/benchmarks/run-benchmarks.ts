@@ -77,8 +77,13 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-// Check if this module is being run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Check if this module is being run directly (CommonJS-compatible)
+const isMainModule = process.argv[1] && (
+  process.argv[1].endsWith('run-benchmarks.ts') || 
+  process.argv[1].endsWith('run-benchmarks.js')
+);
+
+if (isMainModule) {
   void main().catch(console.error);
 }
 

@@ -54,7 +54,7 @@ export async function runParserBenchmarks(): Promise<string> {
   const mediumXml = generateJUnitXML(1000);
   const largeXml = generateJUnitXML(10000);
   
-  const optimizedParser = new OptimizedJUnitParser();
+  const _optimizedParser = new OptimizedJUnitParser();
   
   console.log("Running JUnit parser performance benchmarks...");
   
@@ -64,7 +64,7 @@ export async function runParserBenchmarks(): Promise<string> {
   }, 10);
   
   await benchmark.runBenchmark("Optimized Parser - Small XML (100 tests)", async () => {
-    const stream = Readable.from([smallXml]);
+    const _stream = Readable.from([smallXml]);
     // Placeholder implementation since OptimizedJUnitParser is not fully implemented
     // await optimizedParser.parseStream(stream);
     await new Promise(resolve => setTimeout(resolve, Math.random() * 10));
@@ -76,7 +76,7 @@ export async function runParserBenchmarks(): Promise<string> {
   }, 5);
   
   await benchmark.runBenchmark("Optimized Parser - Medium XML (1000 tests)", async () => {
-    const stream = Readable.from([mediumXml]);
+    const _stream = Readable.from([mediumXml]);
     // Placeholder implementation since OptimizedJUnitParser is not fully implemented
     // await optimizedParser.parseStream(stream);
     await new Promise(resolve => setTimeout(resolve, Math.random() * 50));
@@ -84,7 +84,7 @@ export async function runParserBenchmarks(): Promise<string> {
   
   // Large XML parsing
   await benchmark.runBenchmark("Optimized Parser - Large XML (10000 tests)", async () => {
-    const stream = Readable.from([largeXml]);
+    const _stream = Readable.from([largeXml]);
     // Placeholder implementation since OptimizedJUnitParser is not fully implemented
     // await optimizedParser.parseStream(stream);
     await new Promise(resolve => setTimeout(resolve, Math.random() * 200));

@@ -140,8 +140,8 @@ async function seedData() {
 
     // Create test cases (batch insert per repo)
     logProgress("🧪 Creating test cases...");
-    const allTestCases = [];
-    const testCaseData = [];
+    const allTestCases: any[] = [];
+    const testCaseData: any[] = [];
     
     for (const repo of repos) {
       const repoTestCases = TEST_CASE_TEMPLATES.slice(0, SEED_CONFIG.NUM_TEST_CASES_PER_REPO).map(template => ({
@@ -156,7 +156,7 @@ async function seedData() {
       testCaseData.push(...repoTestCases);
       
       // Store flakiness for later use
-      TEST_CASE_TEMPLATES.slice(0, SEED_CONFIG.NUM_TEST_CASES_PER_REPO).forEach((template, idx) => {
+      TEST_CASE_TEMPLATES.slice(0, SEED_CONFIG.NUM_TEST_CASES_PER_REPO).forEach((template, _idx) => {
         allTestCases.push({
           repoId: repo.id,
           suite: template.suite,
@@ -188,8 +188,8 @@ async function seedData() {
       logProgress(`  Processing repo: ${repo.owner}/${repo.name}`);
       
       // Generate workflow runs for this repo
-      const workflowRunData = [];
-      const occurrenceData = [];
+      const workflowRunData: any[] = [];
+      const occurrenceData: any[] = [];
       
       const repoTestCases = testCasesWithFlakiness.filter(tc => tc.repoId === repo.id);
       
@@ -502,12 +502,15 @@ async function main() {
 }
 
 // ESM equivalent of 'if (require.main === module)'
-if (import.meta.url === new URL(process.argv[1], "file://").href) {
+// Only run main if this module is executed directly
+if (process.argv[1] && import.meta.url === new URL(process.argv[1], "file://").href) {
   main().catch((error) => {
     console.error("❌ Seed failed:", error);
     process.exit(1);
   }).finally(async () => {
-    await prisma.$disconnect();
+    if (process.env.DATABASE_URL) {
+      await prisma.$disconnect();
+    }
   });
 }
 

@@ -4,7 +4,7 @@
  * Tests all scoring scenarios, edge cases, and ensures deterministic results
  */
 
-import type { TestRun, QuarantinePolicy, FlakeScore } from '@flakeguard/shared';
+import type { TestRun, QuarantinePolicy } from '@flakeguard/shared';
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { FlakinessScorer } from '../flakiness.js';
@@ -17,16 +17,13 @@ describe('FlakinessScorer', () => {
     scorer = new FlakinessScorer();
     
     baseTestRun = {
-      id: 'test-run-1',
       testName: 'should work correctly',
       testFullName: 'com.example.TestClass.shouldWorkCorrectly',
-      repositoryId: 'repo-1',
       runId: 'workflow-1',
       attempt: 1,
       status: 'passed',
       duration: 1000,
       createdAt: new Date('2023-10-01T10:00:00.000Z'),
-      updatedAt: new Date('2023-10-01T10:00:01.000Z'),
     };
   });
 
@@ -70,11 +67,11 @@ describe('FlakinessScorer', () => {
 
     it('should compute score for multiple runs', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'failed', message: 'Fail 1', createdAt: new Date('2023-10-01T11:00:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T12:00:00.000Z') },
-        { ...baseTestRun, id: 'run-4', status: 'failed', message: 'Fail 2', createdAt: new Date('2023-10-01T13:00:00.000Z') },
-        { ...baseTestRun, id: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T14:00:00.000Z') },
+        { ...baseTestRun, runId: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, runId: 'run-2', status: 'failed', message: 'Fail 1', createdAt: new Date('2023-10-01T11:00:00.000Z') },
+        { ...baseTestRun, runId: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T12:00:00.000Z') },
+        { ...baseTestRun, runId: 'run-4', status: 'failed', message: 'Fail 2', createdAt: new Date('2023-10-01T13:00:00.000Z') },
+        { ...baseTestRun, runId: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T14:00:00.000Z') },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -90,11 +87,11 @@ describe('FlakinessScorer', () => {
   describe('Intermittency Score Calculation', () => {
     it('should calculate perfect intermittency (alternating pattern)', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
-        { ...baseTestRun, id: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
+        { ...baseTestRun, runId: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, runId: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, runId: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, runId: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, runId: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -105,10 +102,10 @@ describe('FlakinessScorer', () => {
 
     it('should calculate zero intermittency (all passing)', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'passed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-4', status: 'passed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, runId: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, runId: 'run-2', status: 'passed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, runId: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, runId: 'run-4', status: 'passed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -119,10 +116,10 @@ describe('FlakinessScorer', () => {
 
     it('should calculate zero intermittency (all failing)', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'failed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, runId: 'run-1', status: 'failed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, runId: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, runId: 'run-3', status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, runId: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -134,11 +131,11 @@ describe('FlakinessScorer', () => {
 
     it('should skip skipped tests in intermittency calculation', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'skipped', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-4', status: 'skipped', createdAt: new Date('2023-10-01T10:03:00.000Z') },
-        { ...baseTestRun, id: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
+        { ...baseTestRun, testName: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-2', status: 'skipped', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, testName: 'run-3', status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, testName: 'run-4', status: 'skipped', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, testName: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -152,16 +149,16 @@ describe('FlakinessScorer', () => {
     it('should calculate rerun pass rate correctly', () => {
       const runs: TestRun[] = [
         // First workflow - initial failure, then success on retry
-        { ...baseTestRun, id: 'run-1', runId: 'workflow-1', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', runId: 'workflow-1', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T10:00:30.000Z') },
+        { ...baseTestRun, testName: 'run-1', runId: 'workflow-1', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-2', runId: 'workflow-1', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T10:00:30.000Z') },
         
         // Second workflow - failure on retry too
-        { ...baseTestRun, id: 'run-3', runId: 'workflow-2', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T11:00:00.000Z') },
-        { ...baseTestRun, id: 'run-4', runId: 'workflow-2', attempt: 2, status: 'failed', createdAt: new Date('2023-10-01T11:00:30.000Z') },
+        { ...baseTestRun, testName: 'run-3', runId: 'workflow-2', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T11:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-4', runId: 'workflow-2', attempt: 2, status: 'failed', createdAt: new Date('2023-10-01T11:00:30.000Z') },
         
         // Third workflow - success on retry
-        { ...baseTestRun, id: 'run-5', runId: 'workflow-3', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T12:00:00.000Z') },
-        { ...baseTestRun, id: 'run-6', runId: 'workflow-3', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T12:00:30.000Z') },
+        { ...baseTestRun, testName: 'run-5', runId: 'workflow-3', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T12:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-6', runId: 'workflow-3', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T12:00:30.000Z') },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -173,9 +170,9 @@ describe('FlakinessScorer', () => {
 
     it('should handle no reruns', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', runId: 'workflow-1', attempt: 1, status: 'passed' },
-        { ...baseTestRun, id: 'run-2', runId: 'workflow-2', attempt: 1, status: 'failed' },
-        { ...baseTestRun, id: 'run-3', runId: 'workflow-3', attempt: 1, status: 'passed' },
+        { ...baseTestRun, testName: 'run-1', runId: 'workflow-1', attempt: 1, status: 'passed' },
+        { ...baseTestRun, testName: 'run-2', runId: 'workflow-2', attempt: 1, status: 'failed' },
+        { ...baseTestRun, testName: 'run-3', runId: 'workflow-3', attempt: 1, status: 'passed' },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -185,10 +182,10 @@ describe('FlakinessScorer', () => {
 
     it('should handle multiple attempts in same workflow', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', runId: 'workflow-1', attempt: 1, status: 'failed' },
-        { ...baseTestRun, id: 'run-2', runId: 'workflow-1', attempt: 2, status: 'failed' },
-        { ...baseTestRun, id: 'run-3', runId: 'workflow-1', attempt: 3, status: 'passed' },
-        { ...baseTestRun, id: 'run-4', runId: 'workflow-1', attempt: 4, status: 'failed' },
+        { ...baseTestRun, testName: 'run-1', runId: 'workflow-1', attempt: 1, status: 'failed' },
+        { ...baseTestRun, testName: 'run-2', runId: 'workflow-1', attempt: 2, status: 'failed' },
+        { ...baseTestRun, testName: 'run-3', runId: 'workflow-1', attempt: 3, status: 'passed' },
+        { ...baseTestRun, testName: 'run-4', runId: 'workflow-1', attempt: 4, status: 'failed' },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -253,9 +250,9 @@ describe('FlakinessScorer', () => {
   describe('Message Variance Calculation', () => {
     it('should calculate variance for identical messages', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'failed', message: 'Test failed: assertion error' },
-        { ...baseTestRun, id: 'run-2', status: 'failed', message: 'Test failed: assertion error' },
-        { ...baseTestRun, id: 'run-3', status: 'failed', message: 'Test failed: assertion error' },
+        { ...baseTestRun, testName: 'run-1', status: 'failed', message: 'Test failed: assertion error' },
+        { ...baseTestRun, testName: 'run-2', status: 'failed', message: 'Test failed: assertion error' },
+        { ...baseTestRun, testName: 'run-3', status: 'failed', message: 'Test failed: assertion error' },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -265,9 +262,9 @@ describe('FlakinessScorer', () => {
 
     it('should calculate variance for different messages', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'failed', message: 'Connection timeout after 5000ms' },
-        { ...baseTestRun, id: 'run-2', status: 'failed', message: 'Connection timeout after 3000ms' },
-        { ...baseTestRun, id: 'run-3', status: 'failed', message: 'Assertion failed: expected true' },
+        { ...baseTestRun, testName: 'run-1', status: 'failed', message: 'Connection timeout after 5000ms' },
+        { ...baseTestRun, testName: 'run-2', status: 'failed', message: 'Connection timeout after 3000ms' },
+        { ...baseTestRun, testName: 'run-3', status: 'failed', message: 'Assertion failed: expected true' },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -280,9 +277,9 @@ describe('FlakinessScorer', () => {
 
     it('should handle runs without messages', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'failed' }, // No message
-        { ...baseTestRun, id: 'run-2', status: 'failed', message: 'Error occurred' },
-        { ...baseTestRun, id: 'run-3', status: 'passed' },
+        { ...baseTestRun, testName: 'run-1', status: 'failed' }, // No message
+        { ...baseTestRun, testName: 'run-2', status: 'failed', message: 'Error occurred' },
+        { ...baseTestRun, testName: 'run-3', status: 'passed' },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -292,8 +289,8 @@ describe('FlakinessScorer', () => {
 
     it('should return 0 variance for single failed run', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'failed', message: 'Single failure' },
-        { ...baseTestRun, id: 'run-2', status: 'passed' },
+        { ...baseTestRun, testName: 'run-1', status: 'failed', message: 'Single failure' },
+        { ...baseTestRun, testName: 'run-2', status: 'passed' },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -305,11 +302,11 @@ describe('FlakinessScorer', () => {
   describe('Consecutive Failures Analysis', () => {
     it('should track consecutive failures at the end', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'passed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
-        { ...baseTestRun, id: 'run-5', status: 'failed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
+        { ...baseTestRun, testName: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-2', status: 'passed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, testName: 'run-3', status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, testName: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, testName: 'run-5', status: 'failed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -320,13 +317,13 @@ describe('FlakinessScorer', () => {
 
     it('should track maximum consecutive failures', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'failed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
-        { ...baseTestRun, id: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
-        { ...baseTestRun, id: 'run-6', status: 'failed', createdAt: new Date('2023-10-01T10:05:00.000Z') },
-        { ...baseTestRun, id: 'run-7', status: 'failed', createdAt: new Date('2023-10-01T10:06:00.000Z') },
+        { ...baseTestRun, testName: 'run-1', status: 'failed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, testName: 'run-3', status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, testName: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, testName: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
+        { ...baseTestRun, testName: 'run-6', status: 'failed', createdAt: new Date('2023-10-01T10:05:00.000Z') },
+        { ...baseTestRun, testName: 'run-7', status: 'failed', createdAt: new Date('2023-10-01T10:06:00.000Z') },
       ];
       
       const result = scorer.computeFlakeScore(runs);
@@ -466,12 +463,12 @@ describe('FlakinessScorer', () => {
       
       // Create moderately flaky test
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
-        { ...baseTestRun, id: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
-        { ...baseTestRun, id: 'run-6', status: 'passed', createdAt: new Date('2023-10-01T10:05:00.000Z') },
+        { ...baseTestRun, testName: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, testName: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, testName: 'run-4', status: 'failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, testName: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
+        { ...baseTestRun, testName: 'run-6', status: 'passed', createdAt: new Date('2023-10-01T10:05:00.000Z') },
       ];
 
       const result = customScorer.computeFlakeScore(runs);
@@ -492,17 +489,17 @@ describe('FlakinessScorer', () => {
       // Create highly flaky test with reruns
       const runs: TestRun[] = [
         // Workflow 1 - initial fail, retry pass
-        { ...baseTestRun, id: 'run-1', runId: 'wf-1', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', runId: 'wf-1', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T10:00:30.000Z') },
+        { ...baseTestRun, testName: 'run-1', runId: 'wf-1', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-2', runId: 'wf-1', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T10:00:30.000Z') },
         // Workflow 2 - initial fail, retry pass  
-        { ...baseTestRun, id: 'run-3', runId: 'wf-2', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-4', runId: 'wf-2', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T10:01:30.000Z') },
+        { ...baseTestRun, testName: 'run-3', runId: 'wf-2', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, testName: 'run-4', runId: 'wf-2', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T10:01:30.000Z') },
         // Workflow 3 - initial fail, retry pass
-        { ...baseTestRun, id: 'run-5', runId: 'wf-3', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-6', runId: 'wf-3', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T10:02:30.000Z') },
+        { ...baseTestRun, testName: 'run-5', runId: 'wf-3', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, testName: 'run-6', runId: 'wf-3', attempt: 2, status: 'passed', createdAt: new Date('2023-10-01T10:02:30.000Z') },
         // Some more alternating passes/fails
-        { ...baseTestRun, id: 'run-7', runId: 'wf-4', attempt: 1, status: 'passed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
-        { ...baseTestRun, id: 'run-8', runId: 'wf-5', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
+        { ...baseTestRun, testName: 'run-7', runId: 'wf-4', attempt: 1, status: 'passed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, testName: 'run-8', runId: 'wf-5', attempt: 1, status: 'failed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
       ];
 
       const result = customScorer.computeFlakeScore(runs);
@@ -571,12 +568,12 @@ describe('FlakinessScorer', () => {
   describe('Stability Metrics', () => {
     it('should build comprehensive stability metrics', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', duration: 1000, createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'failed', duration: 2000, message: 'Test failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'skipped', duration: 0, createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-4', runId: 'wf-2', attempt: 1, status: 'failed', duration: 1500, message: 'Another failure', createdAt: new Date('2023-10-01T10:03:00.000Z') },
-        { ...baseTestRun, id: 'run-5', runId: 'wf-2', attempt: 2, status: 'passed', duration: 1200, createdAt: new Date('2023-10-01T10:03:30.000Z') },
-        { ...baseTestRun, id: 'run-6', status: 'error', duration: 500, message: 'Error occurred', createdAt: new Date('2023-10-01T10:04:00.000Z') },
+        { ...baseTestRun, testName: 'run-1', status: 'passed', duration: 1000, createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-2', status: 'failed', duration: 2000, message: 'Test failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, testName: 'run-3', status: 'skipped', duration: 0, createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, testName: 'run-4', runId: 'wf-2', attempt: 1, status: 'failed', duration: 1500, message: 'Another failure', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, testName: 'run-5', runId: 'wf-2', attempt: 2, status: 'passed', duration: 1200, createdAt: new Date('2023-10-01T10:03:30.000Z') },
+        { ...baseTestRun, testName: 'run-6', status: 'error', duration: 500, message: 'Error occurred', createdAt: new Date('2023-10-01T10:04:00.000Z') },
       ];
 
       const metrics = scorer.buildStabilityMetrics(
@@ -624,9 +621,9 @@ describe('FlakinessScorer', () => {
       const customScorer = new FlakinessScorer(customPolicy);
       
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed' },
-        { ...baseTestRun, id: 'run-2', status: 'failed' },
-        { ...baseTestRun, id: 'run-3', status: 'passed' },
+        { ...baseTestRun, testName: 'run-1', status: 'passed' },
+        { ...baseTestRun, testName: 'run-2', status: 'failed' },
+        { ...baseTestRun, testName: 'run-3', status: 'passed' },
       ];
 
       const result = customScorer.computeFlakeScore(runs);
@@ -639,11 +636,11 @@ describe('FlakinessScorer', () => {
   describe('Deterministic Results', () => {
     it('should produce identical results for identical inputs', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'failed', message: 'Test failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
-        { ...baseTestRun, id: 'run-4', status: 'failed', message: 'Test failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
-        { ...baseTestRun, id: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
+        { ...baseTestRun, testName: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-2', status: 'failed', message: 'Test failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, testName: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, testName: 'run-4', status: 'failed', message: 'Test failed', createdAt: new Date('2023-10-01T10:03:00.000Z') },
+        { ...baseTestRun, testName: 'run-5', status: 'passed', createdAt: new Date('2023-10-01T10:04:00.000Z') },
       ];
 
       const result1 = scorer.computeFlakeScore(runs);
@@ -657,9 +654,9 @@ describe('FlakinessScorer', () => {
 
     it('should handle different input orders consistently', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
-        { ...baseTestRun, id: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
-        { ...baseTestRun, id: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
+        { ...baseTestRun, testName: 'run-1', status: 'passed', createdAt: new Date('2023-10-01T10:00:00.000Z') },
+        { ...baseTestRun, testName: 'run-2', status: 'failed', createdAt: new Date('2023-10-01T10:01:00.000Z') },
+        { ...baseTestRun, testName: 'run-3', status: 'passed', createdAt: new Date('2023-10-01T10:02:00.000Z') },
       ];
       
       // Same runs in different order
@@ -677,9 +674,9 @@ describe('FlakinessScorer', () => {
     it('should handle runs with identical timestamps', () => {
       const sameTime = new Date('2023-10-01T10:00:00.000Z');
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'passed', createdAt: sameTime },
-        { ...baseTestRun, id: 'run-2', status: 'failed', createdAt: sameTime },
-        { ...baseTestRun, id: 'run-3', status: 'passed', createdAt: sameTime },
+        { ...baseTestRun, testName: 'run-1', status: 'passed', createdAt: sameTime },
+        { ...baseTestRun, testName: 'run-2', status: 'failed', createdAt: sameTime },
+        { ...baseTestRun, testName: 'run-3', status: 'passed', createdAt: sameTime },
       ];
 
       const result = scorer.computeFlakeScore(runs);
@@ -690,9 +687,9 @@ describe('FlakinessScorer', () => {
 
     it('should handle runs with only skipped status', () => {
       const runs: TestRun[] = [
-        { ...baseTestRun, id: 'run-1', status: 'skipped' },
-        { ...baseTestRun, id: 'run-2', status: 'skipped' },
-        { ...baseTestRun, id: 'run-3', status: 'skipped' },
+        { ...baseTestRun, testName: 'run-1', status: 'skipped' },
+        { ...baseTestRun, testName: 'run-2', status: 'skipped' },
+        { ...baseTestRun, testName: 'run-3', status: 'skipped' },
       ];
 
       const result = scorer.computeFlakeScore(runs);

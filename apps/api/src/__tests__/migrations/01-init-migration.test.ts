@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-import { createTestDatabase, getSchemaInfo, validateTable, validateForeignKeys, validateIndexes, type MigrationTestContext } from './utils/migration-test-utils';
+import { createTestDatabase, getSchemaInfo, validateTable, validateForeignKeys, validateIndexes, type MigrationTestContext } from './utils/migration-test-utils.js';
 
 describe('Migration 01: Initial Schema (20240824000000_init)', () => {
   let testDb: MigrationTestContext;
@@ -126,7 +126,7 @@ describe('Migration 01: Initial Schema (20240824000000_init)', () => {
         ORDER BY enumsortorder
       `;
       
-      const values = enumValues.map(row => row.enumlabel);
+      const values = enumValues.map((row: any) => row.enumlabel);
       expect(values).toEqual(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'FAILED']);
     });
 
@@ -142,7 +142,7 @@ describe('Migration 01: Initial Schema (20240824000000_init)', () => {
         ORDER BY enumsortorder
       `;
       
-      const values = enumValues.map(row => row.enumlabel);
+      const values = enumValues.map((row: any) => row.enumlabel);
       expect(values).toEqual(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']);
     });
   });

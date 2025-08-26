@@ -244,7 +244,7 @@ describe('OctokitHelpers - P2', () => {
         end: vi.fn(),
         destroy: vi.fn(),
         writable: true,
-      } as unknown as NodeJS.WriteStream);
+      } as unknown as import('fs').WriteStream);
       vi.mocked(streamPromises.pipeline).mockResolvedValue(undefined);
     });
 

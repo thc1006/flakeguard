@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-import { createTestDatabase, getSchemaInfo, validateTable, validateForeignKeys, type MigrationTestContext } from './utils/migration-test-utils';
+import { createTestDatabase, getSchemaInfo, validateTable, type MigrationTestContext } from './utils/migration-test-utils.js';
 
 describe('Migration 02: JUnit Enhancement (20240824000001_enhance_test_models_for_junit_ingestion)', () => {
   let testDb: MigrationTestContext;

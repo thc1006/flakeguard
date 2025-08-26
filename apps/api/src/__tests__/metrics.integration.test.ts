@@ -7,7 +7,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { FastifyInstance } from 'fastify';
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { buildApp } from '../app.js';
 import {
@@ -21,12 +21,12 @@ import { resetMetrics, getMetricsRegistry } from '../utils/metrics.js';
 
 describe('Metrics Integration', () => {
   let app: FastifyInstance;
-  let prisma: PrismaClient;
+  let _prisma: PrismaClient;
 
   beforeAll(async () => {
     app = await buildApp();
     await app.ready();
-    prisma = app.prisma;
+    _prisma = app.prisma;
   });
 
   afterAll(async () => {

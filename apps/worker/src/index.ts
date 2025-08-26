@@ -131,7 +131,7 @@ function setupQueues(): {
   const runsIngestWorker = new Worker(
     QueueNames.RUNS_INGEST,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    runsIngestProcessor(prisma, octokit),
+    runsIngestProcessor(prisma),
     {
       ...defaultWorkerOptions,
       concurrency: WORKER_CONFIG.HIGH_PRIORITY_CONCURRENCY,
@@ -147,7 +147,7 @@ function setupQueues(): {
   const runsAnalyzeWorker = new Worker(
     QueueNames.RUNS_ANALYZE,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    runsAnalyzeProcessor(prisma, octokit),
+    runsAnalyzeProcessor(prisma),
     {
       ...defaultWorkerOptions,
       concurrency: WORKER_CONFIG.HIGH_PRIORITY_CONCURRENCY,

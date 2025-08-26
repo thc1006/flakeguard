@@ -253,7 +253,7 @@ class SlackValidationReport {
       }
 
       // Check for emoji usage
-      const emojiPattern = /[🟢🟡🔴✅❌⚠️📊🎯💥📅]/u;
+      const emojiPattern = /[🟢🟡🔴✅❌⚠📊🎯💥📅]/u;
       if (emojiPattern.test(appCode)) {
         this.addCheck('MESSAGE_FORMAT', 'Emoji Usage', 'PASS', 'Emojis used for visual enhancement');
       } else {
@@ -406,15 +406,21 @@ class SlackValidationReport {
     // Category breakdown
     console.log('\nBy Category:');
     const byCategory = this.checks.reduce((acc, check) => {
-      if (!acc[check.category]) {acc[check.category] = { PASS: 0, FAIL: 0, WARN: 0, INFO: 0 };}
-      acc[check.category][check.status]++;
+      if (!acc[check.category]) {
+        acc[check.category] = { PASS: 0, FAIL: 0, WARN: 0, INFO: 0 };
+      }
+      const categoryStats = acc[check.category];
+      if (categoryStats) {
+        categoryStats[check.status] = (categoryStats[check.status] ?? 0) + 1;
+      }
       return acc;
     }, {} as Record<string, Record<string, number>>);
 
     Object.entries(byCategory).forEach(([category, stats]) => {
       const total = Object.values(stats).reduce((sum, count) => sum + count, 0);
-      const passRate = Math.round((stats.PASS / total) * 100);
-      console.log(`  ${category}: ${passRate}% (${stats.PASS}/${total} passed)`);
+      const passCount = stats.PASS ?? 0;
+      const passRate = total > 0 ? Math.round((passCount / total) * 100) : 0;
+      console.log(`  ${category}: ${passRate}% (${passCount}/${total} passed)`);
     });
 
     // Critical issues
@@ -455,16 +461,22 @@ class SlackValidationReport {
 }
 
 // Main execution
-async function main() {
+function main() {
   const validator = new SlackValidationReport();
-  await validator.generateReport();
+  validator.generateReport();
 }
 
-if (require.main === module) {
-  main().catch(error => {
+// Check if this script is being run directly
+const isMainModule = process.argv[1]?.endsWith('slack-validation-report.ts') ?? 
+                    process.argv[1]?.endsWith('slack-validation-report.js');
+
+if (isMainModule) {
+  try {
+    main();
+  } catch (error) {
     console.error('❌ Validation failed:', error);
     process.exit(1);
-  });
+  }
 }
 
 export { SlackValidationReport };
