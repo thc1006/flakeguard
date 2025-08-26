@@ -1,0 +1,56 @@
+# FlakeGuard API Development Dockerfile
+# Optimized for development with hot reload and debugging
+
+FROM node:20-alpine AS development
+
+# Install development dependencies
+RUN apk add --no-cache \
+    libc6-compat \
+    ca-certificates \
+    python3 \
+    make \
+    g++ \
+    curl \
+    git
+
+# Create development user
+RUN addgroup -g 1001 -S flakeguard && \
+    adduser -S -D -H -u 1001 -s /bin/sh flakeguard -G flakeguard
+
+WORKDIR /app
+
+# Install pnpm globally
+RUN npm install -g pnpm@10.0.0
+
+# Set PNPM home to avoid permission issues
+ENV PNPM_HOME=/tmp/.pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+# Copy package files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json ./apps/api/
+
+# Install dependencies
+RUN pnpm install --frozen-lockfile
+
+# Change ownership of the app directory
+RUN chown -R flakeguard:flakeguard /app
+
+USER flakeguard
+
+# Environment variables for development
+ENV NODE_ENV=development \
+    NODE_OPTIONS="--enable-source-maps --inspect=0.0.0.0:9229" \
+    PORT=3000 \
+    HOST=0.0.0.0 \
+    LOG_LEVEL=debug
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3000/health || exit 1
+
+EXPOSE 3000 9229
+
+# Start with development script
+CMD ["pnpm", "dev"]

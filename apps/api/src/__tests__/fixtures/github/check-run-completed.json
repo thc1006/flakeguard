@@ -1,0 +1,197 @@
+{
+  "action": "completed",
+  "check_run": {
+    "id": 9876543210,
+    "name": "FlakeGuard Analysis",
+    "node_id": "CR_kwDOBhHGuM8AAAACSZKq4g",
+    "head_sha": "abc123def456789012345678901234567890abcd",
+    "external_id": "flakeguard-check-run-001",
+    "url": "https://api.github.com/repos/test-org/flakeguard-test/check-runs/9876543210",
+    "html_url": "https://github.com/test-org/flakeguard-test/runs/9876543210",
+    "details_url": "https://flakeguard.dev/repos/test-org/flakeguard-test/runs/9876543210",
+    "status": "completed",
+    "conclusion": "neutral",
+    "started_at": "2023-10-01T10:05:00Z",
+    "completed_at": "2023-10-01T10:12:45Z",
+    "output": {
+      "title": "Flaky Test Detection Complete",
+      "summary": "## 🔍 FlakeGuard Analysis Results\n\n### Summary\n- **Total Tests Analyzed**: 156\n- **Flaky Tests Detected**: 3\n- **Tests Quarantined**: 1\n- **Warnings Issued**: 2\n\n### 🚨 Critical Issues\n\n#### Tests Recommended for Quarantine\n\n1. **`PolicyEngineTest.shouldValidateConfiguration`** - *Critical Priority*\n   - **Flakiness Score**: 0.87 (High)\n   - **Confidence**: 0.91\n   - **Pattern**: Intermittent failures with 67% retry success rate\n   - **Recent Failures**: 8 out of 12 runs in last 7 days\n   - **Primary Issue**: Connection timeout to GitHub API\n   \n#### Tests with Warnings\n\n2. **`JUnitParserTest.shouldHandleMalformedXML`** - *Medium Priority*\n   - **Flakiness Score**: 0.43 (Moderate)\n   - **Confidence**: 0.78\n   - **Pattern**: Occasional memory-related failures\n   - **Recent Failures**: 3 out of 15 runs in last 7 days\n   \n3. **`FlakeDetectorTest.shouldCalculateIntermittencyScore`** - *Medium Priority*\n   - **Flakiness Score**: 0.39 (Moderate)\n   - **Confidence**: 0.82\n   - **Pattern**: Timing-sensitive assertions\n   - **Recent Failures**: 4 out of 18 runs in last 7 days\n\n### 📊 Test Stability Metrics\n\n| Metric | Value | Status |\n|--------|-------|--------|\n| Overall Pass Rate | 94.2% | ✅ Good |\n| Flaky Test Ratio | 1.9% | ⚠️ Moderate |\n| Average Test Duration | 245ms | ✅ Good |\n| Retry Success Rate | 56% | ⚠️ Moderate |\n\n### 🔧 Recommendations\n\n1. **Immediate Actions:**\n   - Quarantine `PolicyEngineTest.shouldValidateConfiguration`\n   - Add retry logic with exponential backoff for GitHub API calls\n   - Investigate memory usage in XML parsing tests\n\n2. **Medium-term Improvements:**\n   - Implement test isolation for timing-sensitive tests\n   - Add flakiness monitoring to CI pipeline\n   - Consider using test containers for consistent environments\n\n3. **Long-term Strategy:**\n   - Establish flakiness SLA (target < 1% flaky tests)\n   - Regular flakiness reviews in team retrospectives\n   - Automated quarantine policies for high-flakiness tests\n\n### 📈 Trend Analysis\n\n**Flakiness Trend (Last 30 Days)**\n- Week 1: 2.8% flaky tests\n- Week 2: 2.1% flaky tests  \n- Week 3: 1.7% flaky tests\n- Week 4: 1.9% flaky tests\n\n**Status**: Improving trend with slight uptick this week\n\n---\n\n*Analysis completed at 2023-10-01T10:12:45Z*  \n*Powered by [FlakeGuard](https://flakeguard.dev) v1.2.0*",
+      "text": "## Detailed Analysis\n\n### Test Execution Timeline\n\n```\n10:05:00 - Analysis started\n10:05:15 - Downloaded test artifacts (3 files, 2.1MB)\n10:05:45 - Parsed 156 test results from JUnit XML\n10:06:30 - Computed flakiness scores for all tests\n10:07:00 - Applied policy rules and team overrides\n10:08:15 - Generated stability metrics and trends\n10:09:00 - Created GitHub check run annotations\n10:09:30 - Prepared Slack notifications\n10:10:00 - Updated database with results\n10:12:45 - Analysis complete\n```\n\n### Flaky Test Details\n\n#### PolicyEngineTest.shouldValidateConfiguration\n\n**Failure Pattern Analysis:**\n- Alternating pass/fail pattern detected\n- 15 total runs in rolling window\n- 8 failures, 7 successes\n- 5 consecutive failures followed by 3 successes\n- Re-run success rate: 67% (4 out of 6 retries successful)\n\n**Error Messages (Normalized):**\n1. `Connection timeout after [NUM] ms` (60% of failures)\n2. `Rate limit exceeded: [NUM] requests/hour` (25% of failures)  \n3. `Temporary server error: [NUM]` (15% of failures)\n\n**Timing Analysis:**\n- Average failure time: 2.3 seconds\n- Average success time: 1.1 seconds\n- Timeout threshold: 5.0 seconds\n- Standard deviation: 0.8 seconds\n\n**Confidence Calculation:**\n- Base confidence: 0.75 (15 runs)\n- Historical boost: +0.12 (21 days of data)\n- Variance penalty: -0.04 (moderate message variance)\n- Pattern boost: +0.08 (clear intermittent pattern)\n- **Final confidence: 0.91**\n\n**Recommendation Logic:**\n```yaml\nscores:\n  intermittency: 0.89  # Very high alternating pattern\n  rerun_success: 0.67  # Good retry success rate\n  message_variance: 0.35  # Some variance in error messages\n  failure_clustering: 0.23  # Moderate clustering\n  consecutive_penalty: 0.15  # Recent consecutive failures\n  \nweighted_score: 0.87\nthreshold_exceeded: quarantine (0.70)\nfinal_action: quarantine\npriority: critical\n```\n\n#### JUnitParserTest.shouldHandleMalformedXML\n\n**Failure Pattern:**\n- 18 total runs, 3 failures\n- Memory allocation errors during large XML parsing\n- No clear temporal pattern\n- 100% success rate on retry (2 out of 2)\n\n**Memory Usage Analysis:**\n- Average heap usage: 128MB\n- Peak usage on failure: 512MB+  \n- Available heap: 1GB\n- GC pressure indicator: High during failures\n\n#### FlakeDetectorTest.shouldCalculateIntermittencyScore\n\n**Failure Pattern:**\n- Timing assertion failures\n- Expected: calculation < 100ms\n- Actual failures: 105-150ms\n- System load correlation: 0.78\n\n### Policy Application\n\n**Active Policy (.flakeguard.yml):**\n```yaml\nflaky_threshold: 0.70\nwarn_threshold: 0.35\nmin_occurrences: 5\nmin_recent_failures: 2\nlookback_days: 7\nteam_overrides:\n  backend:\n    flaky_threshold: 0.75  # Slightly higher tolerance\n```\n\n**Applied Team Override:** backend team\n**Effective Thresholds:**\n- Quarantine: 0.75 (overridden from 0.70)\n- Warning: 0.35 (default)\n\n### Artifacts Processed\n\n1. **test-results-unit.xml** (458KB)\n   - 89 test cases\n   - Jest format detected (confidence: 0.92)\n   - Processing time: 245ms\n\n2. **test-results-integration.xml** (1.2MB)\n   - 52 test cases  \n   - Surefire format detected (confidence: 0.87)\n   - Processing time: 678ms\n\n3. **test-results-e2e.xml** (523KB)\n   - 15 test cases\n   - Playwright format detected (confidence: 0.94)\n   - Processing time: 312ms\n\n### Database Updates\n\n- Test runs created: 156\n- Flakiness scores updated: 156  \n- Quarantine records: 1 created\n- Policy decisions logged: 3\n- Notification queued: 1 (Slack)\n\n### Performance Metrics\n\n- Total analysis time: 7 minutes 45 seconds\n- Memory peak usage: 256MB\n- Database queries: 423\n- GitHub API calls: 12\n- Cache hit rate: 78%\n\n---\n\n*For detailed logs and debugging information, see the [FlakeGuard Dashboard](https://flakeguard.dev/repos/test-org/flakeguard-test).*",
+      "annotations_count": 3,
+      "annotations_url": "https://api.github.com/repos/test-org/flakeguard-test/check-runs/9876543210/annotations"
+    },
+    "check_suite": {
+      "id": 111222333444,
+      "node_id": "CS_kwDOBhHGuM8AAAABm7XYaw",
+      "head_branch": "main",
+      "head_sha": "abc123def456789012345678901234567890abcd",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://api.github.com/repos/test-org/flakeguard-test/check-suites/111222333444",
+      "before": "def456789012345678901234567890abcdef123",
+      "after": "abc123def456789012345678901234567890abcd",
+      "pull_requests": [
+        {
+          "id": 998877665,
+          "number": 456,
+          "url": "https://api.github.com/repos/test-org/flakeguard-test/pulls/456",
+          "head": {
+            "ref": "feature/flakeguard-integration",
+            "sha": "abc123def456789012345678901234567890abcd"
+          },
+          "base": {
+            "ref": "main", 
+            "sha": "def456789012345678901234567890abcdef123"
+          }
+        }
+      ],
+      "created_at": "2023-10-01T10:00:00Z",
+      "updated_at": "2023-10-01T10:12:45Z"
+    },
+    "app": {
+      "id": 12345,
+      "slug": "flakeguard",
+      "node_id": "MDM6QXBwMTIzNDU",
+      "owner": {
+        "login": "flakeguard-app",
+        "id": 123456,
+        "type": "User"
+      },
+      "name": "FlakeGuard",
+      "description": "Automated flaky test detection and management for GitHub Actions",
+      "external_url": "https://flakeguard.dev",
+      "html_url": "https://github.com/apps/flakeguard",
+      "created_at": "2023-09-01T10:00:00Z",
+      "updated_at": "2023-10-01T09:00:00Z",
+      "permissions": {
+        "actions": "read",
+        "checks": "write", 
+        "contents": "read",
+        "metadata": "read",
+        "pull_requests": "write"
+      },
+      "events": [
+        "check_run",
+        "check_suite", 
+        "pull_request",
+        "workflow_run"
+      ]
+    },
+    "pull_requests": [
+      {
+        "id": 998877665,
+        "number": 456,
+        "url": "https://api.github.com/repos/test-org/flakeguard-test/pulls/456",
+        "head": {
+          "ref": "feature/flakeguard-integration",
+          "sha": "abc123def456789012345678901234567890abcd",
+          "repo": {
+            "id": 123456789,
+            "name": "flakeguard-test",
+            "full_name": "test-org/flakeguard-test",
+            "owner": {
+              "login": "test-org",
+              "id": 67890,
+              "type": "Organization"
+            }
+          }
+        },
+        "base": {
+          "ref": "main",
+          "sha": "def456789012345678901234567890abcdef123", 
+          "repo": {
+            "id": 123456789,
+            "name": "flakeguard-test",
+            "full_name": "test-org/flakeguard-test",
+            "owner": {
+              "login": "test-org",
+              "id": 67890,
+              "type": "Organization"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "repository": {
+    "id": 123456789,
+    "node_id": "MDEwOlJlcG9zaXRvcnkxMjM0NTY3ODk",
+    "name": "flakeguard-test",
+    "full_name": "test-org/flakeguard-test",
+    "private": false,
+    "owner": {
+      "login": "test-org",
+      "id": 67890,
+      "node_id": "MDEyOk9yZ2FuaXphdGlvbjY3ODkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/67890?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/test-org",
+      "html_url": "https://github.com/test-org",
+      "type": "Organization"
+    },
+    "html_url": "https://github.com/test-org/flakeguard-test",
+    "description": "Test repository for FlakeGuard integration testing",
+    "fork": false,
+    "url": "https://api.github.com/repos/test-org/flakeguard-test",
+    "created_at": "2023-09-01T14:20:00Z",
+    "updated_at": "2023-10-01T09:00:00Z",
+    "pushed_at": "2023-10-01T09:58:30Z",
+    "clone_url": "https://github.com/test-org/flakeguard-test.git",
+    "size": 2048,
+    "stargazers_count": 42,
+    "watchers_count": 42,
+    "language": "TypeScript",
+    "forks_count": 5,
+    "archived": false,
+    "disabled": false,
+    "open_issues_count": 3,
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit",
+      "node_id": "MDc6TGljZW5zZW1pdA=="
+    },
+    "allow_forking": true,
+    "is_template": false,
+    "topics": [
+      "testing",
+      "ci-cd",
+      "flaky-tests", 
+      "github-actions"
+    ],
+    "visibility": "public",
+    "forks": 5,
+    "open_issues": 3,
+    "watchers": 42,
+    "default_branch": "main"
+  },
+  "organization": {
+    "login": "test-org",
+    "id": 67890,
+    "node_id": "MDEyOk9yZ2FuaXphdGlvbjY3ODkw", 
+    "url": "https://api.github.com/orgs/test-org",
+    "repos_url": "https://api.github.com/orgs/test-org/repos",
+    "events_url": "https://api.github.com/orgs/test-org/events",
+    "hooks_url": "https://api.github.com/orgs/test-org/hooks",
+    "issues_url": "https://api.github.com/orgs/test-org/issues",
+    "members_url": "https://api.github.com/orgs/test-org/members{/member}",
+    "public_members_url": "https://api.github.com/orgs/test-org/public_members{/member}",
+    "avatar_url": "https://avatars.githubusercontent.com/u/67890?v=4",
+    "description": "Test Organization for FlakeGuard Development"
+  },
+  "installation": {
+    "id": 12345,
+    "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uMTIzNDU"
+  },
+  "sender": {
+    "login": "flakeguard[bot]",
+    "id": 123456,
+    "node_id": "MDM6Qm90MTIzNDU2",
+    "avatar_url": "https://avatars.githubusercontent.com/in/12345?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/flakeguard%5Bbot%5D", 
+    "html_url": "https://github.com/apps/flakeguard",
+    "type": "Bot"
+  }
+}

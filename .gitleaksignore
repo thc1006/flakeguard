@@ -1,0 +1,11 @@
+# .gitleaksignore - Fingerprint-based exceptions for Gitleaks
+# This file contains specific fingerprints for one-time false positives
+# Note: Most false positives should be handled via allowlist rules in .gitleaks.toml
+# Only add fingerprints here as a temporary bridge for specific scan exceptions
+
+# No current false-positive fingerprints identified
+# Based on error-detective analysis, the repository has already resolved
+# all known false positives through comprehensive allowlist configuration
+# 
+# Future fingerprints should be added in this format (one per line):
+# fingerprint:hash_value_here

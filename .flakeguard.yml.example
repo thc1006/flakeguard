@@ -1,0 +1,80 @@
+# FlakeGuard Policy Configuration
+# This file defines how FlakeGuard should evaluate and handle flaky tests
+
+# Core thresholds (0.0 - 1.0)
+flaky_threshold: 0.6        # Quarantine tests with flakiness >= 60%
+warn_threshold: 0.3         # Warn about tests with flakiness >= 30%
+
+# Minimum criteria for actions
+min_occurrences: 5          # Need at least 5 test runs before considering action
+min_recent_failures: 2      # Need at least 2 recent failures to be considered flaky
+
+# Time-based settings
+lookback_days: 7            # Look at test results from last 7 days
+rolling_window_size: 50     # Use last 50 runs for flakiness calculation
+
+# Path exclusions (glob patterns)
+# Tests matching these patterns will be ignored
+exclude_paths:
+  - "node_modules/**"
+  - "**/*.spec.ts"
+  - "**/*.test.ts"
+  - "test/**"
+  - "tests/**"
+  - "examples/**"
+  - "docs/**"
+  - "scripts/**"
+
+# Required PR labels for auto-quarantine
+# If specified, auto-quarantine only happens when PR has ALL these labels
+labels_required:
+  - "ci"
+  - "tests"
+
+# Quarantine management
+quarantine_duration_days: 30  # Auto-expire quarantine after 30 days
+auto_quarantine_enabled: false # Require manual approval for quarantine
+
+# Quality thresholds
+confidence_threshold: 0.7     # Only act on flakiness analysis with >= 70% confidence
+
+# Advanced scoring weights (should sum to ~1.0)
+scoring_weights:
+  intermittency_weight: 0.30        # Weight for pass/fail alternating patterns
+  rerun_weight: 0.25               # Weight for re-run success rate
+  clustering_weight: 0.15           # Weight for failure time clustering
+  message_variance_weight: 0.10     # Weight for error message diversity
+  fail_ratio_weight: 0.10          # Weight for overall failure rate
+  consecutive_failure_penalty: 0.10 # Penalty for consistent failures (less flaky)
+
+# Team-specific notifications
+team_notifications:
+  slack_channels:
+    "frontend": "#frontend-flaky-tests"
+    "backend": "#backend-alerts"
+    "qa": "#quality-assurance"
+  email_groups:
+    "critical-path": ["lead@company.com", "qa-lead@company.com"]
+
+# Exempted tests (glob patterns)
+# These tests will never be flagged as flaky
+exempted_tests:
+  - "integration/**/*auth*"
+  - "e2e/critical-path/**"
+  - "**/*smoke*"
+
+# Team-specific overrides
+team_overrides:
+  "critical-services":
+    flaky_threshold: 0.8          # Higher threshold for critical services
+    warn_threshold: 0.5
+    auto_quarantine_enabled: true  # Allow auto-quarantine for critical services
+  
+  "experimental":
+    flaky_threshold: 0.4          # Lower threshold for experimental features
+    warn_threshold: 0.2
+    confidence_threshold: 0.5     # Accept lower confidence
+
+# Example team context usage:
+# When evaluating policy, pass teamContext to match team_overrides
+# FlakeGuard will use team-specific thresholds if available

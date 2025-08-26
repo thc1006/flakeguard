@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+           xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" 
+           version="3.0" 
+           name="com.example.integration.DatabaseIntegrationTest" 
+           time="15.832" 
+           tests="8" 
+           errors="1" 
+           skipped="1" 
+           failures="2" 
+           timestamp="2023-12-01T10:32:48" 
+           hostname="ci-runner-01" 
+           id="2" 
+           package="com.example.integration">
+  <properties>
+    <property name="java.version" value="17.0.5"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="spring.profiles.active" value="test"/>
+    <property name="database.url" value="jdbc:h2:mem:testdb"/>
+    <property name="test.execution.timeout" value="30000"/>
+  </properties>
+  
+  <testcase classname="com.example.integration.DatabaseIntegrationTest" 
+            name="testDatabaseConnection" 
+            time="1.245">
+  </testcase>
+  
+  <testcase classname="com.example.integration.DatabaseIntegrationTest" 
+            name="testCreateTable" 
+            time="0.876">
+  </testcase>
+  
+  <testcase classname="com.example.integration.DatabaseIntegrationTest" 
+            name="testInsertRecord" 
+            time="2.134">
+    <failure message="Assertion failed: Expected 1 record, but found 0" 
+             type="org.opentest4j.AssertionFailedError">
+      <![CDATA[
+org.opentest4j.AssertionFailedError: Assertion failed: Expected 1 record, but found 0
+Expected: 1
+Actual: 0
+at com.example.integration.DatabaseIntegrationTest.testInsertRecord(DatabaseIntegrationTest.java:58)
+at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+at org.junit.platform.commons.util.ReflectionUtils.invokeMethod(ReflectionUtils.java:728)
+at org.junit.jupiter.engine.execution.MethodInvocation.proceed(MethodInvocation.java:60)
+at org.junit.jupiter.engine.execution.InvocationInterceptorChain$ValidatingInvocation.proceed(InvocationInterceptorChain.java:131)
+at org.junit.jupiter.engine.extension.TimeoutExtension.intercept(TimeoutExtension.java:156)
+at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestableMethod(TimeoutExtension.java:147)
+at org.junit.jupiter.engine.extension.TimeoutExtension.interceptTestMethod(TimeoutExtension.java:86)
+at org.junit.jupiter.engine.execution.ExecutableInvoker$ReflectiveInterceptorCall.lambda$ofVoidMethod$0(ExecutableInvoker.java:115)
+at org.junit.jupiter.engine.execution.ExecutableInvoker.lambda$invoke$0(ExecutableInvoker.java:105)
+at org.junit.jupiter.engine.execution.InvocationInterceptorChain$InterceptedInvocation.proceed(InvocationInterceptorChain.java:106)
+at org.junit.jupiter.engine.execution.InvocationInterceptorChain.proceed(InvocationInterceptorChain.java:64)
+at org.junit.jupiter.engine.execution.InvocationInterceptorChain.chainAndInvoke(InvocationInterceptorChain.java:45)
+at org.junit.jupiter.engine.execution.InvocationInterceptorChain.invoke(InvocationInterceptorChain.java:37)
+at org.junit.jupiter.engine.execution.ExecutableInvoker.invoke(ExecutableInvoker.java:104)
+at org.junit.jupiter.engine.execution.ExecutableInvoker.invoke(ExecutableInvoker.java:98)
+at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.lambda$invokeTestMethod$7(TestMethodTestDescriptor.java:214)
+at org.junit.platform.engine.support.hierarchical.ThrowableCollector.execute(ThrowableCollector.java:73)
+at org.junit.jupiter.engine.descriptor.TestMethodTestDescriptor.invokeTestMethod(TestMethodTestDescriptor.java:210)
+      ]]>
+    </failure>
+    <system-out><![CDATA[
+DEBUG [main] com.example.integration.DatabaseIntegrationTest - Starting testInsertRecord
+DEBUG [main] com.example.integration.DatabaseIntegrationTest - Creating test record with ID: test-001
+DEBUG [main] com.example.integration.DatabaseIntegrationTest - Executing INSERT statement
+DEBUG [main] com.example.integration.DatabaseIntegrationTest - Insert statement completed
+DEBUG [main] com.example.integration.DatabaseIntegrationTest - Querying for inserted record
+    ]]></system-out>
+    <system-err><![CDATA[
+WARN  [main] org.h2.jdbcx.JdbcDataSource - Connection failed, retrying...
+ERROR [main] com.example.integration.DatabaseIntegrationTest - Failed to verify record insertion
+    ]]></system-err>
+  </testcase>
+  
+  <testcase classname="com.example.integration.DatabaseIntegrationTest" 
+            name="testUpdateRecord" 
+            time="1.987">
+    <failure message="SQL constraint violation: unique key violated" 
+             type="org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException">
+      <![CDATA[
+org.h2.jdbc.JdbcSQLIntegrityConstraintViolationException: Unique index or primary key violation: "PRIMARY_KEY_2 ON PUBLIC.USERS(ID) VALUES ( /* key:1 */ 1, 'John Doe Updated', 'john.doe.updated@example.com' )"
+at org.h2.message.DbException.getJdbcSQLException(DbException.java:502)
+at org.h2.message.DbException.getJdbcSQLException(DbException.java:477)
+at org.h2.message.DbException.get(DbException.java:223)
+at org.h2.message.DbException.get(DbException.java:199)
+at org.h2.constraint.ConstraintUnique.checkRow(ConstraintUnique.java:142)
+at org.h2.constraint.ConstraintUnique.check(ConstraintUnique.java:117)
+at org.h2.table.Table.fireConstraints(Table.java:1123)
+at org.h2.table.Table.fireAfterRow(Table.java:1141)
+at org.h2.command.dml.Insert.insertRow(Insert.java:191)
+at org.h2.command.dml.Insert.update(Insert.java:151)
+at org.h2.command.CommandContainer.update(CommandContainer.java:198)
+at org.h2.command.Command.executeUpdate(Command.java:251)
+at org.h2.jdbc.JdbcPreparedStatement.executeUpdate(JdbcPreparedStatement.java:191)
+at com.example.integration.DatabaseIntegrationTest.testUpdateRecord(DatabaseIntegrationTest.java:78)
+      ]]>
+    </failure>
+  </testcase>
+  
+  <testcase classname="com.example.integration.DatabaseIntegrationTest" 
+            name="testDeleteRecord" 
+            time="0.654">
+  </testcase>
+  
+  <testcase classname="com.example.integration.DatabaseIntegrationTest" 
+            name="testTransactionRollback" 
+            time="3.421">
+    <error message="Connection timeout after 5000ms" 
+           type="java.sql.SQLTimeoutException">
+      <![CDATA[
+java.sql.SQLTimeoutException: Connection timeout after 5000ms
+at org.h2.message.DbException.getJdbcSQLException(DbException.java:502)
+at org.h2.message.DbException.getJdbcSQLException(DbException.java:477)
+at org.h2.message.DbException.get(DbException.java:223)
+at org.h2.engine.SessionRemote.done(SessionRemote.java:649)
+at org.h2.command.CommandRemote.executeUpdate(CommandRemote.java:235)
+at org.h2.jdbc.JdbcPreparedStatement.executeUpdate(JdbcPreparedStatement.java:191)
+at com.example.integration.DatabaseIntegrationTest.testTransactionRollback(DatabaseIntegrationTest.java:95)
+at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+      ]]>
+    </error>
+  </testcase>
+  
+  <testcase classname="com.example.integration.DatabaseIntegrationTest" 
+            name="testBulkInsert" 
+            time="4.892">
+  </testcase>
+  
+  <testcase classname="com.example.integration.DatabaseIntegrationTest" 
+            name="testConnectionPooling" 
+            time="0.623">
+    <skipped message="Database connection pooling test disabled in CI environment"/>
+  </testcase>
+  
+  <system-out><![CDATA[
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Starting DatabaseIntegrationTest
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Initializing H2 in-memory database
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Database initialized successfully
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Running 8 test cases
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Test case 1: testDatabaseConnection - PASSED
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Test case 2: testCreateTable - PASSED
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Test case 3: testInsertRecord - FAILED
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Test case 4: testUpdateRecord - FAILED
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Test case 5: testDeleteRecord - PASSED
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Test case 6: testTransactionRollback - ERROR
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Test case 7: testBulkInsert - PASSED
+INFO  [main] com.example.integration.DatabaseIntegrationTest - Test case 8: testConnectionPooling - SKIPPED
+  ]]></system-out>
+  
+  <system-err><![CDATA[
+WARN  [main] com.zaxxer.hikari.HikariConfig - Connection timeout is less than 30000ms, this may cause problems
+WARN  [main] com.zaxxer.hikari.HikariConfig - idleTimeout is close to or more than maxLifetime, disabling it
+ERROR [main] com.example.integration.DatabaseIntegrationTest - Database connection issues detected
+ERROR [main] com.example.integration.DatabaseIntegrationTest - Some tests failed due to connection problems
+  ]]></system-err>
+</testsuite>

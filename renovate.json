@@ -1,0 +1,84 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommitTypeAll(deps)"
+  ],
+  "timezone": "UTC",
+  "schedule": ["before 6am on monday"],
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Group all non-major dependencies together",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "all non-major dependencies",
+      "groupSlug": "all-minor-patch"
+    },
+    {
+      "description": "Automerge non-breaking patches and pins",
+      "matchUpdateTypes": ["patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true,
+      "requiredStatusChecks": null
+    },
+    {
+      "description": "Group TypeScript and ESLint related packages",
+      "matchPackagePatterns": [
+        "^@types/",
+        "^@typescript-eslint/",
+        "^eslint",
+        "typescript"
+      ],
+      "groupName": "TypeScript and linting",
+      "groupSlug": "typescript-linting"
+    },
+    {
+      "description": "Group testing related packages",
+      "matchPackagePatterns": [
+        "^@vitest/",
+        "vitest",
+        "^playwright",
+        "^@playwright/",
+        "jsdom"
+      ],
+      "groupName": "Testing frameworks",
+      "groupSlug": "testing"
+    },
+    {
+      "description": "Separate major updates for careful review",
+      "matchUpdateTypes": ["major"],
+      "groupName": "Major updates",
+      "groupSlug": "major-updates",
+      "automerge": false,
+      "schedule": ["at any time"],
+      "reviewers": ["team:maintainers"]
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"]
+  },
+  "osvVulnerabilityAlerts": true,
+  "pnpm": {
+    "supportPolicy": ["current"]
+  },
+  "ignorePaths": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "coverage/**"
+  ],
+  "commitMessagePrefix": "deps:",
+  "commitMessageAction": "update",
+  "commitMessageTopic": "{{depName}}",
+  "commitMessageExtra": "to {{newVersion}}",
+  "prTitle": "{{commitMessagePrefix}} {{commitMessageAction}} {{commitMessageTopic}} {{commitMessageExtra}}",
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2
+}

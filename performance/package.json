@@ -1,0 +1,23 @@
+{
+  "name": "flakeguard-performance",
+  "version": "1.0.0",
+  "description": "FlakeGuard Performance Optimization Suite",
+  "scripts": {
+    "benchmark:all": "tsx benchmarks/run-benchmarks.ts",
+    "benchmark:database": "tsx benchmarks/database-benchmark.ts",
+    "benchmark:parser": "tsx benchmarks/parser-benchmark.ts", 
+    "benchmark:scoring": "tsx benchmarks/scoring-benchmark.ts",
+    "db:optimize": "psql $DATABASE_URL -f database/optimized-indexes.sql",
+    "db:maintenance": "psql $DATABASE_URL -f database/maintenance-queries.sql",
+    "report": "tsx performance-report.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.8.1",
+    "bullmq": "^5.1.1",
+    "ioredis": "^5.3.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}

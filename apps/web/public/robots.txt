@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# FlakeGuard Web Dashboard
+# https://github.com/thc1006/flakeguard

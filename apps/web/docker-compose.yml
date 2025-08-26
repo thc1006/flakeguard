@@ -1,0 +1,63 @@
+# FlakeGuard Web Dashboard - Development Setup
+version: '3.8'
+
+services:
+  flakeguard-web:
+    build:
+      context: ../../
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - FLAKEGUARD_API_URL=http://flakeguard-api:3000
+      - NEXTAUTH_URL=http://localhost:3001
+      - NEXTAUTH_SECRET=dev-secret-key-change-in-production
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - ENABLE_REALTIME_UPDATES=true
+      - ENABLE_DARK_MODE=true
+    depends_on:
+      - flakeguard-api
+    networks:
+      - flakeguard
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # This assumes the API is running in a sibling container
+  # Adjust the image name based on your API setup
+  flakeguard-api:
+    image: flakeguard-api:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/flakeguard
+    networks:
+      - flakeguard
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=flakeguard
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - flakeguard
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
+
+networks:
+  flakeguard:
+    driver: bridge

@@ -1,0 +1,150 @@
+# TruffleHog Configuration for FlakeGuard
+# Defines custom detectors and exclusion patterns
+
+# Exclude paths from scanning
+exclude:
+  paths:
+    - '\.git/'
+    - 'node_modules/'
+    - 'dist/'
+    - 'build/'
+    - 'coverage/'
+    - '\.next/'
+    - '\.turbo/'
+    - 'tmp/'
+    - 'temp/'
+    - '.*\.min\.js$'
+    - '.*\.min\.css$'
+    - '.*\.map$'
+    - '.*\.lock$'
+    - 'pnpm-lock\.yaml$'
+    - 'package-lock\.json$'
+    - 'yarn\.lock$'
+
+  # Exclude specific file patterns
+  files:
+    - '\.env\.example$'
+    - '\.env\..*\.example$'
+    - 'example\.env$'
+    - '.*\.example$'
+    - '.*\.sample$'
+    - '.*\.template$'
+
+# Allow patterns for known false positives
+allow:
+  # Test files and fixtures
+  - path: '.*/__tests__/.*'
+  - path: '.*\.test\..*'
+  - path: '.*\.spec\..*'
+  - path: 'test/.*'
+  - path: 'tests/.*'
+  - path: '.*/__mocks__/.*'
+  - path: 'fixtures/.*'
+
+  # Documentation
+  - path: 'docs/.*\.md$'
+  - path: 'apps/docs/.*\.md$'
+  - path: 'README\.md$'
+  - path: '.*\.md$'
+    content: '<your_.*>'
+  - path: '.*\.md$'
+    content: '<base64_encoded_.*>'
+  - path: '.*\.md$'
+    content: 'placeholder'
+  - path: '.*\.md$'
+    content: 'example'
+
+  # GitHub Actions placeholders
+  - content: '\$\{\{.*secrets\..*\}\}'
+  - content: '\$\{\{.*github\.token.*\}\}'
+  - content: '\$\{\{.*env\..*\}\}'
+
+  # Common test/example patterns
+  - content: 'xoxb-test-.*'
+  - content: 'xapp-test-.*'
+  - content: 'test-webhook-secret'
+  - content: 'your-secret-here'
+  - content: 'placeholder-.*'
+  - content: 'example-.*'
+  - content: 'dummy-.*'
+  - content: 'fake-.*'
+  - content: 'mock-.*'
+  - content: 'sample-.*'
+  - content: 'demo-.*'
+  - content: 'FAKE_PRIVATE_KEY_FOR_TESTS'
+  - content: '<REDACTED.*>'
+  - content: 'Bearer <token>'
+  - content: 'Authorization: Bearer test'
+
+  # PostgreSQL connection string false positives
+  - content: 'postgresql://postgres:postgres@'
+  - content: 'postgresql://user:password@'
+  - content: 'postgresql://username:password@'
+  - content: 'DATABASE_URL=postgresql://'
+  - content: 'postgres://postgres:postgres@'
+  - content: 'postgres://user:password@'
+  - content: 'postgres://username:password@'
+  
+  # Docker Compose service patterns
+  - path: 'docker-compose.*\.yml$'
+    content: 'postgresql://'
+  - path: 'docker-compose.*\.yaml$'
+    content: 'postgresql://'
+  - path: '\.env\..*'
+    content: 'postgresql://'
+  
+  # Common development database patterns
+  - content: '@postgres:5432'
+  - content: '@localhost:5432'
+  - content: '@redis:6379'
+  - content: '@localhost:6379'
+  - content: 'redis://redis:6379'
+  - content: 'redis://localhost:6379'
+
+# Detector-specific configurations
+detectors:
+  # Reduce noise from high-entropy detectors
+  - name: HighEntropyBase64
+    keywords:
+      - 'PRIVATE'
+      - 'SECRET'
+      - 'TOKEN'
+      - 'KEY'
+      - 'PASSWORD'
+      - 'PASS'
+    entropy_threshold: 5.0
+
+  - name: HighEntropyHex
+    keywords:
+      - 'PRIVATE'
+      - 'SECRET'
+      - 'TOKEN'
+      - 'KEY'
+      - 'PASSWORD'
+      - 'PASS'
+    entropy_threshold: 4.5
+
+  # PostgreSQL connection string detector configuration
+  - name: PostgreSQL
+    # Allow common development patterns
+    exclude_patterns:
+      - 'postgresql://postgres:postgres@'
+      - 'postgresql://user:password@'
+      - 'postgresql://username:password@'
+      - 'postgres://postgres:postgres@'
+      - 'postgres://user:password@'
+      - 'postgres://username:password@'
+
+# Verification settings
+verification:
+  # Skip verification for detectors that make external calls
+  skip:
+    - AWS
+    - GitHub
+    - Slack
+    - NPM
+
+# Output settings
+output:
+  format: json
+  verbose: false

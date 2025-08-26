@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="pytest" tests="15" failures="2" errors="1" skipped="3" time="12.345" timestamp="2023-10-01T10:30:00">
+  <properties>
+    <property name="pytest.version" value="7.4.0"/>
+    <property name="python.version" value="3.11.5"/>
+    <property name="platform" value="linux"/>
+    <property name="coverage.enabled" value="true"/>
+  </properties>
+  
+  <!-- Policy engine tests -->
+  <testcase classname="tests.test_policy_engine.TestPolicyEngine" name="test_load_default_configuration" time="0.123" file="tests/test_policy_engine.py" line="25"/>
+  
+  <testcase classname="tests.test_policy_engine.TestPolicyEngine" name="test_validate_yaml_config" time="0.234" file="tests/test_policy_engine.py" line="45">
+    <failure message="Validation failed for invalid YAML">
+AssertionError: Validation failed for invalid YAML
+assert False
+ +  where False = validate_config({'invalid': 'structure'})
+ +    where {'invalid': 'structure'} = parse_yaml('invalid:\n  structure')
+
+tests/test_policy_engine.py:52: AssertionError
+    </failure>
+    <system-out>DEBUG: Loading YAML configuration</system-out>
+    <system-err>WARNING: Invalid configuration format detected</system-err>
+  </testcase>
+  
+  <testcase classname="tests.test_policy_engine.TestPolicyEngine" name="test_apply_team_overrides" time="0.456" file="tests/test_policy_engine.py" line="67"/>
+  
+  <testcase classname="tests.test_policy_engine.TestPolicyEngine" name="test_cache_expiration" time="0.789" file="tests/test_policy_engine.py" line="89">
+    <skipped message="Redis not available in CI environment" type="pytest.skip"/>
+  </testcase>
+  
+  <!-- JUnit parser tests -->
+  <testcase classname="tests.test_junit_parser.TestJUnitParser" name="test_parse_surefire_format" time="0.345" file="tests/test_junit_parser.py" line="30"/>
+  
+  <testcase classname="tests.test_junit_parser.TestJUnitParser" name="test_parse_malformed_xml" time="0.567" file="tests/test_junit_parser.py" line="55">
+    <error message="XML parsing error" type="xml.etree.ElementTree.ParseError">
+xml.etree.ElementTree.ParseError: not well-formed (invalid token): line 3, column 15
+  File "tests/test_junit_parser.py", line 58, in test_parse_malformed_xml
+    parser.parse(malformed_xml)
+  File "src/junit_parser.py", line 123, in parse
+    return ET.fromstring(xml_content)
+    </error>
+  </testcase>
+  
+  <testcase classname="tests.test_junit_parser.TestJUnitParser" name="test_extract_test_metadata" time="0.234" file="tests/test_junit_parser.py" line="78"/>
+  
+  <!-- Flake detection tests -->
+  <testcase classname="tests.test_flake_detector.TestFlakeDetector" name="test_identify_flaky_patterns" time="1.234" file="tests/test_flake_detector.py" line="40">
+    <system-out>INFO: Analyzing 500 test results for flaky patterns</system-out>
+  </testcase>
+  
+  <testcase classname="tests.test_flake_detector.TestFlakeDetector" name="test_calculate_confidence_score" time="0.678" file="tests/test_flake_detector.py" line="65"/>
+  
+  <testcase classname="tests.test_flake_detector.TestFlakeDetector" name="test_intermittent_failure_detection" time="0.890" file="tests/test_flake_detector.py" line="89">
+    <failure message="Intermittent detection threshold too high">
+AssertionError: Intermittent detection threshold too high
+assert 0.75 > 0.8
+ +  where 0.75 = calculate_intermittency_score([True, False, True, False, True])
+
+tests/test_flake_detector.py:95: AssertionError
+    </failure>
+  </testcase>
+  
+  <!-- API integration tests -->
+  <testcase classname="tests.test_api_integration.TestAPIIntegration" name="test_github_webhook_processing" time="2.345" file="tests/test_api_integration.py" line="50">
+    <skipped message="GitHub API rate limit reached" type="pytest.skip"/>
+  </testcase>
+  
+  <testcase classname="tests.test_api_integration.TestAPIIntegration" name="test_slack_notification_sending" time="1.567" file="tests/test_api_integration.py" line="78">
+    <skipped message="Slack integration not configured for testing" type="pytest.skip"/>
+  </testcase>
+  
+  <!-- Database tests with fixtures -->
+  <testcase classname="tests.test_database.TestDatabase" name="test_repository_crud_operations[test_repo]" time="0.445" file="tests/test_database.py" line="30">
+    <properties>
+      <property name="fixture.database" value="postgresql_test"/>
+      <property name="fixture.test_repo" value="flakeguard/test-repo"/>
+    </properties>
+  </testcase>
+  
+  <testcase classname="tests.test_database.TestDatabase" name="test_test_run_aggregation[large_dataset]" time="1.789" file="tests/test_database.py" line="55">
+    <properties>
+      <property name="fixture.large_dataset" value="10000_test_results"/>
+    </properties>
+    <system-out>INFO: Processing 10,000 test results</system-out>
+  </testcase>
+  
+  <testcase classname="tests.test_database.TestDatabase" name="test_quarantine_management" time="0.567" file="tests/test_database.py" line="89"/>
+</testsuite>

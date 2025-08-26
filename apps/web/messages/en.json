@@ -1,0 +1,73 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "repositories": "Repositories",
+    "tests": "Tests",
+    "actions": "Recent Actions",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "FlakeGuard Dashboard",
+    "subtitle": "Monitor and manage flaky test detection across your repositories",
+    "repositoryHealth": "Repository Health",
+    "topFlakyTests": "Top Flaky Tests",
+    "failureClusters": "Failure Clusters",
+    "recentActions": "Recent Actions"
+  },
+  "repository": {
+    "health": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "warning": "Warning",
+      "critical": "Critical"
+    },
+    "metrics": {
+      "flakinessScore": "Flakiness Score",
+      "testCount": "Total Tests",
+      "flakyTests": "Flaky Tests",
+      "lastUpdated": "Last Updated"
+    }
+  },
+  "test": {
+    "status": {
+      "passing": "Passing",
+      "flaky": "Flaky",
+      "quarantined": "Quarantined",
+      "failing": "Failing"
+    },
+    "actions": {
+      "quarantine": "Quarantine",
+      "viewHistory": "View History",
+      "createIssue": "Create Issue"
+    }
+  },
+  "actions": {
+    "types": {
+      "quarantine": "Quarantine",
+      "unquarantine": "Unquarantine",
+      "issue_created": "Issue Created",
+      "rerun": "Test Rerun"
+    },
+    "viewDetails": "View Details",
+    "viewOnGitHub": "View on GitHub",
+    "viewSlackThread": "View Slack Thread"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "noData": "No data available",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "search": "Search...",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh"
+  },
+  "auth": {
+    "signInTitle": "Sign in to FlakeGuard",
+    "signInSubtitle": "Access your flaky test dashboard",
+    "signInWithGitHub": "Sign in with GitHub",
+    "unauthorized": "You are not authorized to access this resource"
+  }
+}

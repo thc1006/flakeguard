@@ -1,0 +1,163 @@
+{
+  "action": "requested_action",
+  "check_run": {
+    "id": 9876543210,
+    "name": "FlakeGuard Analysis",
+    "node_id": "CR_kwDOBhHGuM8AAAACSZKq4g",
+    "head_sha": "abc123def456789012345678901234567890abcd",
+    "external_id": "flakeguard-check-run-001",
+    "url": "https://api.github.com/repos/test-org/flakeguard-test/check-runs/9876543210",
+    "html_url": "https://github.com/test-org/flakeguard-test/runs/9876543210",
+    "details_url": "https://flakeguard.dev/repos/test-org/flakeguard-test/runs/9876543210",
+    "status": "completed",
+    "conclusion": "neutral",
+    "started_at": "2023-10-01T10:05:00Z",
+    "completed_at": "2023-10-01T10:12:45Z",
+    "output": {
+      "title": "Flaky Test Detection Complete",
+      "summary": "## 🔍 FlakeGuard Analysis Results\n\n### Flaky Tests Detected: 3\n\n1. **PolicyEngineTest.shouldValidateConfiguration** (Score: 0.87) - Recommended for quarantine\n2. **JUnitParserTest.shouldHandleMalformedXML** (Score: 0.43) - Warning level\n3. **FlakeDetectorTest.shouldCalculateIntermittencyScore** (Score: 0.39) - Warning level\n\n### Actions Available:\n- ✅ **Quarantine Flaky Tests** - Move high-flakiness tests to quarantine\n- 🔄 **Re-run Failed Tests** - Retry tests to gather more data\n- 📊 **Generate Detailed Report** - Create comprehensive analysis report\n- ⚙️ **Update Policy** - Adjust flakiness thresholds\n- 📧 **Notify Team** - Send results to team Slack channel",
+      "text": "Click on the actions below to manage the flaky tests detected in this analysis.\n\n**High Priority Actions:**\n- Quarantine tests with scores > 0.7\n- Investigate intermittent connection issues\n- Review memory usage in XML parsing\n\n**Analysis Details:**\n- Total tests analyzed: 156\n- Analysis duration: 7m 45s\n- Confidence level: High (91%)\n- Policy version: 1.2.0",
+      "annotations_count": 3,
+      "annotations_url": "https://api.github.com/repos/test-org/flakeguard-test/check-runs/9876543210/annotations"
+    },
+    "check_suite": {
+      "id": 111222333444,
+      "node_id": "CS_kwDOBhHGuM8AAAABm7XYaw",
+      "head_branch": "main",
+      "head_sha": "abc123def456789012345678901234567890abcd",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://api.github.com/repos/test-org/flakeguard-test/check-suites/111222333444",
+      "before": "def456789012345678901234567890abcdef123",
+      "after": "abc123def456789012345678901234567890abcd",
+      "pull_requests": [],
+      "created_at": "2023-10-01T10:00:00Z",
+      "updated_at": "2023-10-01T10:12:45Z"
+    },
+    "app": {
+      "id": 12345,
+      "slug": "flakeguard",
+      "node_id": "MDM6QXBwMTIzNDU",
+      "owner": {
+        "login": "flakeguard-app",
+        "id": 123456,
+        "type": "User"
+      },
+      "name": "FlakeGuard",
+      "description": "Automated flaky test detection and management for GitHub Actions",
+      "external_url": "https://flakeguard.dev",
+      "html_url": "https://github.com/apps/flakeguard",
+      "created_at": "2023-09-01T10:00:00Z",
+      "updated_at": "2023-10-01T09:00:00Z",
+      "permissions": {
+        "actions": "read",
+        "checks": "write",
+        "contents": "read", 
+        "metadata": "read",
+        "pull_requests": "write"
+      },
+      "events": [
+        "check_run",
+        "check_suite",
+        "pull_request", 
+        "workflow_run"
+      ]
+    },
+    "pull_requests": []
+  },
+  "requested_action": {
+    "identifier": "quarantine_flaky_tests",
+    "description": "Quarantine tests with high flakiness scores"
+  },
+  "repository": {
+    "id": 123456789,
+    "node_id": "MDEwOlJlcG9zaXRvcnkxMjM0NTY3ODk",
+    "name": "flakeguard-test",
+    "full_name": "test-org/flakeguard-test",
+    "private": false,
+    "owner": {
+      "login": "test-org",
+      "id": 67890,
+      "node_id": "MDEyOk9yZ2FuaXphdGlvbjY3ODkw",
+      "avatar_url": "https://avatars.githubusercontent.com/u/67890?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/test-org",
+      "html_url": "https://github.com/test-org",
+      "type": "Organization"
+    },
+    "html_url": "https://github.com/test-org/flakeguard-test",
+    "description": "Test repository for FlakeGuard integration testing",
+    "fork": false,
+    "url": "https://api.github.com/repos/test-org/flakeguard-test",
+    "created_at": "2023-09-01T14:20:00Z",
+    "updated_at": "2023-10-01T09:00:00Z",
+    "pushed_at": "2023-10-01T09:58:30Z",
+    "clone_url": "https://github.com/test-org/flakeguard-test.git",
+    "size": 2048,
+    "stargazers_count": 42,
+    "watchers_count": 42,
+    "language": "TypeScript",
+    "forks_count": 5,
+    "archived": false,
+    "disabled": false,
+    "open_issues_count": 3,
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit",
+      "node_id": "MDc6TGljZW5zZW1pdA=="
+    },
+    "allow_forking": true,
+    "is_template": false,
+    "topics": [
+      "testing",
+      "ci-cd",
+      "flaky-tests",
+      "github-actions"
+    ],
+    "visibility": "public",
+    "forks": 5,
+    "open_issues": 3,
+    "watchers": 42,
+    "default_branch": "main"
+  },
+  "organization": {
+    "login": "test-org",
+    "id": 67890,
+    "node_id": "MDEyOk9yZ2FuaXphdGlvbjY3ODkw",
+    "url": "https://api.github.com/orgs/test-org",
+    "repos_url": "https://api.github.com/orgs/test-org/repos",
+    "events_url": "https://api.github.com/orgs/test-org/events",
+    "hooks_url": "https://api.github.com/orgs/test-org/hooks",
+    "issues_url": "https://api.github.com/orgs/test-org/issues",
+    "members_url": "https://api.github.com/orgs/test-org/members{/member}",
+    "public_members_url": "https://api.github.com/orgs/test-org/public_members{/member}",
+    "avatar_url": "https://avatars.githubusercontent.com/u/67890?v=4",
+    "description": "Test Organization for FlakeGuard Development"
+  },
+  "installation": {
+    "id": 12345,
+    "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uMTIzNDU"
+  },
+  "sender": {
+    "login": "developer",
+    "id": 98765,
+    "node_id": "MDQ6VXNlcjk4NzY1",
+    "avatar_url": "https://avatars.githubusercontent.com/u/98765?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/developer",
+    "html_url": "https://github.com/developer",
+    "followers_url": "https://api.github.com/users/developer/followers",
+    "following_url": "https://api.github.com/users/developer/following{/other_user}",
+    "gists_url": "https://api.github.com/users/developer/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/developer/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/developer/subscriptions",
+    "organizations_url": "https://api.github.com/users/developer/orgs",
+    "repos_url": "https://api.github.com/users/developer/repos",
+    "events_url": "https://api.github.com/users/developer/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/developer/received_events",
+    "type": "User",
+    "site_admin": false
+  }
+}

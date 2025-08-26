@@ -1,0 +1,156 @@
+# =============================================================================
+# FlakeGuard Slack App Manifest
+# =============================================================================
+# Use this manifest to create your Slack app at https://api.slack.com/apps
+# This manifest defines all the necessary permissions, features, and settings
+# for the FlakeGuard Slack integration.
+
+display_information:
+  name: FlakeGuard
+  description: Your AI-powered flaky test detection and management assistant
+  background_color: "#2c3e50"
+  long_description: |
+    FlakeGuard helps engineering teams identify, analyze, and manage flaky tests across their repositories.
+    
+    **Key Features:**
+    • 🔍 **Status Command**: Get flaky test summaries for any repository
+    • 📊 **Top Flaky**: View the most problematic tests across all monitored repos
+    • 🚫 **Quarantine**: Automatically quarantine flaky tests in GitHub
+    • 🔗 **Issue Creation**: Create detailed GitHub issues for flaky tests
+    • 📈 **Analytics**: Get confidence scores and failure rate analysis
+    
+    **Commands:**
+    • `/flakeguard status <owner/repo>` - Repository flaky test summary
+    • `/flakeguard topflaky [limit]` - Global top flaky tests
+    • `/flakeguard help` - Usage instructions
+    
+    FlakeGuard integrates seamlessly with your existing GitHub workflows and helps maintain CI/CD stability by proactively managing test flakiness.
+
+features:
+  app_home:
+    home_tab_enabled: true
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+  bot_user:
+    display_name: FlakeGuard Bot
+    always_online: true
+  shortcuts: []
+  slash_commands:
+    - command: /flakeguard
+      url: https://your-domain.com/slack/events
+      description: Manage flaky tests and view repository analytics
+      usage_hint: "status <owner/repo> | topflaky [limit] | help"
+      should_escape: false
+
+oauth_config:
+  scopes:
+    bot:
+      # Core messaging permissions
+      - app_mentions:read
+      - channels:history
+      - channels:read
+      - chat:write
+      - chat:write.customize
+      - chat:write.public
+      
+      # Commands and interactions
+      - commands
+      - incoming-webhook
+      
+      # User and team info
+      - users:read
+      - users:read.email
+      - team:read
+      
+      # File and link operations (for sharing reports)
+      - files:write
+      - links:read
+      - links:write
+      
+      # Interactive components
+      - interactive:write
+
+settings:
+  event_subscriptions:
+    request_url: https://your-domain.com/slack/events
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+      - message.mpim
+  
+  interactivity:
+    is_enabled: true
+    request_url: https://your-domain.com/slack/events
+    message_menu_options_url: https://your-domain.com/slack/options
+  
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
+
+# =============================================================================
+# Installation Instructions
+# =============================================================================
+# 
+# 1. Go to https://api.slack.com/apps
+# 2. Click "Create New App" > "From an app manifest"
+# 3. Select your workspace
+# 4. Copy and paste this manifest
+# 5. Review and create the app
+# 6. Install the app to your workspace
+# 7. Copy the following tokens to your .env file:
+#    - Bot User OAuth Token (SLACK_BOT_TOKEN)
+#    - Signing Secret (SLACK_SIGNING_SECRET)
+# 8. Update the request URLs with your actual domain/ngrok URL
+# 9. Set ENABLE_SLACK_APP=true in your environment
+# 10. Start your FlakeGuard API server
+# 
+# For local development with ngrok:
+# 1. Install ngrok: https://ngrok.com/download
+# 2. Run: ngrok http 3001 (or your SLACK_PORT)
+# 3. Update request URLs with your ngrok URL
+# 4. Restart your app after URL changes
+#
+# =============================================================================
+# OAuth Scopes Explanation
+# =============================================================================
+#
+# • app_mentions:read - Detect when @FlakeGuard is mentioned
+# • channels:* - Read channel info and history for context
+# • chat:write - Send messages and responses
+# • commands - Handle slash commands
+# • users:read - Get user information for personalization
+# • files:write - Share flaky test reports and logs
+# • links:* - Unfurl GitHub links with flake context
+# • interactive:write - Handle button clicks and interactions
+#
+# =============================================================================
+# Security Notes
+# =============================================================================
+#
+# • All requests are verified using the signing secret
+# • Bot tokens are scoped to specific permissions only
+# • Rate limiting is implemented to prevent abuse
+# • User actions are logged for audit purposes
+# • No sensitive repository data is stored in Slack
+#
+# =============================================================================
+# Deployment Considerations
+# =============================================================================
+#
+# Production:
+# • Use HTTPS URLs for all request endpoints
+# • Implement proper SSL certificate validation
+# • Set up monitoring for Slack app health
+# • Configure log retention for debugging
+# • Test failover scenarios
+#
+# Development:
+# • Use ngrok for local testing
+# • Set up separate dev/staging Slack workspaces
+# • Enable debug logging
+# • Test with various repository sizes
+# • Verify rate limiting behavior
+#
+# =============================================================================

@@ -1,0 +1,334 @@
+# Docker Compose for E2E Testing Environment
+# Provides isolated services for Playwright E2E tests
+
+version: '3.8'
+
+services:
+  # PostgreSQL test database
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: flakeguard-postgres-test
+    environment:
+      POSTGRES_DB: flakeguard_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+      - ./apps/api/prisma/migrations:/docker-entrypoint-initdb.d/migrations:ro
+    ports:
+      - "5433:5432" # Different port to avoid conflicts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d flakeguard_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - flakeguard-test
+
+  # Redis test instance
+  redis-test:
+    image: redis:7-alpine
+    container_name: flakeguard-redis-test
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_test_data:/data
+    ports:
+      - "6380:6379" # Different port to avoid conflicts
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - flakeguard-test
+
+  # FlakeGuard API service for testing
+  api-test:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: development
+    container_name: flakeguard-api-test
+    environment:
+      NODE_ENV: test
+      PORT: 3001
+      DATABASE_URL: postgresql://test_user:test_password@postgres-test:5432/flakeguard_test
+      REDIS_URL: redis://redis-test:6379
+      GITHUB_APP_ID: test-app-id
+      GITHUB_PRIVATE_KEY_GENERATE: "true"
+      GITHUB_WEBHOOK_SECRET: test-webhook-secret-12345
+      SLACK_BOT_TOKEN: xoxb-test-slack-token
+      SLACK_SIGNING_SECRET: test-slack-signing-secret
+      LOG_LEVEL: debug
+      ENABLE_METRICS: true
+      ENABLE_SWAGGER: true
+    volumes:
+      - ./apps/api/src:/app/src:ro
+      - ./apps/api/prisma:/app/prisma:ro
+      - ./packages/shared:/app/packages/shared:ro
+      - ./docker/scripts:/app/docker/scripts:ro
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - flakeguard-test
+    command: >
+      sh -c "
+        echo 'Generating test private key...' &&
+        export GITHUB_PRIVATE_KEY=\"$(node /app/docker/scripts/generate-test-keys.js rsa-private)\" &&
+        echo 'Waiting for database to be ready...' &&
+        pnpm migrate:deploy &&
+        echo 'Database migrations completed' &&
+        pnpm seed &&
+        echo 'Database seeding completed' &&
+        pnpm dev
+      "
+
+  # FlakeGuard Web service for testing
+  web-test:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: development
+    container_name: flakeguard-web-test
+    environment:
+      NODE_ENV: test
+      PORT: 3000
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET_GENERATE: "true"
+      GITHUB_CLIENT_ID: test-github-client-id
+      GITHUB_CLIENT_SECRET: test-github-client-secret
+      API_URL: http://api-test:3001
+      INTERNAL_API_URL: http://api-test:3001
+      DATABASE_URL: postgresql://test_user:test_password@postgres-test:5432/flakeguard_test
+    volumes:
+      - ./apps/web/src:/app/src:ro
+      - ./apps/web/messages:/app/messages:ro
+      - ./packages/shared:/app/packages/shared:ro
+      - ./docker/scripts:/app/docker/scripts:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      api-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - flakeguard-test
+    command: >
+      sh -c "
+        echo 'Generating NextAuth secret...' &&
+        export NEXTAUTH_SECRET=\"$(node /app/docker/scripts/generate-test-keys.js jwt)\" &&
+        pnpm dev
+      "
+
+  # Background worker for testing
+  worker-test:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+      target: development
+    container_name: flakeguard-worker-test
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test_user:test_password@postgres-test:5432/flakeguard_test
+      REDIS_URL: redis://redis-test:6379
+      GITHUB_APP_ID: test-app-id
+      GITHUB_PRIVATE_KEY_GENERATE: "true"
+      SLACK_BOT_TOKEN: xoxb-test-slack-token
+      LOG_LEVEL: debug
+      MAX_CONCURRENCY: 2
+    volumes:
+      - ./apps/worker/src:/app/src:ro
+      - ./packages/shared:/app/packages/shared:ro
+      - ./docker/scripts:/app/docker/scripts:ro
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      - flakeguard-test
+    command: >
+      sh -c "
+        echo 'Generating test private key...' &&
+        export GITHUB_PRIVATE_KEY=\"$(node /app/docker/scripts/generate-test-keys.js rsa-private)\" &&
+        pnpm dev
+      "
+
+  # Test data seeder service
+  test-seeder:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: development
+    container_name: flakeguard-test-seeder
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test_user:test_password@postgres-test:5432/flakeguard_test
+      REDIS_URL: redis://redis-test:6379
+    volumes:
+      - ./apps/api/src/__tests__/fixtures:/app/fixtures:ro
+      - ./apps/api/prisma:/app/prisma:ro
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      - flakeguard-test
+    profiles:
+      - seeder
+    command: >
+      sh -c "
+        echo 'Seeding test data...' &&
+        node -e '
+          const { PrismaClient } = require(\"@prisma/client\");
+          const prisma = new PrismaClient();
+          
+          async function seedTestData() {
+            console.log(\"Creating test repositories...\");
+            
+            // Create test repository
+            const repo = await prisma.repository.create({
+              data: {
+                externalId: \"123456789\",
+                name: \"flakeguard-test\",
+                fullName: \"test-org/flakeguard-test\",
+                owner: \"test-org\",
+                installationId: 12345,
+                isActive: true,
+              }
+            });
+            console.log(\"Repository created:\", repo.fullName);
+            
+            // Create test workflow runs
+            for (let i = 1; i <= 10; i++) {
+              const run = await prisma.workflowRun.create({
+                data: {
+                  externalId: String(6789012340 + i),
+                  repositoryId: repo.id,
+                  name: \"CI\",
+                  status: \"completed\",
+                  conclusion: i % 3 === 0 ? \"failure\" : \"success\",
+                  runNumber: i,
+                  runAttempt: 1,
+                  headSha: \"abc123def456\" + i.toString().padStart(3, \"0\"),
+                  headBranch: i <= 8 ? \"main\" : \"feature/test-branch\",
+                  workflowId: \"555666777\",
+                  triggeredBy: \"developer\",
+                  startedAt: new Date(Date.now() - (10 - i) * 3600000),
+                  completedAt: new Date(Date.now() - (10 - i) * 3600000 + 300000),
+                }
+              });
+              
+              // Create test runs for some workflow runs
+              if (i % 2 === 0) {
+                const testRun = await prisma.testRun.create({
+                  data: {
+                    repositoryId: repo.id,
+                    workflowRunId: run.id,
+                    runAttempt: 1,
+                    status: i % 6 === 0 ? \"failed\" : \"passed\",
+                    conclusion: i % 6 === 0 ? \"failure\" : \"success\",
+                    startedAt: run.startedAt,
+                    completedAt: run.completedAt,
+                  }
+                });
+                
+                // Create some test cases
+                for (let j = 1; j <= 5; j++) {
+                  await prisma.testCase.create({
+                    data: {
+                      testRunId: testRun.id,
+                      name: `should work correctly ${j}`,
+                      className: `TestClass${j}`,
+                      fileName: `test-${j}.spec.ts`,
+                      status: (i === 6 && j === 3) ? \"failed\" : \"passed\",
+                      duration: Math.floor(Math.random() * 5000) + 500,
+                      message: (i === 6 && j === 3) ? \"Assertion failed: expected true but was false\" : null,
+                    }
+                  });
+                }
+              }
+            }
+            
+            // Create some quarantined tests
+            await prisma.quarantinedTest.create({
+              data: {
+                repositoryId: repo.id,
+                testName: \"flakyTest\",
+                testFullName: \"TestClass.flakyTest\",
+                reason: \"High flakiness score: 0.85\",
+                quarantinedBy: \"flakeguard-bot\",
+                quarantinedAt: new Date(),
+                expiresAt: new Date(Date.now() + 30 * 24 * 3600000), // 30 days
+              }
+            });
+            
+            console.log(\"Test data seeding completed!\");
+            await prisma.$disconnect();
+          }
+          
+          seedTestData().catch(console.error);
+        '
+      "
+
+  # Nginx reverse proxy for testing multiple services
+  nginx-test:
+    image: nginx:alpine
+    container_name: flakeguard-nginx-test
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/test.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api-test
+      - web-test
+    networks:
+      - flakeguard-test
+    profiles:
+      - nginx
+
+  # Mock GitHub API server for testing
+  github-mock:
+    image: mockserver/mockserver:latest
+    container_name: flakeguard-github-mock
+    environment:
+      MOCKSERVER_PROPERTY_FILE: /config/mockserver.properties
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/github-api-mocks.json
+    volumes:
+      - ./docker/mockserver:/config:ro
+    ports:
+      - "1080:1080" # MockServer admin UI
+      - "1090:1080" # Mock GitHub API
+    networks:
+      - flakeguard-test
+    profiles:
+      - mocks
+
+volumes:
+  postgres_test_data:
+    driver: local
+  redis_test_data:
+    driver: local
+
+networks:
+  flakeguard-test:
+    driver: bridge
+    name: flakeguard-test-network

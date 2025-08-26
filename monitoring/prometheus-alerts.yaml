@@ -1,0 +1,540 @@
+# FlakeGuard Prometheus Alerting Rules
+# 
+# Multi-window burn-rate alerts following Google SRE best practices
+# Implements 1h & 6h burn-rate thresholds for critical SLOs
+
+groups:
+  # ============================================================================
+  # Multi-Window Burn-Rate Alerts for Ingestion Error Ratio
+  # ============================================================================
+  
+  - name: flakeguard.ingestion.slo
+    interval: 30s
+    rules:
+      # Fast burn: Alert if we're burning through error budget too quickly
+      # 1h window: 72x burn rate (exhausts monthly budget in 10 hours)  
+      - alert: IngestionErrorRateFastBurn
+        expr: |
+          (
+            (1 - rate(flakeguard_api_parse_results_total{result="success"}[1h]) / rate(flakeguard_api_parse_results_total[1h])) > (72 * 0.01)
+            and
+            (1 - rate(flakeguard_api_parse_results_total{result="success"}[5m]) / rate(flakeguard_api_parse_results_total[5m])) > (72 * 0.01)
+          )
+        for: 2m
+        labels:
+          severity: page
+          service: flakeguard
+          component: ingestion
+          slo: parse_success_rate
+          burn_rate: fast
+        annotations:
+          summary: "FlakeGuard ingestion error rate is burning error budget too fast"
+          description: |
+            The ingestion parse error rate is {{ $value | humanizePercentage }} over the last hour,
+            which is 72x the allowed burn rate. At this rate, we'll exhaust our monthly error budget in ~10 hours.
+            
+            Repository: {{ $labels.repository }}
+            Current error rate: {{ $value | humanizePercentage }}
+            SLO target: 99% success rate (1% error budget)
+            
+            This requires immediate attention to prevent SLO breach.
+          runbook_url: "https://runbooks.flakeguard.dev/ingestion-error-rate"
+          
+      # Slow burn: Alert if error rate is elevated over longer period
+      # 6h window: 6x burn rate (exhausts monthly budget in 5 days)
+      - alert: IngestionErrorRateSlowBurn  
+        expr: |
+          (
+            (1 - rate(flakeguard_api_parse_results_total{result="success"}[6h]) / rate(flakeguard_api_parse_results_total[6h])) > (6 * 0.01)
+            and
+            (1 - rate(flakeguard_api_parse_results_total{result="success"}[30m]) / rate(flakeguard_api_parse_results_total[30m])) > (6 * 0.01)
+          )
+        for: 15m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: ingestion
+          slo: parse_success_rate
+          burn_rate: slow
+        annotations:
+          summary: "FlakeGuard ingestion error rate elevated over 6h window"
+          description: |
+            The ingestion parse error rate is {{ $value | humanizePercentage }} over the last 6 hours,
+            which is 6x the allowed burn rate. At this rate, we'll exhaust our monthly error budget in ~5 days.
+            
+            Repository: {{ $labels.repository }}
+            Current error rate: {{ $value | humanizePercentage }}
+            SLO target: 99% success rate (1% error budget)
+            
+            Investigation and remediation should be prioritized.
+          runbook_url: "https://runbooks.flakeguard.dev/ingestion-error-rate"
+
+  # ============================================================================
+  # Multi-Window Burn-Rate Alerts for API 5xx Rate  
+  # ============================================================================
+  
+  - name: flakeguard.api.slo
+    interval: 30s
+    rules:
+      # Fast burn: API 5xx errors burning error budget rapidly
+      # 1h window: 1440x burn rate (exhausts monthly budget in 30 minutes)
+      - alert: API5xxRateFastBurn
+        expr: |
+          (
+            rate(flakeguard_api_http_requests_total{status_code=~"5.."}[1h]) / rate(flakeguard_api_http_requests_total[1h]) > (1440 * 0.001)
+            and  
+            rate(flakeguard_api_http_requests_total{status_code=~"5.."}[5m]) / rate(flakeguard_api_http_requests_total[5m]) > (1440 * 0.001)
+          )
+        for: 2m
+        labels:
+          severity: page
+          service: flakeguard
+          component: api
+          slo: availability
+          burn_rate: fast
+        annotations:
+          summary: "FlakeGuard API 5xx error rate is critically high"
+          description: |
+            API 5xx error rate is {{ $value | humanizePercentage }} over the last hour,
+            which is 1440x the allowed burn rate. At this rate, we'll exhaust our monthly error budget in ~30 minutes.
+            
+            Route: {{ $labels.route }}
+            Method: {{ $labels.method }}
+            Current 5xx rate: {{ $value | humanizePercentage }}
+            SLO target: 99.9% availability (0.1% error budget)
+            
+            IMMEDIATE ACTION REQUIRED - Service availability at risk!
+          runbook_url: "https://runbooks.flakeguard.dev/api-5xx-errors"
+          
+      # Slow burn: Elevated 5xx rate over longer period  
+      # 6h window: 6x burn rate (exhausts monthly budget in 5 days)
+      - alert: API5xxRateSlowBurn
+        expr: |
+          (
+            rate(flakeguard_api_http_requests_total{status_code=~"5.."}[6h]) / rate(flakeguard_api_http_requests_total[6h]) > (6 * 0.001)
+            and
+            rate(flakeguard_api_http_requests_total{status_code=~"5.."}[30m]) / rate(flakeguard_api_http_requests_total[30m]) > (6 * 0.001)
+          )
+        for: 15m
+        labels:
+          severity: warning  
+          service: flakeguard
+          component: api
+          slo: availability
+          burn_rate: slow
+        annotations:
+          summary: "FlakeGuard API 5xx error rate elevated"
+          description: |
+            API 5xx error rate is {{ $value | humanizePercentage }} over the last 6 hours,
+            which is 6x the allowed burn rate. At this rate, we'll exhaust our monthly error budget in ~5 days.
+            
+            Route: {{ $labels.route }}
+            Method: {{ $labels.method }}  
+            Current 5xx rate: {{ $value | humanizePercentage }}
+            SLO target: 99.9% availability (0.1% error budget)
+            
+            Trend monitoring and investigation recommended.
+          runbook_url: "https://runbooks.flakeguard.dev/api-5xx-errors"
+
+  # ============================================================================
+  # Additional SLO-based Alerts
+  # ============================================================================
+  
+  - name: flakeguard.latency.slo
+    interval: 30s  
+    rules:
+      # Ingestion latency SLO breach
+      - alert: IngestionLatencySLOBreach
+        expr: |
+          histogram_quantile(0.95, rate(flakeguard_api_ingestion_latency_seconds_bucket[5m])) > 30
+        for: 10m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: ingestion
+          slo: latency
+        annotations:
+          summary: "FlakeGuard ingestion P95 latency exceeds SLO"
+          description: |
+            Ingestion P95 latency is {{ $value }}s, exceeding the SLO target of 30s.
+            
+            Repository: {{ $labels.repository }}
+            Content Type: {{ $labels.content_type }}
+            
+            This may impact user experience and indicates performance degradation.
+          runbook_url: "https://runbooks.flakeguard.dev/ingestion-latency"
+          
+      # Check run delivery latency SLO breach
+      - alert: CheckRunDeliveryLatencySLOBreach
+        expr: |
+          histogram_quantile(0.95, rate(flakeguard_api_check_run_delivery_seconds_bucket[5m])) > 60
+        for: 10m  
+        labels:
+          severity: warning
+          service: flakeguard
+          component: github-integration
+          slo: latency
+        annotations:
+          summary: "FlakeGuard check run delivery P95 latency exceeds SLO"
+          description: |
+            Check run delivery P95 latency is {{ $value }}s, exceeding the SLO target of 60s.
+            
+            Repository: {{ $labels.repository }}
+            
+            This may delay feedback to developers and impact the user experience.
+          runbook_url: "https://runbooks.flakeguard.dev/check-run-delivery"
+
+  # ============================================================================
+  # Operational Health Alerts
+  # ============================================================================
+  
+  - name: flakeguard.operational
+    interval: 30s
+    rules:
+      # High memory usage
+      - alert: FlakeGuardHighMemoryUsage
+        expr: |
+          flakeguard_api_memory_usage_bytes{type="rss"} / 1024 / 1024 > 512
+        for: 5m
+        labels:
+          severity: warning
+          service: flakeguard  
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "FlakeGuard service using high memory"
+          description: |
+            FlakeGuard {{ $labels.job }} is using {{ $value }}MB of memory, exceeding 512MB threshold.
+            
+            This may indicate a memory leak or increased load.
+          runbook_url: "https://runbooks.flakeguard.dev/high-memory-usage"
+          
+      # Database connection issues
+      - alert: FlakeGuardDatabaseConnectionDown
+        expr: |
+          flakeguard_api_database_connections_active == 0
+        for: 1m
+        labels:
+          severity: page
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database connection down"
+          description: |
+            FlakeGuard has no active database connections.
+            
+            This will cause service degradation and requires immediate attention.
+          runbook_url: "https://runbooks.flakeguard.dev/database-connection-issues"
+          
+      # Worker queue backing up  
+      - alert: FlakeGuardWorkerQueueBacklog
+        expr: |
+          flakeguard_worker_queue_size{status="waiting"} > 100
+        for: 5m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: worker
+        annotations:
+          summary: "FlakeGuard worker queue has significant backlog"
+          description: |
+            Worker queue {{ $labels.queue }} has {{ $value }} waiting jobs, exceeding normal capacity.
+            
+            This may indicate worker performance issues or increased load.
+          runbook_url: "https://runbooks.flakeguard.dev/worker-queue-backlog"
+
+  # ============================================================================
+  # Business Logic Alerts  
+  # ============================================================================
+  
+  - name: flakeguard.business
+    interval: 60s
+    rules:
+      # High flake detection rate (could indicate test infrastructure issues)
+      - alert: FlakeGuardHighFlakeDetectionRate
+        expr: |
+          rate(flakeguard_api_flake_detections_total[1h]) > 10
+        for: 30m
+        labels:
+          severity: info
+          service: flakeguard
+          component: analysis
+        annotations:
+          summary: "FlakeGuard detecting unusually high flake rate"
+          description: |
+            FlakeGuard is detecting {{ $value }} flaky tests per hour in repository {{ $labels.repository }}.
+            
+            This may indicate:
+            - Test infrastructure issues
+            - Environmental problems
+            - Need for quarantine policy review
+            
+            Consider investigating test environment stability.
+          runbook_url: "https://runbooks.flakeguard.dev/high-flake-rate"
+          
+      # No recent test activity (could indicate integration issues)
+      - alert: FlakeGuardNoRecentTestActivity  
+        expr: |
+          flakeguard_api_active_repositories == 0
+        for: 24h
+        labels:
+          severity: warning
+          service: flakeguard
+          component: ingestion
+        annotations:
+          summary: "FlakeGuard has no active repositories in 24h"
+          description: |
+            FlakeGuard has not processed any test results for 24 hours.
+            
+            This may indicate:
+            - GitHub webhook delivery issues
+            - Integration configuration problems  
+            - Repository inactivity
+            
+            Verify webhook configuration and repository activity.
+          runbook_url: "https://runbooks.flakeguard.dev/no-test-activity"
+
+  # ============================================================================
+  # Database Health and Performance Alerts
+  # ============================================================================
+  
+  - name: flakeguard.database.health
+    interval: 30s
+    rules:
+      # Database connection pool near capacity
+      - alert: DatabaseConnectionPoolHighUtilization
+        expr: |
+          (flakeguard_api_database_connections_active / 
+           (flakeguard_api_database_connections_active + on() group_left() 
+            (label_replace(pg_settings_max_connections{job="postgres-exporter"}, "instance", "$1", "instance", "(.+)")))) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database connection pool utilization high"
+          description: |
+            Database connection pool utilization is {{ $value }}%, approaching capacity.
+            
+            Current active connections: {{ with query "flakeguard_api_database_connections_active" }}{{ . | first | value }}{{ end }}
+            
+            This may lead to connection exhaustion and service degradation.
+          runbook_url: "https://runbooks.flakeguard.dev/database-connection-pool"
+          
+      # Database connection pool at capacity  
+      - alert: DatabaseConnectionPoolAtCapacity
+        expr: |
+          (flakeguard_api_database_connections_active / 
+           (flakeguard_api_database_connections_active + on() group_left() 
+            (label_replace(pg_settings_max_connections{job="postgres-exporter"}, "instance", "$1", "instance", "(.+)")))) * 100 > 95
+        for: 2m
+        labels:
+          severity: page
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database connection pool at capacity"
+          description: |
+            Database connection pool utilization is {{ $value }}%, at critical capacity.
+            
+            IMMEDIATE ACTION REQUIRED - New connections will be rejected!
+            
+            Current active connections: {{ with query "flakeguard_api_database_connections_active" }}{{ . | first | value }}{{ end }}
+          runbook_url: "https://runbooks.flakeguard.dev/database-connection-pool"
+          
+      # Long-running database queries
+      - alert: DatabaseLongRunningQueries
+        expr: |
+          pg_stat_activity_max_tx_duration{datname="flakeguard"} > 300
+        for: 2m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard has long-running database queries"
+          description: |
+            Database has queries running longer than {{ $value }}s.
+            
+            This may indicate:
+            - Slow queries that need optimization
+            - Deadlocks or blocking operations
+            - Database performance issues
+            
+            Review active queries and consider query optimization.
+          runbook_url: "https://runbooks.flakeguard.dev/long-running-queries"
+          
+      # High database query error rate
+      - alert: DatabaseQueryErrorRateHigh
+        expr: |
+          rate(flakeguard_api_database_queries_total{status="failure"}[5m]) / 
+          rate(flakeguard_api_database_queries_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database query error rate elevated"
+          description: |
+            Database query error rate is {{ $value | humanizePercentage }} over the last 5 minutes.
+            
+            Operation: {{ $labels.operation }}
+            Table: {{ $labels.table }}
+            
+            This indicates potential database issues requiring investigation.
+          runbook_url: "https://runbooks.flakeguard.dev/database-query-errors"
+          
+      # Database cache hit ratio low
+      - alert: DatabaseCacheHitRatioLow
+        expr: |
+          pg_stat_database_blks_hit{datname="flakeguard"} / 
+          (pg_stat_database_blks_hit{datname="flakeguard"} + pg_stat_database_blks_read{datname="flakeguard"}) * 100 < 95
+        for: 10m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database cache hit ratio low"
+          description: |
+            Database cache hit ratio is {{ $value }}%, below the 95% threshold.
+            
+            This indicates:
+            - Increased disk I/O
+            - Potential performance degradation
+            - Need for memory tuning
+            
+            Consider increasing shared_buffers or investigating query patterns.
+          runbook_url: "https://runbooks.flakeguard.dev/database-cache-hit-ratio"
+          
+      # Database deadlock detection
+      - alert: DatabaseDeadlocksDetected
+        expr: |
+          increase(pg_stat_database_deadlocks{datname="flakeguard"}[5m]) > 0
+        for: 0s
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database deadlocks detected"
+          description: |
+            {{ $value }} database deadlocks detected in the last 5 minutes.
+            
+            This indicates:
+            - Concurrent transaction conflicts
+            - Potential application logic issues
+            - Need for transaction optimization
+            
+            Review application transaction patterns and database logs.
+          runbook_url: "https://runbooks.flakeguard.dev/database-deadlocks"
+
+  # ============================================================================
+  # Multi-Tenant Data Isolation Alerts
+  # ============================================================================
+  
+  - name: flakeguard.tenant.isolation
+    interval: 60s
+    rules:
+      # Tenant isolation violation detected
+      - alert: TenantIsolationViolationDetected
+        expr: |
+          increase(flakeguard_api_tenant_isolation_violations_total[5m]) > 0
+        for: 0s
+        labels:
+          severity: page
+          service: flakeguard
+          component: security
+          security_impact: critical
+        annotations:
+          summary: "FlakeGuard tenant isolation violation detected"
+          description: |
+            {{ $value }} tenant isolation violations detected in the last 5 minutes.
+            
+            CRITICAL SECURITY ISSUE - Cross-tenant data access detected!
+            
+            Organization: {{ $labels.org_id }}
+            Violation Type: {{ $labels.violation_type }}
+            
+            IMMEDIATE ACTION REQUIRED:
+            1. Review security logs
+            2. Investigate data access patterns
+            3. Validate RLS policies
+            4. Consider tenant quarantine if necessary
+          runbook_url: "https://runbooks.flakeguard.dev/tenant-isolation-violations"
+          
+      # Suspicious cross-tenant query patterns
+      - alert: SuspiciousCrossTenantQueryPattern
+        expr: |
+          rate(flakeguard_api_database_queries_total{operation=~".*cross_tenant.*"}[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: security
+        annotations:
+          summary: "FlakeGuard suspicious cross-tenant query patterns"
+          description: |
+            Elevated rate of cross-tenant queries detected: {{ $value }} queries/second.
+            
+            This may indicate:
+            - Application bugs bypassing tenant isolation
+            - Potential security issues
+            - Incorrect data access patterns
+            
+            Review query logs and validate tenant boundaries.
+          runbook_url: "https://runbooks.flakeguard.dev/cross-tenant-queries"
+
+  # ============================================================================
+  # Database Migration and Schema Alerts
+  # ============================================================================
+  
+  - name: flakeguard.database.schema
+    interval: 60s
+    rules:
+      # Failed database migration
+      - alert: DatabaseMigrationFailed
+        expr: |
+          flakeguard_api_migration_status{status="failed"} > 0
+        for: 0s
+        labels:
+          severity: page
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard database migration failed"
+          description: |
+            Database migration has failed.
+            
+            Migration: {{ $labels.migration_name }}
+            Error: {{ $labels.error_message }}
+            
+            IMMEDIATE ACTION REQUIRED:
+            1. Review migration logs
+            2. Fix migration issues
+            3. Ensure database consistency
+            4. Coordinate with deployment process
+          runbook_url: "https://runbooks.flakeguard.dev/migration-failures"
+          
+      # Pending database migrations in production
+      - alert: DatabaseMigrationsPending
+        expr: |
+          flakeguard_api_migration_status{status="pending"} > 0
+        for: 30m
+        labels:
+          severity: warning
+          service: flakeguard
+          component: database
+        annotations:
+          summary: "FlakeGuard has pending database migrations"
+          description: |
+            {{ $value }} database migrations are pending for more than 30 minutes.
+            
+            This may indicate:
+            - Incomplete deployment process
+            - Migration automation issues
+            - Manual intervention required
+            
+            Review deployment status and apply pending migrations.
+          runbook_url: "https://runbooks.flakeguard.dev/pending-migrations"

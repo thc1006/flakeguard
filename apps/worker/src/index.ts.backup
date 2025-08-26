@@ -1,0 +1,110 @@
+import { Worker } from 'bullmq';
+import { PrismaClient } from '@prisma/client';
+import { config } from './config/index.js';
+import { logger } from './utils/logger.js';
+import { connection } from './utils/redis.js';
+import { emailProcessor } from './processors/email.processor.js';
+import { taskProcessor } from './processors/task.processor.js';
+import { reportProcessor } from './processors/report.processor.js';
+import { ingestionProcessor } from './processors/ingestion.processor.js';
+import { QueueNames } from '@flakeguard/shared';
+
+const prisma = new PrismaClient();
+
+async function start() {
+  try {
+    // Connect to database
+    await prisma.$connect();
+    logger.info('Connected to database');
+
+    // Create workers
+    const emailWorker = new Worker(
+      QueueNames.EMAIL,
+      emailProcessor(prisma),
+      {
+        connection,
+        concurrency: config.workerConcurrency,
+      }
+    );
+
+    const taskWorker = new Worker(
+      QueueNames.TASK,
+      taskProcessor(prisma),
+      {
+        connection,
+        concurrency: config.workerConcurrency,
+      }
+    );
+
+    const reportWorker = new Worker(
+      QueueNames.REPORT,
+      reportProcessor(prisma),
+      {
+        connection,
+        concurrency: Math.floor(config.workerConcurrency / 2),
+      }
+    );
+
+    const ingestionWorker = new Worker(
+      QueueNames.INGESTION,
+      ingestionProcessor(prisma),
+      {
+        connection,
+        concurrency: Math.floor(config.workerConcurrency / 2), // Limit concurrency for resource-intensive jobs
+      }
+    );
+
+    // Set up event handlers
+    [emailWorker, taskWorker, reportWorker, ingestionWorker].forEach((worker) => {
+      worker.on('completed', (job) => {
+        logger.info(
+          { jobId: job.id, queue: job.queueName },
+          'Job completed successfully'
+        );
+      });
+
+      worker.on('failed', (job, err) => {
+        logger.error(
+          { jobId: job?.id, queue: job?.queueName, error: err.message },
+          'Job failed'
+        );
+      });
+
+      worker.on('error', (err) => {
+        logger.error({ error: err.message }, 'Worker error');
+      });
+    });
+
+    logger.info(
+      { workers: [QueueNames.EMAIL, QueueNames.TASK, QueueNames.REPORT, QueueNames.INGESTION] },
+      'Workers started successfully'
+    );
+
+    // Graceful shutdown
+    const gracefulShutdown = async (signal: string) => {
+      logger.info(`Received ${signal}, starting graceful shutdown...`);
+      
+      await Promise.all([
+        emailWorker.close(),
+        taskWorker.close(),
+        reportWorker.close(),
+        ingestionWorker.close(),
+      ]);
+      
+      await prisma.$disconnect();
+      await connection.quit();
+      
+      logger.info('Graceful shutdown completed');
+      process.exit(0);
+    };
+
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  } catch (error) {
+    logger.error(error, 'Failed to start workers');
+    process.exit(1);
+  }
+}
+
+start();

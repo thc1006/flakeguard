@@ -1,0 +1,51 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+import { EmailJobData } from '@flakeguard/shared';
+import { PrismaClient } from '@prisma/client';
+import { Job, Processor } from 'bullmq';
+
+import { logger } from '../utils/logger.js';
+
+
+export function emailProcessor(_prisma: PrismaClient): Processor {
+  return async (job: Job<EmailJobData>) => {
+    const { to, subject, userId } = job.data;
+    
+    logger.info(
+      { jobId: job.id, to, subject },
+      'Processing email job'
+    );
+
+    try {
+      // Simulate email sending
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // In a real application, you would integrate with an email service here
+      // e.g., SendGrid, AWS SES, Postmark, etc.
+      
+      logger.info(
+        { jobId: job.id, to },
+        'Email sent successfully'
+      );
+
+      // Log the email activity in the database if needed
+      if (userId) {
+        // You could create an EmailLog model in Prisma
+        // await prisma.emailLog.create({
+        //   data: { userId, to, subject, sentAt: new Date() }
+        // });
+      }
+
+      return {
+        success: true,
+        sentAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      logger.error(
+        { jobId: job.id, error: error instanceof Error ? error.message : String(error) },
+        'Failed to send email'
+      );
+      throw error;
+    }
+  };
+}

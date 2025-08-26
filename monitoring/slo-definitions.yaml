@@ -1,0 +1,77 @@
+# FlakeGuard SLO Definitions
+# 
+# Service Level Objectives following SRE best practices
+# with error budgets and burn-rate alerting
+
+slos:
+  # ============================================================================
+  # Core SLIs/SLOs for FlakeGuard
+  # ============================================================================
+  
+  # SLO 1: API Availability
+  # Target: 99.9% availability (8.7 hours downtime per year)
+  api_availability:
+    description: "FlakeGuard API availability - successful responses to all API requests"
+    sli: "rate(flakeguard_api_http_requests_total{status_code!~'5..'}[5m]) / rate(flakeguard_api_http_requests_total[5m])"
+    target: 0.999
+    error_budget_window: "30d"
+    error_budget: 0.001  # 0.1% error budget
+    
+  # SLO 2: Ingestion Latency  
+  # Target: P95 < 30s (from webhook to parsed)
+  ingestion_latency:
+    description: "Time from webhook received to test results parsed"
+    sli: "histogram_quantile(0.95, rate(flakeguard_api_ingestion_latency_seconds_bucket[5m]))"
+    target: 30  # 30 seconds
+    error_budget_window: "30d"
+    error_budget: 0.05  # 5% of requests can exceed target
+    
+  # SLO 3: Parse Success Rate
+  # Target: 99% successful JUnit XML parsing
+  parse_success_rate:
+    description: "JUnit XML parsing success rate"
+    sli: "rate(flakeguard_api_parse_results_total{result='success'}[5m]) / rate(flakeguard_api_parse_results_total[5m])"
+    target: 0.99
+    error_budget_window: "30d"
+    error_budget: 0.01  # 1% error budget
+    
+  # SLO 4: Check Run Delivery
+  # Target: P95 < 60s (from parse to GitHub)
+  check_run_delivery:
+    description: "Time from parse completion to GitHub Check Run delivery"
+    sli: "histogram_quantile(0.95, rate(flakeguard_api_check_run_delivery_seconds_bucket[5m]))"
+    target: 60  # 60 seconds
+    error_budget_window: "30d"
+    error_budget: 0.05  # 5% of deliveries can exceed target
+
+  # SLO 5: Worker Processing Latency
+  # Target: P95 < 120s for background job processing
+  worker_processing_latency:
+    description: "Background worker job processing time"
+    sli: "histogram_quantile(0.95, rate(flakeguard_worker_job_processing_duration_seconds_bucket[5m]))"
+    target: 120  # 2 minutes
+    error_budget_window: "30d"
+    error_budget: 0.05  # 5% of jobs can exceed target
+
+# ============================================================================
+# Error Budget Policies
+# ============================================================================
+
+error_budget_policies:
+  # High-severity SLOs (API availability, critical user journeys)
+  high_severity:
+    alert_on_burn_rate: 0.1  # Alert when burning 10% of monthly budget per hour
+    freeze_on_budget_exhaustion: true
+    review_frequency: "weekly"
+    
+  # Medium-severity SLOs (performance targets)
+  medium_severity:
+    alert_on_burn_rate: 0.05  # Alert when burning 5% of monthly budget per hour  
+    freeze_on_budget_exhaustion: false
+    review_frequency: "bi-weekly"
+    
+  # Low-severity SLOs (internal metrics)
+  low_severity:
+    alert_on_burn_rate: 0.02  # Alert when burning 2% of monthly budget per hour
+    freeze_on_budget_exhaustion: false
+    review_frequency: "monthly"

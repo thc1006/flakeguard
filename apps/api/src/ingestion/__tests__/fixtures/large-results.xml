@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Large Test Suite" 
+            tests="500" 
+            failures="25" 
+            errors="5" 
+            skipped="15" 
+            time="245.678" 
+            timestamp="2023-12-01T11:15:00">
+  
+  <testsuite name="com.example.performance.LoadTest" 
+             tests="100" 
+             failures="5" 
+             errors="1" 
+             skipped="2" 
+             time="45.234" 
+             timestamp="2023-12-01T11:15:00" 
+             hostname="perf-test-01" 
+             package="com.example.performance">
+    
+    <!-- Generate 100 test cases with various outcomes -->
+    
+    <!-- Passed tests (92 total) -->
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers001" time="0.234"/>
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers002" time="0.445"/>
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers003" time="0.567"/>
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers004" time="0.321"/>
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers005" time="0.678"/>
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers006" time="0.123"/>
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers007" time="0.789"/>
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers008" time="0.456"/>
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers009" time="0.234"/>
+    <testcase classname="com.example.performance.LoadTest" name="testConcurrentUsers010" time="0.567"/>
+    <testcase classname="com.example.performance.LoadTest" name="testThroughput001" time="1.234"/>
+    <testcase classname="com.example.performance.LoadTest" name="testThroughput002" time="1.456"/>
+    <testcase classname="com.example.performance.LoadTest" name="testThroughput003" time="1.789"/>
+    <testcase classname="com.example.performance.LoadTest" name="testThroughput004" time="1.123"/>
+    <testcase classname="com.example.performance.LoadTest" name="testThroughput005" time="1.345"/>
+    <testcase classname="com.example.performance.LoadTest" name="testResponseTime001" time="0.098"/>
+    <testcase classname="com.example.performance.LoadTest" name="testResponseTime002" time="0.156"/>
+    <testcase classname="com.example.performance.LoadTest" name="testResponseTime003" time="0.187"/>
+    <testcase classname="com.example.performance.LoadTest" name="testResponseTime004" time="0.234"/>
+    <testcase classname="com.example.performance.LoadTest" name="testResponseTime005" time="0.098"/>
+    
+    <!-- Additional passed tests (continue pattern for remaining 72 tests) -->
+    <testcase classname="com.example.performance.LoadTest" name="testMemoryUsage001" time="2.345"/>
+    <testcase classname="com.example.performance.LoadTest" name="testMemoryUsage002" time="2.567"/>
+    <testcase classname="com.example.performance.LoadTest" name="testMemoryUsage003" time="2.789"/>
+    <testcase classname="com.example.performance.LoadTest" name="testMemoryUsage004" time="2.123"/>
+    <testcase classname="com.example.performance.LoadTest" name="testMemoryUsage005" time="2.456"/>
+    
+    <!-- Failed tests (5 total) -->
+    <testcase classname="com.example.performance.LoadTest" name="testHighLoadStability" time="5.678">
+      <failure message="Performance threshold exceeded: 5678ms > 5000ms" 
+               type="AssertionError">Performance test failed: Response time 5678ms exceeds acceptable threshold of 5000ms</failure>
+    </testcase>
+    
+    <testcase classname="com.example.performance.LoadTest" name="testMemoryLeakDetection" time="8.234">
+      <failure message="Memory leak detected: 512MB increase" 
+               type="MemoryLeakError">Memory usage increased by 512MB during test execution, indicating potential memory leak</failure>
+    </testcase>
+    
+    <testcase classname="com.example.performance.LoadTest" name="testConnectionPooling" time="3.456">
+      <failure message="Connection pool exhausted" 
+               type="ConnectionPoolException">Database connection pool reached maximum capacity (100 connections)</failure>
+    </testcase>
+    
+    <testcase classname="com.example.performance.LoadTest" name="testDeadlockRecovery" time="10.789">
+      <failure message="Deadlock not resolved within timeout" 
+               type="DeadlockException">Database deadlock persisted for 10.789 seconds without resolution</failure>
+    </testcase>
+    
+    <testcase classname="com.example.performance.LoadTest" name="testCascadingFailure" time="7.123">
+      <failure message="Cascading failure threshold reached" 
+               type="CascadeFailureException">System experienced cascading failures affecting 15 dependent services</failure>
+    </testcase>
+    
+    <!-- Error test (1 total) -->
+    <testcase classname="com.example.performance.LoadTest" name="testSystemCrash" time="0.001">
+      <error message="JVM crashed during test execution" 
+             type="java.lang.OutOfMemoryError">
+        <![CDATA[
+java.lang.OutOfMemoryError: Java heap space
+	at java.base/java.util.Arrays.copyOf(Arrays.java:3512)
+	at java.base/java.util.ArrayList.grow(ArrayList.java:237)
+	at java.base/java.util.ArrayList.add(ArrayList.java:467)
+	at com.example.performance.LoadTest.testSystemCrash(LoadTest.java:456)
+        ]]>
+      </error>
+    </testcase>
+    
+    <!-- Skipped tests (2 total) -->
+    <testcase classname="com.example.performance.LoadTest" name="testExternalServiceIntegration" time="0.000">
+      <skipped message="External service unavailable for performance testing"/>
+    </testcase>
+    
+    <testcase classname="com.example.performance.LoadTest" name="testLongRunningProcess" time="0.000">
+      <skipped message="Long-running tests disabled in CI environment"/>
+    </testcase>
+    
+    <!-- Fill remaining test cases up to 100 total with similar patterns -->
+    
+    <system-out><![CDATA[
+=== Performance Test Execution Report ===
+Test Environment: perf-test-01
+Start Time: 2023-12-01T11:15:00
+Duration: 45.234 seconds
+Total Tests: 100
+Passed: 92
+Failed: 5
+Errors: 1
+Skipped: 2
+
+Performance Metrics:
+- Average Response Time: 1.234 seconds
+- Peak Memory Usage: 2.5 GB
+- CPU Utilization: 85%
+- Network I/O: 125 MB/s
+- Disk I/O: 45 MB/s
+
+Critical Issues Found:
+1. Memory leak in connection handling
+2. Performance degradation under high load
+3. Connection pool exhaustion at 1000+ users
+4. JVM crash with insufficient heap space
+5. Deadlock in concurrent transaction processing
+
+Recommendations:
+- Increase JVM heap size to 4GB
+- Optimize database connection pooling
+- Implement circuit breaker pattern
+- Add memory monitoring and alerting
+- Review concurrent access patterns
+    ]]></system-out>
+    
+    <system-err><![CDATA[
+WARNING: Performance tests detected system stress
+WARNING: Memory usage approaching 90% of available heap
+ERROR: OutOfMemoryError in test execution
+ERROR: Multiple database connections failed
+ERROR: System stability compromised during load testing
+    ]]></system-err>
+  </testsuite>
+  
+  <!-- Additional test suites to reach 500 total tests -->
+  <testsuite name="com.example.integration.DatabaseIntegrationTest" 
+             tests="200" 
+             failures="10" 
+             errors="2" 
+             skipped="8" 
+             time="89.456">
+    <!-- 200 database integration tests with realistic distribution -->
+    <!-- Passed: 180, Failed: 10, Errors: 2, Skipped: 8 -->
+  </testsuite>
+  
+  <testsuite name="com.example.api.RestApiTest" 
+             tests="150" 
+             failures="8" 
+             errors="1" 
+             skipped="4" 
+             time="67.234">
+    <!-- 150 API tests -->
+    <!-- Passed: 137, Failed: 8, Errors: 1, Skipped: 4 -->
+  </testsuite>
+  
+  <testsuite name="com.example.security.SecurityTest" 
+             tests="50" 
+             failures="2" 
+             errors="1" 
+             skipped="1" 
+             time="43.754">
+    <!-- 50 security tests -->
+    <!-- Passed: 46, Failed: 2, Errors: 1, Skipped: 1 -->
+  </testsuite>
+  
+  <system-out><![CDATA[
+=== OVERALL TEST EXECUTION SUMMARY ===
+Total Execution Time: 245.678 seconds (4 minutes 5 seconds)
+Total Test Suites: 4
+Total Test Cases: 500
+
+Results Summary:
+✓ Passed: 455 (91.0%)
+✗ Failed: 25 (5.0%)  
+⚠ Errors: 5 (1.0%)
+↷ Skipped: 15 (3.0%)
+
+Performance Impact:
+- Peak Memory Usage: 3.2 GB
+- Average CPU Usage: 78%
+- Total Network I/O: 1.2 GB
+- Total Disk I/O: 450 MB
+
+Test Categories:
+- Performance Tests: 100 (92% pass rate)
+- Integration Tests: 200 (90% pass rate)  
+- API Tests: 150 (91.3% pass rate)
+- Security Tests: 50 (92% pass rate)
+
+Critical Findings:
+1. System performance degrades at high concurrency
+2. Memory management issues under sustained load
+3. Database connection pooling needs optimization
+4. API rate limiting functioning correctly
+5. Security controls passing most validation tests
+
+Next Steps:
+- Address performance bottlenecks identified
+- Investigate memory leak patterns
+- Optimize database connection management
+- Review error handling in concurrent scenarios
+- Schedule follow-up performance testing after fixes
+  ]]></system-out>
+  
+  <system-err><![CDATA[
+2023-12-01 11:15:00 WARN  - Test execution started with high system load
+2023-12-01 11:15:15 ERROR - OutOfMemoryError detected during performance testing
+2023-12-01 11:16:30 WARN  - Database connection pool approaching limits
+2023-12-01 11:17:45 ERROR - Multiple test failures in LoadTest suite
+2023-12-01 11:18:30 WARN  - System recovery initiated after errors
+2023-12-01 11:19:45 INFO  - Test execution completed with warnings
+2023-12-01 11:20:05 WARN  - Performance degradation observed in later test suites
+  ]]></system-err>
+</testsuites>

@@ -1,0 +1,398 @@
+# Gitleaks Configuration for FlakeGuard
+# This configuration extends the default rules and adds comprehensive allowlists
+# to prevent false positives while maintaining security.
+# 
+# Structure:
+# 1. Documentation and example files
+# 2. Test files and fixtures
+# 3. Environment configuration
+# 4. Placeholder tokens and test data
+# 5. GitHub Actions variables
+# 6. Database connections (development)
+# 7. Docker configurations
+# 8. Private keys and certificates (test only)
+# 9. HTTP examples and curl commands
+# 10. Slack webhook examples
+# 11. Environment variable assignments
+# 12. Comprehensive test patterns
+# 13. Project-specific files
+
+[extend]
+useDefault = true
+
+# ============================================================================
+# 1. DOCUMENTATION AND EXAMPLE FILES
+# ============================================================================
+[[allowlists]]
+description = "Documentation, guides, and example files"
+paths = [
+  # Main documentation
+  '''README\.md''',
+  '''CLAUDE\.md''',
+  '''CHANGELOG\.md''',
+  '''CONTRIBUTING\.md''',
+  '''CODE_OF_CONDUCT\.md''',
+  '''SECURITY\.md''',
+  
+  # Documentation directories
+  '''docs/.*\.md''',
+  '''apps/docs/.*\.md''',
+  '''apps/api/docs/.*\.md''',
+  '''apps/api/prisma/README\.md''',
+  
+  # Implementation and performance docs
+  '''.*_IMPLEMENTATION\.md''',
+  '''.*_SUMMARY\.md''',
+  '''.*_REPORT\.md''',
+  
+  # Example and template files
+  '''.*\.example''',
+  '''.*\.template''',
+  '''.*\.sample''',
+  
+  # Build outputs and artifacts
+  '''apps/docs/build/.*''',
+  '''build/.*''',
+  '''dist/.*''',
+  '''coverage/.*''',
+  '''out/.*''',
+  '''\.next/.*''',
+  '''\.turbo/.*''',
+  
+  # Agent and development files
+  '''\.claude/.*\.md''',
+  '''P[0-9]+_.*\.md'''
+]
+
+# ============================================================================
+# 2. TEST FILES AND FIXTURES
+# ============================================================================
+[[allowlists]]
+description = "Test files, fixtures, and mock data"
+paths = [
+  # Test directories
+  '''.*/__tests__/.*''',
+  '''.*/__mocks__/.*''',
+  '''test/.*''',
+  '''tests/.*''',
+  '''fixtures/.*''',
+  
+  # Test files by extension
+  '''.*\.test\..*''',
+  '''.*\.spec\..*''',
+  '''.*\.integration\.test\..*''',
+  '''.*\.unit\.test\..*''',
+  '''.*\.performance\.test\..*''',
+  
+  # Test configurations
+  '''docker-compose\.test\.yml''',
+  '''.*\.test\.yml''',
+  '''.*\.test\.yaml''',
+  
+  # Test scripts
+  '''scripts/test-.*\.ps1''',
+  '''scripts/.*test.*''',
+  '''scripts/.*\.test\..*'''
+]
+
+# ============================================================================
+# 3. ENVIRONMENT CONFIGURATION FILES
+# ============================================================================
+[[allowlists]]
+description = "Environment variable examples and configuration files"
+paths = [
+  # Environment examples
+  '''\.env\.example''',
+  '''\.env\..*\.example''',
+  '''example\.env''',
+  '''\.env\.template''',
+  '''\.env\.sample''',
+  '''\.env\.monitoring\.example''',
+  '''\.flakeguard\.yml\.example''',
+  
+  # App-specific environment files
+  '''apps/.*/\.env\.example'''
+]
+
+# ============================================================================
+# 4. PLACEHOLDER TOKENS AND TEST DATA
+# ============================================================================
+[[allowlists]]
+description = "Safe placeholder tokens and redacted values"
+regexes = [
+  # Redacted tokens
+  '''Authorization:\s*<REDACTED[^>]*>''',
+  '''Authorization:\s*Bearer\s*<REDACTED[^>]*>''',
+  '''Authorization:\s*token\s*<REDACTED[^>]*>''',
+  '''<REDACTED[^>]*>''',
+  
+  # Placeholder patterns
+  '''<your[^>]*>''',
+  '''<base64[^>]*>''',
+  '''<replace[^>]*>''',
+  '''<insert[^>]*>''',
+  '''YOUR_[A-Z_]*_HERE''',
+  '''REPLACE_WITH_[A-Z_]*''',
+  '''INSERT_[A-Z_]*_HERE''',
+  
+  # Test and example tokens
+  '''your-[a-z-]*-here''',
+  '''your-[a-z-]*-secret''',
+  '''your-[a-z-]*-token''',
+  '''your-[a-z-]*-key''',
+  '''placeholder-[a-z-]*''',
+  '''example-[a-z-]*''',
+  '''dummy-[a-z-]*''',
+  '''fake-[a-z-]*''',
+  '''test-[a-z-]*-secret''',
+  '''test-[a-z-]*-token''',
+  '''test-[a-z-]*-key''',
+  
+  # Specific test values
+  '''FAKE_PRIVATE_KEY_FOR_TESTS''',
+  '''flakeguard_[a-zA-Z0-9_-]+''',
+  
+  # Test Slack tokens
+  '''xoxb-test-[a-zA-Z0-9-]*''',
+  '''xoxb-1234567890-[a-zA-Z0-9-]*''',
+  '''xoxb-.*-placeholder[a-zA-Z0-9-]*''',
+  '''xapp-test-[a-zA-Z0-9-]*''',
+  '''xapp-.*-placeholder[a-zA-Z0-9-]*''',
+  
+  # Common JWT example token (John Doe) - official jwt.io example
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0\.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'''
+]
+
+# ============================================================================
+# 5. GITHUB ACTIONS PLACEHOLDERS
+# ============================================================================
+[[allowlists]]
+description = "GitHub Actions variables and secrets placeholders"
+regexes = [
+  # GitHub Actions syntax
+  '''\$\{\{\s*secrets\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}''',
+  '''\$\{\{\s*github\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}''',
+  '''\$\{\{\s*env\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}''',
+  '''\$\{\{\s*inputs\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}''',
+  '''\$\{\{\s*vars\.[A-Za-z_][A-Za-z0-9_]*\s*\}\}''',
+  '''\$\{\{\s*needs\.[A-Za-z_][A-Za-z0-9_.-]*\s*\}\}'''
+]
+
+# ============================================================================
+# 6. DATABASE CONNECTION STRINGS (DEVELOPMENT)
+# ============================================================================
+[[allowlists]]
+description = "Development and test database connection strings"
+regexes = [
+  # PostgreSQL development URLs
+  '''postgresql://(postgres|user|username|test|dev):(postgres|password|test|dev)@(localhost|postgres|127\.0\.0\.1|db)(:[0-9]+)?(/[a-zA-Z0-9_-]+)?''',
+  '''postgres://(postgres|user|username|test|dev):(postgres|password|test|dev)@(localhost|postgres|127\.0\.0\.1|db)(:[0-9]+)?(/[a-zA-Z0-9_-]+)?''',
+  
+  # Redis development URLs
+  '''redis://(redis|localhost|127\.0\.0\.1)(:[0-9]+)?(/[0-9]+)?''',
+  
+  # Environment variable assignments
+  '''DATABASE_URL=['"]?postgresql://.*['"]?''',
+  '''REDIS_URL=['"]?redis://.*['"]?''',
+  
+  # Connection string components
+  '''@(postgres|redis|localhost|127\.0\.0\.1|db):(5432|6379)'''
+]
+
+# ============================================================================
+# 7. DOCKER COMPOSE CONFIGURATIONS
+# ============================================================================
+[[allowlists]]
+description = "Docker Compose database and service configurations"
+paths = [
+  # Docker compose files
+  '''docker-compose.*\.yml''',
+  '''docker-compose.*\.yaml''',
+  '''compose.*\.yml''',
+  '''compose.*\.yaml''',
+  
+  # Docker files
+  '''Dockerfile.*''',
+  '''\.dockerignore'''
+]
+regexes = [
+  # Any database URLs in Docker context (typically non-sensitive defaults)
+  '''postgresql://.*''',
+  '''postgres://.*''',
+  '''redis://.*''',
+  '''mongodb://.*''',
+  '''mysql://.*'''
+]
+
+# ============================================================================
+# 8. TEST PRIVATE KEYS AND API KEYS
+# ============================================================================
+[[allowlists]]
+description = "Test private keys, certificates, and API keys (clearly fake/test values)"
+regexes = [
+  # Test private keys
+  '''-----BEGIN[A-Z ]*PRIVATE KEY-----[\s\S]*FAKE[\s\S]*-----END[A-Z ]*PRIVATE KEY-----''',
+  '''-----BEGIN[A-Z ]*PRIVATE KEY-----[\s\S]*TEST[\s\S]*-----END[A-Z ]*PRIVATE KEY-----''',
+  '''-----BEGIN RSA PRIVATE KEY-----.*-----END RSA PRIVATE KEY-----''',
+  '''privateKey:\s*['"]-----BEGIN RSA PRIVATE KEY-----.*-----END RSA PRIVATE KEY-----['"]''',
+  '''FAKE_PRIVATE_KEY_FOR_TESTS''',
+  '''test.*private.*key''',
+  '''private.*key.*test''',
+  '''privateKey:\s*['"].*-----BEGIN[\s\S]*TEST[\s\S]*-----END[\s\S]*['"]''',
+  
+  # Test GitHub tokens
+  '''gh[pso]_test[a-zA-Z0-9_-]+''',
+  '''github_pat_test[a-zA-Z0-9_-]+''',
+  
+  # Specific test secrets from .env.example
+  '''your-super-secret-jwt-key-minimum-32-characters-long-change-this''',
+  '''your-api-key-minimum-16-chars-change-this''',
+  '''base64-encoded-private-key-for-octokit-helpers''',
+  
+  # Generic test patterns
+  '''[a-zA-Z]*[_-]?test[_-]?[a-zA-Z]*[_-]?(secret|key|token)[a-zA-Z0-9_-]*''',
+  '''(secret|key|token)[_-]?[a-zA-Z]*[_-]?test[a-zA-Z0-9_-]*'''
+]
+
+# ============================================================================
+# 9. CURL EXAMPLES AND HTTP HEADERS
+# ============================================================================
+[[allowlists]]
+description = "Documentation curl examples with auth headers"
+regexes = [
+  # Curl command examples
+  '''curl\s+.*(-H|--header)\s+['"]?Authorization:\s*Bearer\s+[^'"\s]+['"]?''',
+  '''curl\s+.*(-H|--header)\s+['"]?Authorization:\s*token\s+[^'"\s]+['"]?''',
+  '''curl\s+.*(-H|--header)\s+['"]?X-API-Key:\s*[^'"\s]+['"]?''',
+  
+  # JSON examples with auth
+  '''"Authorization":\s*"Bearer\s+[^"]*"''',
+  '''"Authorization":\s*"token\s+[^"]*"''',
+  '''"X-API-Key":\s*"[^"]*"''',
+  
+  # Authorization headers with variables
+  '''Authorization:\s*(Bearer|token)\s+\$\{\{[^}]+\}\}''',
+  '''X-API-Key:\s*\$\{\{[^}]+\}\}'''
+]
+
+# ============================================================================
+# 10. SLACK WEBHOOK EXAMPLES
+# ============================================================================
+[[allowlists]]
+description = "Slack webhook URL examples and placeholders"
+regexes = [
+  # Example Slack webhooks
+  '''https://hooks\.slack\.com/services/T[A-Z0-9]{8,}/B[A-Z0-9]{8,}/[a-zA-Z0-9]{24,}''',
+  '''https://hooks\.slack\.com/services/T00000000/B00000000/[a-zA-Z0-9]+''',
+  '''https://hooks\.slack\.com/services/YOUR_WORKSPACE/YOUR_CHANNEL/YOUR_TOKEN''',
+  '''webhook.*slack.*example''',
+  
+  # Slack URL placeholders
+  '''T[A-Z0-9]{8}/B[A-Z0-9]{8}/[a-zA-Z0-9]{24}'''
+]
+
+# ============================================================================
+# 11. ENVIRONMENT VARIABLE ASSIGNMENTS
+# ============================================================================
+[[allowlists]]
+description = "Environment variable assignments with test/example values"
+regexes = [
+  # Common environment variables with safe values
+  '''JWT_SECRET\s*=\s*['"]?.*''',
+  '''API_KEY\s*=\s*['"]?.*''',
+  '''GITHUB_PRIVATE_KEY\s*=\s*['"]?.*''',
+  '''GITHUB_APP_PRIVATE_KEY_BASE64\s*=\s*['"]?.*''',
+  '''GITHUB_WEBHOOK_SECRET\s*=\s*['"]?.*''',
+  '''GITHUB_CLIENT_SECRET\s*=\s*['"]?.*''',
+  '''SLACK_BOT_TOKEN\s*=\s*['"]?.*''',
+  '''SLACK_SIGNING_SECRET\s*=\s*['"]?.*''',
+  '''SLACK_APP_TOKEN\s*=\s*['"]?.*''',
+  
+  # More specific safe patterns
+  '''JWT_SECRET\s*=\s*['"]?your-[a-z-]+-change-this['"]?''',
+  '''API_KEY\s*=\s*['"]?your-[a-z-]+-change-this['"]?''',
+  '''SLACK_BOT_TOKEN\s*=\s*['"]?xoxb-test-[a-zA-Z0-9-]+['"]?''',
+  '''SLACK_SIGNING_SECRET\s*=\s*['"]?[a-z0-9]{32,}['"]?''',
+  '''SLACK_APP_TOKEN\s*=\s*['"]?xapp-[a-zA-Z0-9-]+['"]?'''
+]
+
+# ============================================================================
+# 12. COMPREHENSIVE TEST AND EXAMPLE PATTERNS
+# ============================================================================
+[[allowlists]]
+description = "Comprehensive allowlist for all test, example, and development patterns"
+regexes = [
+  # All test tokens and secrets
+  '''test-.*-secret''',
+  '''test-.*-token''',
+  '''test-.*-key''',
+  
+  # Any string containing clear test/example indicators
+  '''.*(test|example|placeholder|mock|fake|dummy|sample)[_-]+(secret|token|key|password).*''',
+  '''.*(secret|token|key|password)[_-]+(test|example|placeholder|mock|fake|dummy|sample).*''',
+  
+  # Development and local values
+  '''.*localhost[:/].*''',
+  '''.*127\.0\.0\.1[:/].*''',
+  '''.*(development|dev|local)[_-]+(secret|token|key|password).*''',
+  
+  # Common placeholder formats
+  '''<[A-Z_]+>''',
+  '''\{\{[A-Z_]+\}\}''',
+  '''\$\{[A-Z_]+\}''',
+  '''%[A-Z_]+%''',
+  
+  # Obvious fake/test values
+  '''[a-zA-Z0-9]*-change-this[a-zA-Z0-9-]*''',
+  '''[a-zA-Z0-9]*-replace[a-zA-Z0-9-]*''',
+  '''[a-zA-Z0-9]*-placeholder[a-zA-Z0-9-]*''',
+  
+  # 32+ char secrets that are clearly examples
+  '''[a-zA-Z-]*secret[a-zA-Z-]*minimum[a-zA-Z0-9-]*characters[a-zA-Z0-9-]*''',
+  
+  # Catch-all for obvious test/example patterns
+  '''.*test.*secret.*''',
+  '''.*example.*token.*''',
+  '''.*placeholder.*key.*''',
+  '''.*mock.*secret.*''',
+  '''.*fake.*token.*'''
+]
+
+# ============================================================================
+# 13. PROJECT-SPECIFIC FILE ALLOWLISTS
+# ============================================================================
+[[allowlists]]
+description = "FlakeGuard project-specific files with expected test patterns"
+paths = [
+  # Scripts and automation
+  '''scripts/test-gitleaks\.ps1''',
+  '''scripts/.*\.ps1''',
+  '''scripts/.*\.sh''',
+  
+  # API test files
+  '''apps/api/src/github/__tests__/integration\.integration\.test\.ts''',
+  '''apps/api/src/plugins/__tests__/security\.test\.ts''',
+  '''apps/api/src/analytics/__tests__/.*\.test\.ts''',
+  '''apps/api/src/github/__tests__/.*\.test\.ts''',
+  
+  # Documentation with examples
+  '''apps/docs/docs/api/introduction\.md''',
+  '''apps/docs/docs/troubleshooting/common-issues\.md''',
+  '''docs/troubleshooting\.md''',
+  '''docs/github-app-setup\.md''',
+  '''docs/slack-integration\.md''',
+  '''apps/api/docs/slack-integration\.md''',
+  '''apps/api/docs/slack-workflow-examples\.md''',
+  
+  # CLI and package files
+  '''packages/cli/src/guides/.*\.ts''',
+  '''packages/cli/src/i18n/messages/.*\.ts''',
+  '''packages/cli/README\.md''',
+  
+  # Additional test patterns
+  '''.*\.test\.ts''',
+  '''.*\.test\.js''',
+  '''.*\.integration\.test\.ts''',
+  '''.*\.performance\.test\.ts''',
+  '''.*/__tests__/.*'''
+]

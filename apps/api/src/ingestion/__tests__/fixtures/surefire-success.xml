@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+           xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" 
+           version="3.0" 
+           name="com.example.service.UserServiceTest" 
+           time="2.543" 
+           tests="5" 
+           errors="0" 
+           skipped="0" 
+           failures="0" 
+           timestamp="2023-12-01T10:30:15" 
+           hostname="localhost" 
+           id="1" 
+           package="com.example.service">
+  <properties>
+    <property name="java.version" value="17.0.5"/>
+    <property name="java.vendor" value="Eclipse Adoptium"/>
+    <property name="java.home" value="/opt/java/openjdk"/>
+    <property name="os.name" value="Linux"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="os.version" value="5.15.0-89-generic"/>
+    <property name="user.timezone" value="UTC"/>
+    <property name="maven.version" value="3.9.4"/>
+    <property name="surefire.version" value="3.2.2"/>
+  </properties>
+  
+  <testcase classname="com.example.service.UserServiceTest" 
+            name="testCreateUser" 
+            time="0.521">
+  </testcase>
+  
+  <testcase classname="com.example.service.UserServiceTest" 
+            name="testFindUserById" 
+            time="0.425">
+  </testcase>
+  
+  <testcase classname="com.example.service.UserServiceTest" 
+            name="testUpdateUser" 
+            time="0.687">
+  </testcase>
+  
+  <testcase classname="com.example.service.UserServiceTest" 
+            name="testDeleteUser" 
+            time="0.398">
+  </testcase>
+  
+  <testcase classname="com.example.service.UserServiceTest" 
+            name="testFindAllUsers" 
+            time="0.512">
+  </testcase>
+  
+  <system-out><![CDATA[
+INFO  [main] com.example.service.UserService - UserService initialized
+INFO  [main] com.example.service.UserService - Creating user: John Doe
+INFO  [main] com.example.service.UserService - User created with ID: 1
+INFO  [main] com.example.service.UserService - Finding user with ID: 1
+INFO  [main] com.example.service.UserService - User found: John Doe
+INFO  [main] com.example.service.UserService - Updating user with ID: 1
+INFO  [main] com.example.service.UserService - User updated successfully
+INFO  [main] com.example.service.UserService - Deleting user with ID: 1
+INFO  [main] com.example.service.UserService - User deleted successfully
+INFO  [main] com.example.service.UserService - Finding all users
+INFO  [main] com.example.service.UserService - Found 0 users
+  ]]></system-out>
+  
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -1,0 +1,161 @@
+# Development overrides
+services:
+  postgres:
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: flakeguard
+      # Enable query logging in development
+      POSTGRES_INITDB_ARGS: >-
+        -c log_statement=all 
+        -c log_duration=on 
+        -c log_line_prefix='%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+        -c logging_collector=on
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/db/init:/docker-entrypoint-initdb.d:ro
+      - ./logs/postgres:/var/log/postgresql
+
+  redis:
+    ports:
+      - '6379:6379'
+    # Enable verbose logging in development
+    command: >
+      redis-server
+      --appendonly yes
+      --loglevel verbose
+      --logfile /var/log/redis/redis-server.log
+    volumes:
+      - redis_data:/data
+      - ./logs/redis:/var/log/redis
+
+  # Development API service
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile.dev
+      target: development
+    container_name: flakeguard-api-dev
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+      - '9229:9229'  # Node.js debugging port
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/flakeguard
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev-jwt-secret-minimum-32-characters-long-change-this
+      - API_KEY=dev-api-key-minimum-16-chars-change-this
+      - LOG_LEVEL=debug
+    volumes:
+      - ./apps/api:/app/apps/api:cached
+      - ./packages:/app/packages:cached
+      - ./node_modules:/app/node_modules:ro
+      - ./logs/api:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - flakeguard-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    profiles:
+      - dev
+
+  # Development Web service
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile.dev
+      target: development
+    container_name: flakeguard-web-dev
+    restart: unless-stopped
+    ports:
+      - '3002:3000'
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./apps/web:/app/apps/web:cached
+      - ./packages:/app/packages:cached
+      - ./node_modules:/app/node_modules:ro
+    depends_on:
+      - api
+    networks:
+      - flakeguard-network
+    profiles:
+      - dev
+
+  # Development Worker service
+  worker:
+    build:
+      context: .
+      dockerfile: ./apps/worker/Dockerfile.dev
+      target: development
+    container_name: flakeguard-worker-dev
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/flakeguard
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+      - WORKER_CONCURRENCY=2
+    volumes:
+      - ./apps/worker:/app/apps/worker:cached
+      - ./packages:/app/packages:cached
+      - ./node_modules:/app/node_modules:ro
+      - ./logs/worker:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - flakeguard-network
+    profiles:
+      - dev
+
+  # Development database seeder
+  seed:
+    build:
+      context: .
+      dockerfile: ./scripts/Dockerfile.seed
+    container_name: flakeguard-seed
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/flakeguard
+    volumes:
+      - ./scripts:/app/scripts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - flakeguard-network
+    profiles:
+      - dev
+      - seed
+
+  # Hot reload proxy for development
+  hot-reload-proxy:
+    image: nginx:alpine
+    container_name: flakeguard-proxy-dev
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    volumes:
+      - ./config/nginx/dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+      - web
+    networks:
+      - flakeguard-network
+    profiles:
+      - dev

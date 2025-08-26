@@ -1,0 +1,774 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  githubId  Int?     @unique // For GitHub OAuth integration
+  avatar    String?
+  role      String   @default("user") // user, admin, super_admin
+  status    String   @default("active") // active, suspended, deleted
+  lastLoginAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  tasks            Task[]
+  organizations    OrganizationUser[]
+  auditLogs        AuditLog[]
+
+  @@index([githubId])
+  @@index([role])
+  @@index([status])
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(PENDING)
+  priority    Priority   @default(MEDIUM)
+  userId      String
+  orgId       String?    // Optional org scoping for tasks
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([status])
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Multi-tenant Organization Management
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  githubLogin String?  // For GitHub orgs, this is the org login
+  domain      String?  // For email domain-based auth
+  settings    Json     @default("{}")
+  plan        String   @default("free") // free, pro, enterprise
+  status      String   @default("active") // active, suspended, deleted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  installations     Installation[]
+  users            OrganizationUser[]
+  subscriptions    Subscription[]
+  auditLogs        AuditLog[]
+  usageMetrics     UsageMetric[]
+  repositories     Repository[]
+  checkRuns        CheckRun[]
+  workflowRuns     WorkflowRun[]
+  flakeDetections  FlakeDetection[]
+  testResults      TestResult[]
+  testSuites       TestSuite[]
+  
+  // FlakeGuard models
+  fgRepositories   FGRepository[]
+  fgWorkflowRuns   FGWorkflowRun[]
+  fgTestCases      FGTestCase[]
+  fgOccurrences    FGOccurrence[]
+  fgFlakeScores    FGFlakeScore[]
+  fgQuarantineDecisions FGQuarantineDecision[]
+  fgFailureClusters FGFailureCluster[]
+
+  @@index([githubLogin])
+  @@index([domain])
+  @@index([plan])
+  @@index([status])
+}
+
+// Organization User Management
+model OrganizationUser {
+  id      String @id @default(cuid())
+  orgId   String
+  userId  String
+  role    String @default("member") // owner, admin, member, viewer
+  status  String @default("active") // active, suspended, pending
+  joinedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([orgId])
+  @@index([userId])
+  @@index([role])
+}
+
+// Subscription and Billing
+model Subscription {
+  id              String    @id @default(cuid())
+  orgId           String
+  plan            String    // free, pro, enterprise
+  status          String    // active, cancelled, expired
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAt        DateTime?
+  cancelAtPeriodEnd Boolean @default(false)
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+// Audit Logging for Security and Compliance
+model AuditLog {
+  id          String   @id @default(cuid())
+  orgId       String
+  userId      String?  // null for system events
+  action      String   // create, update, delete, access, etc.
+  resource    String   // installation, repository, test, etc.
+  resourceId  String?  // ID of the affected resource
+  details     Json     @default("{}")
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId])
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+}
+
+// Usage Tracking and Quota Management
+model UsageMetric {
+  id           String   @id @default(cuid())
+  orgId        String
+  metricType   String   // test_runs, api_calls, storage_mb, etc.
+  value        Int      @default(0)
+  period       String   // daily, monthly, yearly
+  date         DateTime // Start of the period
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, metricType, period, date])
+  @@index([orgId])
+  @@index([metricType])
+  @@index([date])
+}
+
+// GitHub App Models - Now Tenant-Aware
+model Installation {
+  id                   String    @id
+  orgId                String    // Multi-tenant key
+  githubInstallationId Int       @unique
+  accountLogin         String
+  accountId            Int
+  accountType          String
+  repositorySelection  String    @default("selected")
+  permissions          Json      @default("{}")
+  events               String[]  @default([])
+  syncStatus           String    @default("active") // active, paused, error
+  lastSyncAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  suspendedAt          DateTime?
+
+  organization    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repositories    Repository[]
+  checkRuns       CheckRun[]
+  workflowRuns    WorkflowRun[]
+  flakeDetections FlakeDetection[]
+
+  @@index([orgId])
+  @@index([githubInstallationId])
+  @@index([accountLogin])
+  @@index([syncStatus])
+}
+
+model Repository {
+  id             String   @id @default(cuid())
+  orgId          String   // Multi-tenant key
+  githubId       Int      @unique
+  nodeId         String
+  name           String
+  fullName       String
+  owner          String
+  private        Boolean  @default(false)
+  defaultBranch  String   @default("main")
+  installationId String
+  isActive       Boolean  @default(true)
+  settings       Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  installation    Installation     @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  checkRuns       CheckRun[]
+  workflowRuns    WorkflowRun[]
+  flakeDetections FlakeDetection[]
+  testResults     TestResult[]
+  testSuites      TestSuite[]
+
+  @@index([orgId])
+  @@index([githubId])
+  @@index([fullName])
+  @@index([installationId])
+  @@index([orgId, fullName])
+}
+
+model CheckRun {
+  id             String    @id @default(cuid())
+  orgId          String    // Multi-tenant key
+  githubId       Int       @unique
+  name           String
+  headSha        String
+  status         String
+  conclusion     String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  repositoryId   String
+  installationId String
+  workflowRunId  String?
+  output         Json      @default("{}")
+  actions        Json      @default("[]")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repository      Repository       @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  installation    Installation     @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  workflowRun     WorkflowRun?     @relation(fields: [workflowRunId], references: [id])
+  testResults     TestResult[]
+  testSuites      TestSuite[]
+  flakeDetections FlakeDetection[]
+
+  @@index([orgId])
+  @@index([githubId])
+  @@index([headSha])
+  @@index([status])
+  @@index([conclusion])
+  @@index([repositoryId])
+  @@index([workflowRunId])
+  @@index([orgId, repositoryId])
+}
+
+model WorkflowRun {
+  id             String    @id @default(cuid())
+  orgId          String    // Multi-tenant key
+  githubId       Int       @unique
+  name           String?
+  headBranch     String
+  headSha        String
+  status         String
+  conclusion     String?
+  workflowId     Int
+  workflowName   String
+  repositoryId   String
+  installationId String
+  runStartedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repository   Repository    @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  installation Installation  @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  checkRuns    CheckRun[]
+  workflowJobs WorkflowJob[]
+  artifacts    Artifact[]
+
+  @@index([orgId])
+  @@index([githubId])
+  @@index([status])
+  @@index([conclusion])
+  @@index([repositoryId])
+  @@index([workflowId])
+  @@index([orgId, repositoryId])
+}
+
+model WorkflowJob {
+  id            String    @id @default(cuid())
+  githubId      Int       @unique
+  name          String
+  status        String
+  conclusion    String?
+  workflowRunId String
+  startedAt     DateTime?
+  completedAt   DateTime?
+  steps         Json      @default("[]")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  workflowRun WorkflowRun  @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  testResults TestResult[]
+  testSuites  TestSuite[]
+
+  @@index([githubId])
+  @@index([workflowRunId])
+  @@index([status])
+  @@index([conclusion])
+}
+
+model Artifact {
+  id                 String   @id @default(cuid())
+  githubId           Int      @unique
+  name               String
+  type               String
+  sizeInBytes        Int
+  url                String
+  archiveDownloadUrl String
+  expired            Boolean  @default(false)
+  workflowRunId      String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  expiresAt          DateTime
+
+  workflowRun WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+
+  @@index([githubId])
+  @@index([workflowRunId])
+  @@index([type])
+  @@index([expired])
+}
+
+model TestSuite {
+  id       String  @id @default(cuid())
+  orgId    String  // Multi-tenant key
+  name     String
+  package  String?
+  hostname String?
+
+  // Test statistics
+  tests    Int    @default(0)
+  failures Int    @default(0)
+  errors   Int    @default(0)
+  skipped  Int    @default(0)
+  time     Float? // Total execution time in seconds
+
+  // Execution context
+  timestamp String? // ISO timestamp from JUnit
+  runId     String? // Workflow run identifier
+  jobName   String? // Job name within the workflow
+
+  // Relationships
+  repositoryId  String
+  checkRunId    String?
+  workflowJobId String?
+
+  // System output
+  systemOut  String?
+  systemErr  String?
+  properties Json    @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repository  Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  checkRun    CheckRun?    @relation(fields: [checkRunId], references: [id])
+  workflowJob WorkflowJob? @relation(fields: [workflowJobId], references: [id])
+  testResults TestResult[]
+
+  // Unique constraint to prevent duplicate test suites
+  @@unique([orgId, repositoryId, name, runId])
+  // Performance indexes
+  @@index([orgId])
+  @@index([name])
+  @@index([repositoryId])
+  @@index([checkRunId])
+  @@index([workflowJobId])
+  @@index([runId])
+  @@index([repositoryId, name])
+  @@index([createdAt])
+  @@index([orgId, repositoryId])
+}
+
+// Core FlakeGuard Models - Extended for comprehensive test tracking and analysis
+
+// Enhanced Repository model with provider support
+model FGRepository {
+  id             String   @id @default(cuid())
+  orgId          String   // Multi-tenant key
+  provider       String   @default("github") // github, gitlab, etc.
+  owner          String
+  name           String
+  installationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  workflowRuns    FGWorkflowRun[]
+  testCases       FGTestCase[]
+  failureClusters FGFailureCluster[]
+
+  @@unique([orgId, provider, owner, name])
+  @@index([orgId])
+  @@index([provider])
+  @@index([owner])
+  @@index([installationId])
+  @@index([orgId, provider])
+}
+
+// Workflow Run tracking
+model FGWorkflowRun {
+  id           String    @id @default(cuid())
+  orgId        String    // Multi-tenant key
+  repoId       String
+  runId        String // GitHub run ID
+  status       String // queued, in_progress, completed
+  conclusion   String? // success, failure, cancelled, skipped, timed_out, action_required
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repository FGRepository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  jobs       FGJob[]
+  occurrences FGOccurrence[]
+
+  @@unique([orgId, repoId, runId])
+  @@index([orgId])
+  @@index([repoId])
+  @@index([status])
+  @@index([conclusion])
+  @@index([createdAt])
+  @@index([orgId, repoId])
+}
+
+// Job within a workflow run
+model FGJob {
+  id          String    @id @default(cuid())
+  runId       String
+  jobId       String // GitHub job ID
+  name        String
+  status      String
+  conclusion  String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  workflowRun FGWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  occurrences FGOccurrence[]
+
+  @@unique([runId, jobId])
+  @@index([runId])
+  @@index([status])
+  @@index([conclusion])
+}
+
+// Test Case definition - represents a unique test
+model FGTestCase {
+  id        String   @id @default(cuid())
+  orgId     String   // Multi-tenant key
+  repoId    String
+  suite     String // Test suite name
+  className String? // Optional class name
+  name      String // Test method/function name
+  file      String? // Source file path
+  ownerTeam String? // Team responsible for this test
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization        Organization           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repository          FGRepository           @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  occurrences         FGOccurrence[]
+  flakeScore          FGFlakeScore?
+  quarantineDecisions FGQuarantineDecision[]
+  issueLinks          FGIssueLink[]
+  failureClusters     FGFailureCluster[]
+
+  @@unique([orgId, repoId, suite, className, name])
+  @@index([orgId])
+  @@index([repoId, suite, className, name]) // Critical index for test lookup
+  @@index([repoId])
+  @@index([suite])
+  @@index([ownerTeam])
+  @@index([file])
+  @@index([orgId, repoId])
+}
+
+// Test Occurrence - each run of a test
+model FGOccurrence {
+  id                   String   @id @default(cuid())
+  orgId                String   // Multi-tenant key
+  testId               String
+  runId                String
+  jobId                String?
+  status               String // passed, failed, skipped, error
+  durationMs           Int? // Duration in milliseconds
+  failureMsgSignature  String? // Hash/signature of failure message for clustering
+  failureStackDigest   String? // Hash of stack trace for clustering
+  failureMessage       String? // Full failure message
+  failureStackTrace    String? // Full stack trace
+  attempt              Int      @default(1) // For retries
+  createdAt            DateTime @default(now())
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  testCase    FGTestCase    @relation(fields: [testId], references: [id], onDelete: Cascade)
+  workflowRun FGWorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  job         FGJob?        @relation(fields: [jobId], references: [id])
+
+  @@unique([orgId, runId, testId]) // Unique per org and run
+  @@index([orgId])
+  @@index([testId]) // Query test history
+  @@index([runId])
+  @@index([status])
+  @@index([failureMsgSignature, testId]) // Critical for failure clustering
+  @@index([failureStackDigest, testId])
+  @@index([createdAt])
+  @@index([testId, createdAt]) // Time-series queries
+  @@index([testId, status]) // Filter by test and status
+  @@index([orgId, testId])
+}
+
+// Flake Score tracking
+model FGFlakeScore {
+  id            String   @id @default(cuid())
+  orgId         String   // Multi-tenant key
+  testId        String   @unique
+  score         Float    @default(0.0) // 0.0 to 1.0 flakiness score
+  windowN       Int      @default(50) // Number of runs in the window
+  lastUpdatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  testCase FGTestCase @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([score]) // Query by flakiness level
+  @@index([lastUpdatedAt])
+  @@index([orgId, score])
+}
+
+// Quarantine decisions and history
+model FGQuarantineDecision {
+  id        String              @id @default(cuid())
+  orgId     String              // Multi-tenant key
+  testId    String
+  state     FGQuarantineState   @default(PROPOSED)
+  rationale String // Why this decision was made
+  byUser    String? // User who made the decision
+  until     DateTime? // When quarantine expires (null = indefinite)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  testCase FGTestCase @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([testId])
+  @@index([state])
+  @@index([until])
+  @@index([createdAt])
+  @@index([orgId, state])
+}
+
+// Issue links for tracking related GitHub issues
+model FGIssueLink {
+  id        String   @id @default(cuid())
+  testId    String
+  provider  String   @default("github") // github, jira, etc.
+  url       String // Full URL to the issue
+  createdAt DateTime @default(now())
+
+  testCase FGTestCase @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([provider])
+  @@index([createdAt])
+}
+
+// Failure clustering for similar failures
+model FGFailureCluster {
+  id                  String   @id @default(cuid())
+  orgId               String   // Multi-tenant key
+  repoId              String
+  failureMsgSignature String // Hash of the failure message pattern
+  failureStackDigest  String? // Hash of the stack trace pattern
+  testIds             String[] // List of test IDs in this cluster
+  exampleMessage      String? // Representative failure message
+  exampleStackTrace   String? // Representative stack trace
+  occurrenceCount     Int      @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repository FGRepository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  testCases  FGTestCase[]
+
+  @@unique([orgId, repoId, failureMsgSignature])
+  @@index([orgId])
+  @@index([failureMsgSignature, repoId]) // Critical for failure clustering
+  @@index([failureStackDigest])
+  @@index([occurrenceCount])
+  @@index([createdAt])
+  @@index([orgId, repoId])
+}
+
+// Enums
+enum FGQuarantineState {
+  PROPOSED // Suggested for quarantine
+  ACTIVE // Currently quarantined
+  EXPIRED // Quarantine period ended
+  DISMISSED // Quarantine rejected
+  RESOLVED // Test fixed, no longer flaky
+}
+
+// Legacy models kept for backward compatibility
+model TestResult {
+  id           String  @id @default(cuid())
+  orgId        String  // Multi-tenant key
+  // Core test identification
+  name         String // Test name
+  suite        String // Test suite name
+  class        String? // Test class name (optional for some frameworks)
+  testFullName String // Computed full test identifier
+  file         String? // Source file path
+
+  // Test execution results
+  status String // Test status (passed, failed, skipped, error)
+  time   Float  // Execution time in seconds
+
+  // Failure information
+  message String? // Failure message
+  stack   String? // Stack trace
+
+  // Execution context
+  attempt Int    @default(1) // Test attempt number (for retries)
+  runId   String // GitHub workflow run ID
+  jobName String? // GitHub job name
+
+  // Relationships
+  repositoryId  String
+  testSuiteId   String? // Reference to TestSuite
+  checkRunId    String?
+  workflowJobId String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organization    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repository      Repository       @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  testSuite       TestSuite?       @relation(fields: [testSuiteId], references: [id])
+  checkRun        CheckRun?        @relation(fields: [checkRunId], references: [id])
+  workflowJob     WorkflowJob?     @relation(fields: [workflowJobId], references: [id])
+  flakeDetections FlakeDetection[]
+
+  // Unique constraint to prevent duplicate test results
+  @@unique([orgId, repositoryId, testFullName, file, suite])
+  // Performance indexes for query optimization
+  @@index([orgId])
+  @@index([repositoryId, runId]) // Query performance on repositoryId, runId
+  @@index([status]) // Filtering by status
+  @@index([suite]) // Filtering by suite
+  @@index([createdAt]) // Time-based queries
+  @@index([name])
+  @@index([class])
+  @@index([testFullName])
+  @@index([repositoryId])
+  @@index([testSuiteId])
+  @@index([checkRunId])
+  @@index([workflowJobId])
+  @@index([runId])
+  @@index([jobName])
+  @@index([repositoryId, status])
+  @@index([repositoryId, suite])
+  @@index([testSuiteId, status])
+  @@index([orgId, repositoryId])
+  @@index([orgId, status])
+}
+
+model FlakeDetection {
+  id                 String    @id @default(cuid())
+  orgId              String    // Multi-tenant key
+  testName           String
+  repositoryId       String
+  installationId     String
+  checkRunId         String?
+  testResultId       String?
+  isFlaky            Boolean   @default(false)
+  confidence         Float     @default(0.0)
+  failurePattern     String?
+  historicalFailures Int       @default(0)
+  totalRuns          Int       @default(0)
+  failureRate        Float     @default(0.0)
+  lastFailureAt      DateTime?
+  suggestedAction    String?
+  status             String    @default("pending") // pending, quarantined, dismissed, stable
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repository   Repository   @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  installation Installation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  checkRun     CheckRun?    @relation(fields: [checkRunId], references: [id])
+  testResult   TestResult?  @relation(fields: [testResultId], references: [id])
+
+  @@unique([orgId, testName, repositoryId])
+  @@index([orgId])
+  @@index([testName])
+  @@index([repositoryId])
+  @@index([isFlaky])
+  @@index([status])
+  @@index([confidence])
+  @@index([orgId, repositoryId])
+  @@index([orgId, isFlaky])
+}
+
+// Ingestion Job model for background processing
+model IngestionJob {
+  id              String    @id @default(cuid())
+  correlationId   String?   @unique // External correlation ID
+  workflowRunId   String
+  repositoryId    String
+  priority        String    @default("normal") // low, normal, high, critical
+  status          String    @default("queued") // queued, processing, completed, failed, cancelled
+  artifactCount   Int?      // Number of artifacts processed
+  testCount       Int?      // Number of test cases found
+  failureCount    Int?      // Number of failed tests
+  errorCount      Int?      // Number of errored tests
+  processingTimeMs Int?     // Processing duration
+  errorMessage    String?   // Error message if failed
+  metadata        Json      @default("{}") // Additional job metadata
+  startedAt       DateTime? // When job started processing
+  completedAt     DateTime? // When job completed (success or failure)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([workflowRunId])
+  @@index([repositoryId])
+  @@index([createdAt])
+  @@index([correlationId])
+  @@index([status, createdAt])
+}

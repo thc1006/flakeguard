@@ -1,0 +1,14 @@
+{
+  "regexes": [
+    "postgresql://postgres:postgres@",
+    "postgresql://user:password@",
+    "postgres://postgres:postgres@",
+    "DATABASE_URL=postgresql://",
+    "redis://redis:6379",
+    "redis://localhost:6379",
+    "jdbc:postgresql://localhost",
+    "postgresql://.*@localhost",
+    "postgresql://.*@postgres",
+    "postgresql://.*@127.0.0.1"
+  ]
+}

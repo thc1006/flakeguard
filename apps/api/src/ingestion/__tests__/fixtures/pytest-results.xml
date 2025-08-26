@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+  <testsuite name="pytest" 
+             tests="15" 
+             failures="3" 
+             errors="1" 
+             skipped="2" 
+             time="12.456" 
+             timestamp="2023-12-01T10:55:30" 
+             hostname="python-test-runner">
+    
+    <testcase classname="tests.test_user_model" 
+              name="test_user_creation" 
+              time="0.123"
+              file="tests/test_user_model.py"
+              line="15">
+    </testcase>
+    
+    <testcase classname="tests.test_user_model" 
+              name="test_user_validation" 
+              time="0.067"
+              file="tests/test_user_model.py"
+              line="25">
+    </testcase>
+    
+    <testcase classname="tests.test_user_model" 
+              name="test_user_email_uniqueness" 
+              time="0.234"
+              file="tests/test_user_model.py"
+              line="35">
+      <failure message="AssertionError: User with duplicate email should not be created">
+        <![CDATA[
+>       assert response.status_code == 400
+E       AssertionError: User with duplicate email should not be created
+E       assert 201 == 400
+E        +  where 201 = <Response [201]>.status_code
+
+tests/test_user_model.py:38: AssertionError
+
+----------------------------- Captured stdout call -----------------------------
+Creating user with email: john.doe@example.com
+User created successfully with ID: 1
+Attempting to create duplicate user with same email
+Duplicate user created with ID: 2 (This should not happen!)
+
+----------------------------- Captured stderr call -----------------------------
+WARNING: Duplicate email validation bypassed
+ERROR: Database uniqueness constraint not enforced
+        ]]>
+      </failure>
+    </testcase>
+    
+    <testcase classname="tests.test_user_service" 
+              name="test_get_user_by_id" 
+              time="0.089"
+              file="tests/test_user_service.py"
+              line="12">
+    </testcase>
+    
+    <testcase classname="tests.test_user_service" 
+              name="test_get_nonexistent_user" 
+              time="0.045"
+              file="tests/test_user_service.py"
+              line="22">
+    </testcase>
+    
+    <testcase classname="tests.test_user_service" 
+              name="test_update_user" 
+              time="0.156"
+              file="tests/test_user_service.py"
+              line="32">
+    </testcase>
+    
+    <testcase classname="tests.test_user_service" 
+              name="test_delete_user" 
+              time="0.098"
+              file="tests/test_user_service.py"
+              line="42">
+    </testcase>
+    
+    <testcase classname="tests.test_api_endpoints" 
+              name="test_health_check" 
+              time="0.034"
+              file="tests/test_api_endpoints.py"
+              line="10">
+    </testcase>
+    
+    <testcase classname="tests.test_api_endpoints" 
+              name="test_user_endpoints" 
+              time="0.567"
+              file="tests/test_api_endpoints.py"
+              line="18">
+    </testcase>
+    
+    <testcase classname="tests.test_api_endpoints" 
+              name="test_authentication" 
+              time="0.234"
+              file="tests/test_api_endpoints.py"
+              line="28">
+      <failure message="AssertionError: Expected 401 but got 200">
+        <![CDATA[
+>       assert response.status_code == 401
+E       AssertionError: Expected 401 but got 200
+E       assert 200 == 401
+E        +  where 200 = <Response [200]>.status_code
+
+tests/test_api_endpoints.py:32: AssertionError
+
+----------------------------- Captured stdout call -----------------------------
+Testing authentication with invalid token: invalid-jwt-token
+Response status: 200
+Response body: {"message": "Access granted", "user": {"id": 1, "name": "Test User"}}
+Authentication bypass detected!
+
+----------------------------- Captured stderr call -----------------------------
+ERROR: Authentication middleware not working correctly
+ERROR: Security vulnerability detected in authentication flow
+        ]]>
+      </failure>
+    </testcase>
+    
+    <testcase classname="tests.test_api_endpoints" 
+              name="test_rate_limiting" 
+              time="2.345"
+              file="tests/test_api_endpoints.py"
+              line="45">
+      <failure message="AssertionError: Rate limiting not enforced">
+        <![CDATA[
+>       assert response.status_code == 429
+E       AssertionError: Rate limiting not enforced
+E       assert 200 == 429
+E        +  where 200 = <Response [200]>.status_code
+
+tests/test_api_endpoints.py:52: AssertionError
+
+----------------------------- Captured stdout call -----------------------------
+Making 100 rapid requests to test rate limiting...
+Request 1: 200 - Success
+Request 2: 200 - Success
+Request 3: 200 - Success
+...
+Request 100: 200 - Success
+Rate limiting should have kicked in after 10 requests!
+
+----------------------------- Captured stderr call -----------------------------
+ERROR: Rate limiting middleware not configured correctly
+ERROR: All 100 requests succeeded when they should have been throttled
+        ]]>
+      </failure>
+    </testcase>
+    
+    <testcase classname="tests.test_database" 
+              name="test_connection" 
+              time="0.078"
+              file="tests/test_database.py"
+              line="8">
+    </testcase>
+    
+    <testcase classname="tests.test_database" 
+              name="test_migration" 
+              time="1.234"
+              file="tests/test_database.py"
+              line="15">
+    </testcase>
+    
+    <testcase classname="tests.test_database" 
+              name="test_transaction_rollback" 
+              time="0.456"
+              file="tests/test_database.py"
+              line="25">
+      <error message="ConnectionError: Database connection lost">
+        <![CDATA[
+E       ConnectionError: Database connection lost
+E       
+E       During handling of the above exception, another exception occurred:
+E       
+E       Traceback (most recent call last):
+E         File "tests/test_database.py", line 30, in test_transaction_rollback
+E           with db.transaction():
+E         File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1346, in __enter__
+E           self._trans = self.begin()
+E         File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1319, in begin
+E           return self._connection.begin()
+E         File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 408, in begin
+E           return self._begin_impl()
+E         File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 418, in _begin_impl
+E           self._autobegin()
+E         File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2543, in _autobegin
+E           self._begin_impl()
+E       ConnectionError: Database connection lost during transaction start
+
+----------------------------- Captured stdout call -----------------------------
+Initializing database transaction test
+Creating test transaction context
+Database connection established
+
+----------------------------- Captured stderr call -----------------------------
+WARNING: Database connection unstable
+ERROR: Transaction could not be started
+ERROR: Connection pool exhausted
+        ]]>
+      </error>
+    </testcase>
+    
+    <testcase classname="tests.test_external_api" 
+              name="test_external_service_integration" 
+              time="3.456"
+              file="tests/test_external_api.py"
+              line="12">
+      <skipped message="External API service is not available in test environment"/>
+    </testcase>
+    
+    <testcase classname="tests.test_performance" 
+              name="test_load_handling" 
+              time="5.678"
+              file="tests/test_performance.py"
+              line="20">
+      <skipped message="Performance tests skipped in CI environment"/>
+    </testcase>
+    
+    <system-out><![CDATA[
+============================= test session starts ==============================
+platform linux -- Python 3.11.6, pytest-7.4.3, pluggy-1.3.0
+rootdir: /home/runner/work/project
+configfile: pytest.ini
+testpaths: tests
+plugins: cov-4.0.0, mock-3.12.0, asyncio-0.21.1
+collected 15 items
+
+tests/test_user_model.py::test_user_creation PASSED                      [  6%]
+tests/test_user_model.py::test_user_validation PASSED                   [ 13%]
+tests/test_user_model.py::test_user_email_uniqueness FAILED             [ 20%]
+tests/test_user_service.py::test_get_user_by_id PASSED                  [ 26%]
+tests/test_user_service.py::test_get_nonexistent_user PASSED            [ 33%]
+tests/test_user_service.py::test_update_user PASSED                     [ 40%]
+tests/test_user_service.py::test_delete_user PASSED                     [ 46%]
+tests/test_api_endpoints.py::test_health_check PASSED                   [ 53%]
+tests/test_api_endpoints.py::test_user_endpoints PASSED                 [ 60%]
+tests/test_api_endpoints.py::test_authentication FAILED                 [ 66%]
+tests/test_api_endpoints.py::test_rate_limiting FAILED                  [ 73%]
+tests/test_database.py::test_connection PASSED                          [ 80%]
+tests/test_database.py::test_migration PASSED                           [ 86%]
+tests/test_database.py::test_transaction_rollback ERROR                 [ 93%]
+tests/test_external_api.py::test_external_service_integration SKIPPED   [100%]
+tests/test_performance.py::test_load_handling SKIPPED                   [100%]
+
+=========================== FAILURES ===========================
+_________________________ test_user_email_uniqueness _________________________
+_________________________ test_authentication _________________________
+_________________________ test_rate_limiting _________________________
+
+=========================== ERRORS ===========================
+_________________________ test_transaction_rollback _________________________
+
+========================= short test summary info ==========================
+FAILED tests/test_user_model.py::test_user_email_uniqueness - AssertionError: User with duplicate email should not be created
+FAILED tests/test_api_endpoints.py::test_authentication - AssertionError: Expected 401 but got 200
+FAILED tests/test_api_endpoints.py::test_rate_limiting - AssertionError: Rate limiting not enforced
+ERROR tests/test_database.py::test_transaction_rollback - ConnectionError: Database connection lost
+
+============================== 15 passed, 3 failed, 1 error, 2 skipped in 12.46s ==============================
+    ]]></system-out>
+    
+    <system-err><![CDATA[
+/usr/local/lib/python3.11/site-packages/pytest_cov/plugin.py:347: CovReportWarning: Failed to generate report: No data to report.
+  self._cov.html_report(**report_kw)
+
+2023-12-01 10:55:35 - WARNING - tests.conftest - Database connection pool size: 5
+2023-12-01 10:55:35 - WARNING - tests.conftest - Some tests may fail due to connection limits
+2023-12-01 10:55:38 - ERROR - tests.test_database - Connection pool exhausted
+2023-12-01 10:55:42 - ERROR - tests.test_external_api - External service timeout: api.external-service.com
+    ]]></system-err>
+  </testsuite>
+</testsuites>

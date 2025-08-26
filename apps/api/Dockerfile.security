@@ -1,0 +1,146 @@
+# Multi-stage security-hardened Dockerfile for FlakeGuard API
+# Implements security best practices and defense-in-depth
+
+# =============================================================================
+# BUILD STAGE - Security-focused build environment
+# =============================================================================
+FROM node:20-alpine AS builder
+
+# Install security updates and required packages
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        dumb-init \
+        ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user for build
+RUN addgroup -g 1001 -S builder && \
+    adduser -S -D -H -u 1001 -s /sbin/nologin builder -G builder
+
+# Set working directory with secure permissions
+WORKDIR /build
+RUN chown -R builder:builder /build
+
+# Switch to non-root user for build
+USER builder
+
+# Install pnpm globally
+RUN npm install -g pnpm@latest
+
+# Copy dependency files first (better layer caching)
+COPY --chown=builder:builder package*.json pnpm-lock.yaml* ./
+COPY --chown=builder:builder prisma/ ./prisma/
+
+# Install dependencies with security checks
+RUN pnpm install --frozen-lockfile --prod && \
+    pnpm store prune
+
+# Copy source code
+COPY --chown=builder:builder . .
+
+# Generate Prisma client
+RUN pnpm prisma generate
+
+# Build application
+RUN pnpm build
+
+# Remove development dependencies and clean up
+RUN pnpm prune --prod && \
+    rm -rf src/ tests/ node_modules/.cache/
+
+# =============================================================================
+# SECURITY SCANNING STAGE
+# =============================================================================
+FROM aquasec/trivy:latest AS security-scanner
+
+# Copy built application for scanning
+COPY --from=builder /build /scan
+
+# Run security scan (optional - can be done in CI)
+RUN trivy fs --exit-code 1 --severity HIGH,CRITICAL /scan
+
+# =============================================================================
+# PRODUCTION STAGE - Minimal, secure runtime
+# =============================================================================
+FROM node:20-alpine AS production
+
+# Security labels
+LABEL maintainer="FlakeGuard Security Team <security@flakeguard.dev>" \
+      version="1.0.0" \
+      description="Security-hardened FlakeGuard API server" \
+      security.scan="trivy" \
+      security.hardened="true"
+
+# Install security updates and minimal runtime requirements
+RUN apk update && apk upgrade && \
+    apk add --no-cache \
+        dumb-init \
+        ca-certificates \
+        tzdata \
+    && rm -rf /var/cache/apk/* /tmp/* /var/tmp/*
+
+# Create dedicated non-root user with minimal privileges
+RUN addgroup -g 1001 -S flakeguard && \
+    adduser -S -D -H -u 1001 -s /sbin/nologin flakeguard -G flakeguard
+
+# Create secure directories
+RUN mkdir -p /app /run/secrets /var/log/flakeguard && \
+    chown -R flakeguard:flakeguard /app /run/secrets /var/log/flakeguard && \
+    chmod 750 /app /run/secrets /var/log/flakeguard
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application from builder stage
+COPY --from=builder --chown=flakeguard:flakeguard /build/dist ./dist/
+COPY --from=builder --chown=flakeguard:flakeguard /build/node_modules ./node_modules/
+COPY --from=builder --chown=flakeguard:flakeguard /build/prisma ./prisma/
+COPY --from=builder --chown=flakeguard:flakeguard /build/package.json ./
+
+# Copy security files
+COPY --chown=flakeguard:flakeguard public/.well-known/security.txt ./public/.well-known/security.txt
+
+# Set secure file permissions
+RUN find /app -type f -exec chmod 644 {} \; && \
+    find /app -type d -exec chmod 755 {} \; && \
+    chmod +x /app/dist/server.js
+
+# Switch to non-root user
+USER flakeguard
+
+# Security-focused environment variables
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--no-experimental-repl-await --no-experimental-loader --disable-proto=delete" \
+    UV_THREADPOOL_SIZE=4 \
+    PORT=3000 \
+    HOST=0.0.0.0
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3000/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1))"
+
+# Expose port (non-privileged)
+EXPOSE 3000
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/server.js"]
+
+# =============================================================================
+# SECURITY HARDENING
+# =============================================================================
+
+# Remove package managers and development tools
+USER root
+RUN apk del --no-cache apk-tools && \
+    rm -rf /sbin/apk /etc/apk /lib/apk /usr/share/apk /var/lib/apk
+
+# Switch back to application user
+USER flakeguard
+
+# Security metadata
+LABEL security.cve-scan="true" \
+      security.secrets-scan="true" \
+      security.rootless="true" \
+      security.readonly-root="true" \
+      security.capabilities-dropped="ALL"

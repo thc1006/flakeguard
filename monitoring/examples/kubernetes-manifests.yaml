@@ -1,0 +1,247 @@
+# Kubernetes Manifests for FlakeGuard Monitoring
+# 
+# Production-ready Kubernetes deployment with:
+# - ServiceMonitors for Prometheus discovery
+# - PrometheusRules for alerting
+# - ConfigMaps for configuration
+# - Proper resource limits and health checks
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flakeguard-prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'production'
+        region: 'us-west-2'
+
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+
+    scrape_configs:
+      - job_name: 'flakeguard-api'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - flakeguard
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: flakeguard-api
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+
+---
+apiVersion: v1
+kind: ConfigMap  
+metadata:
+  name: flakeguard-alerting-rules
+  namespace: monitoring
+data:
+  flakeguard-rules.yml: |
+    groups:
+      - name: flakeguard.slo
+        rules:
+          - alert: FlakeGuardAPIHighErrorRate
+            expr: |
+              (
+                rate(flakeguard_api_http_requests_total{status_code=~"5.."}[5m])
+                /
+                rate(flakeguard_api_http_requests_total[5m])
+              ) > 0.01
+            for: 2m
+            labels:
+              severity: critical
+              service: flakeguard
+            annotations:
+              summary: "FlakeGuard API error rate is too high"
+              description: "Error rate is {{ $value | humanizePercentage }}"
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: flakeguard-api
+  namespace: monitoring
+  labels:
+    app: flakeguard-api
+spec:
+  selector:
+    matchLabels:
+      app: flakeguard-api
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: flakeguard-worker
+  namespace: monitoring
+  labels:
+    app: flakeguard-worker
+spec:
+  selector:
+    matchLabels:
+      app: flakeguard-worker
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: flakeguard-slo-alerts
+  namespace: monitoring
+  labels:
+    app: flakeguard
+spec:
+  groups:
+    - name: flakeguard.slo.fast-burn
+      interval: 30s
+      rules:
+        - alert: FlakeGuardAPIAvailabilityFastBurn
+          expr: |
+            (
+              (1 - rate(flakeguard_api_http_requests_total{status_code!~"5.."}[1h]) / rate(flakeguard_api_http_requests_total[1h])) > (1440 * 0.001)
+              and
+              (1 - rate(flakeguard_api_http_requests_total{status_code!~"5.."}[5m]) / rate(flakeguard_api_http_requests_total[5m])) > (1440 * 0.001)
+            )
+          for: 2m
+          labels:
+            severity: critical
+            service: flakeguard
+            slo: availability
+            burn_rate: fast
+          annotations:
+            summary: "FlakeGuard API availability burning error budget too fast"
+            description: |
+              API error rate is {{ $value | humanizePercentage }} over the last hour.
+              At this rate, we'll exhaust our monthly error budget in 30 minutes.
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flakeguard-api
+  namespace: flakeguard
+  labels:
+    app: flakeguard-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flakeguard-api
+  template:
+    metadata:
+      labels:
+        app: flakeguard-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "3000"
+    spec:
+      containers:
+        - name: api
+          image: flakeguard/api:latest
+          ports:
+            - containerPort: 3000
+              name: http
+            - containerPort: 9090
+              name: metrics
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flakeguard-secrets
+                  key: database-url
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flakeguard-secrets
+                  key: redis-url
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flakeguard-api-svc
+  namespace: flakeguard
+  labels:
+    app: flakeguard-api
+spec:
+  selector:
+    app: flakeguard-api
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+  type: ClusterIP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: flakeguard-api-ingress
+  namespace: flakeguard
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+    - hosts:
+        - api.flakeguard.com
+      secretName: flakeguard-api-tls
+  rules:
+    - host: api.flakeguard.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: flakeguard-api-svc
+                port:
+                  number: 3000

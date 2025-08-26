@@ -1,0 +1,40 @@
+# Build outputs and compilation artifacts
+dist/
+build/
+.turbo/
+coverage/
+
+# TypeScript compilation artifacts
+**/*.js
+**/*.js.map
+**/*.d.ts
+**/*.d.ts.map
+
+# Config files are ignored due to parser conflicts
+**/*.config.js
+**/next.config.js
+**/postcss.config.js
+**/tailwind.config.js
+
+# Allow specific directories that might contain legitimate JS
+!apps/web/**/*.js
+!docker/**/*.js
+!scripts/**/*.js
+!tools/**/*.js
+
+# Test artifacts
+test-results/
+**/__generated__/
+**/generated/
+
+# Documentation build
+apps/docs/.docusaurus/
+apps/docs/build/
+
+# Node modules
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example

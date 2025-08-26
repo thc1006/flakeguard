@@ -1,0 +1,137 @@
+# TruffleHog exclude patterns for FlakeGuard
+# One regex pattern per line
+# Synchronized with Gitleaks configuration for consistency
+
+# ============================================================================
+# SYSTEM AND BUILD FILES
+# ============================================================================
+
+# Git and version control
+^\.git/.*
+
+# Node modules and dependencies  
+^node_modules/.*
+^\.pnpm-store/.*
+^pnpm-lock\.yaml$
+
+# Build outputs and artifacts
+^dist/.*
+^build/.*
+^coverage/.*
+^\.next/.*
+^\.turbo/.*
+^out/.*
+^apps/docs/build/.*
+
+# Temporary files
+^tmp/.*
+^temp/.*
+^temporary/.*
+
+# Lock files
+.*\.lock$
+.*lock\.json$
+.*lock\.yaml$
+
+# Cache directories
+^\.cache/.*
+^\.tmp/.*
+
+# ============================================================================
+# DOCUMENTATION AND EXAMPLES
+# ============================================================================
+
+# All markdown documentation
+.*\.md$
+
+# Documentation directories
+^docs/.*
+^apps/docs/.*
+^apps/api/docs/.*
+^apps/api/prisma/README\.md$
+
+# Agent files
+^\.claude/.*
+
+# Phase documentation
+^P[0-9]+.*\.md$
+
+# Example and template files
+.*\.example$
+.*\.sample$
+.*\.template$
+^\.env\..*\.example$
+^\.flakeguard\.yml\.example$
+
+# ============================================================================
+# TEST FILES AND FIXTURES
+# ============================================================================
+
+# Test directories
+.*/__tests__/.*
+.*/__mocks__/.*
+^test/.*
+^tests/.*
+^fixtures/.*
+
+# Test files by extension
+.*\.test\..*
+.*\.spec\..*
+.*\.integration\.test\..*
+.*\.unit\.test\..*
+.*\.performance\.test\..*
+
+# Test configurations
+^docker-compose\.test\.yml$
+^docker-compose\.test\.yaml$
+.*\.test\.yml$
+.*\.test\.yaml$
+
+# Test scripts
+^scripts/test-.*
+^scripts/.*test.*
+
+# ============================================================================
+# CONFIGURATION AND DOCKER FILES
+# ============================================================================
+
+# Docker files (contain example credentials)
+^docker-compose.*\.yml$
+^docker-compose.*\.yaml$
+^compose.*\.yml$
+^compose.*\.yaml$
+^Dockerfile.*
+^\.dockerignore$
+
+# Configuration files
+^tsconfig.*\.json$
+^eslint\.config.*
+^\.eslintrc.*
+^\.prettierrc.*
+^vitest\.config.*
+
+# ============================================================================
+# GENERATED AND PROCESSED FILES
+# ============================================================================
+
+# Minified and source maps
+.*\.min\.js$
+.*\.min\.css$
+.*\.map$
+
+# TypeScript declaration files
+.*\.d\.ts$
+
+# Bundle analysis
+.*bundle-analyzer.*
+.*stats.*\.json$
+
+# Log files
+.*\.log$
+^logs/.*
+
+# Editor and IDE files
+^\.vscode/.*
+^\.idea/.*
+.*\.swp$
+.*\.swo$

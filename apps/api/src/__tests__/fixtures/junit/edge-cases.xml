@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Edge cases and malformed examples for testing parser robustness -->
+<testsuites name="Edge Cases" tests="10" failures="3" errors="2" skipped="1" time="5.678">
+  <!-- Empty test suite -->
+  <testsuite name="EmptyTestSuite" tests="0" failures="0" errors="0" skipped="0" time="0.0"/>
+  
+  <!-- Missing required attributes -->
+  <testsuite name="MissingAttributesTest">
+    <testcase name="testWithoutTime"/>
+    <testcase classname="MissingClass"/>
+    <testcase time="0.123"/>
+  </testsuite>
+  
+  <!-- Invalid attribute values -->
+  <testsuite name="InvalidAttributesTest" tests="invalid" failures="-1" errors="abc" time="not_a_number">
+    <testcase name="testInvalidTime" time="not_a_number"/>
+    <testcase name="testNegativeTime" time="-0.5"/>
+    <testcase name="testEmptyAttributes" classname="" time=""/>
+  </testsuite>
+  
+  <!-- Unicode and special characters -->
+  <testsuite name="特殊文字テスト" tests="2" failures="1" errors="0" time="1.234">
+    <testcase name="测试中文字符" classname="日本語テストクラス" time="0.567">
+      <failure message="Assertion failed: 期待される値が異なります" type="AssertionError">
+AssertionError: 期待される値が異なります
+Expected: こんにちは世界
+Actual: Hello World
+      </failure>
+    </testcase>
+    <testcase name="testEmojis🚀" classname="EmojiTest💯" time="0.667">
+      <system-out>Console output with emojis: ✅ Test passed! 🎉</system-out>
+    </testcase>
+  </testsuite>
+  
+  <!-- Very long content -->
+  <testsuite name="LongContentTest" tests="1" failures="0" errors="1" time="2.345">
+    <testcase name="testWithVeryLongStackTrace" classname="LongContentTestClass" time="2.345">
+      <error message="Stack trace is extremely long" type="StackOverflowError">
+StackOverflowError: Stack overflow occurred due to infinite recursion
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:15)
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:16)
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:16)
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:16)
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:16)
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:16)
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:16)
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:16)
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:16)
+	at com.example.RecursiveClass.infiniteLoop(RecursiveClass.java:16)
+	... (5000 more identical lines)
+      </error>
+      <system-out><![CDATA[
+This is a very long system output that contains:
+- Multiple lines of debug information
+- JSON objects: {"key": "value", "nested": {"array": [1, 2, 3, 4, 5]}}
+- XML fragments: <element attribute="value">content</element>
+- Special characters: !@#$%^&*()_+-=[]{}|;:'"<>?/
+- Repeated content that goes on and on and on...
+(Content continues for thousands of lines)
+      ]]></system-out>
+    </testcase>
+  </testsuite>
+  
+  <!-- Nested CDATA with XML -->
+  <testsuite name="CDATAEdgeCasesTest" tests="2" failures="1" errors="0" time="0.789">
+    <testcase name="testNestedXMLInCDATA" classname="CDATATest" time="0.345">
+      <failure message="XML parsing failed"><![CDATA[
+XML parsing error occurred:
+<root>
+  <element attribute="value">
+    <nested>Content with & and < characters</nested>
+  </element>
+</root>
+
+Error details:
+- Line: 5
+- Column: 23  
+- Message: Unexpected character '<' in content
+      ]]></failure>
+    </testcase>
+    
+    <testcase name="testCDATAWithSpecialSequences" classname="CDATATest" time="0.444">
+      <system-out><![CDATA[
+Output contains:
+- CDATA end sequence: ]]]]><![CDATA[>
+- Multiple CDATA sections embedded
+- Special sequences: ]]&gt; and &lt;![CDATA[
+      ]]></system-out>
+    </testcase>
+  </testsuite>
+  
+  <!-- Inconsistent test counts -->
+  <testsuite name="InconsistentCountsTest" tests="5" failures="2" errors="1" skipped="1" time="1.567">
+    <!-- Only 3 test cases but header says 5 tests -->
+    <testcase name="test1" classname="InconsistentTest" time="0.1"/>
+    <testcase name="test2" classname="InconsistentTest" time="0.2">
+      <failure message="Test failed"/>
+    </testcase>
+    <testcase name="test3" classname="InconsistentTest" time="0.3">
+      <error message="Test error"/>
+    </testcase>
+  </testsuite>
+  
+  <!-- Duplicate test names -->
+  <testsuite name="DuplicateNamesTest" tests="3" failures="0" errors="0" skipped="0" time="0.456">
+    <testcase name="duplicateTest" classname="DuplicateClass" time="0.1"/>
+    <testcase name="duplicateTest" classname="DuplicateClass" time="0.2"/>
+    <testcase name="duplicateTest" classname="DuplicateClass" time="0.156"/>
+  </testsuite>
+</testsuites>
