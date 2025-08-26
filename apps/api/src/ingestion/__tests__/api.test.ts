@@ -25,6 +25,20 @@ import type {
   ArtifactFilter,
   IngestionJobConfig
 } from '../../routes/ingestion.js';
+
+// Define the statistics response type
+interface IngestionStatisticsResponse {
+  totalJobs: number;
+  completedJobs: number;
+  failedJobs: number;
+  queuedJobs: number;
+  activeJobs: number;
+  totalTestsProcessed: number;
+  totalFailures: number;
+  averageProcessingTime: number;
+  averageProcessingTimeMs: number;
+  lastIngestionAt: Date;
+}
 import { GitHubArtifactsIntegration } from '../github-integration.js';
 
 // Mock external dependencies
@@ -816,7 +830,7 @@ describe('Ingestion API Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const body = response.json();
+      const body = response.json() as IngestionStatisticsResponse;
       expect(body.totalJobs).toBe(150);
       expect(body.completedJobs).toBe(120);
       expect(body.failedJobs).toBe(20);

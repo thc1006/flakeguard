@@ -1,13 +1,13 @@
-{
-  "root": true,
-  "parser": "@typescript-eslint/parser",
-  "parserOptions": {
-    "ecmaVersion": 2022,
-    "sourceType": "module",
-    "project": ["./tsconfig.json", "./apps/*/tsconfig.json", "./packages/*/tsconfig.json"]
+module.exports = {
+  root: true,
+  parser: "@typescript-eslint/parser",
+  parserOptions: {
+    ecmaVersion: 2022,
+    sourceType: "module",
+    project: ["./tsconfig.json", "./apps/*/tsconfig.json", "./packages/*/tsconfig.json"]
   },
-  "plugins": ["@typescript-eslint", "import"],
-  "extends": [
+  plugins: ["@typescript-eslint", "import"],
+  extends: [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended",
     "plugin:@typescript-eslint/recommended-requiring-type-checking",
@@ -16,7 +16,7 @@
     "plugin:import/typescript",
     "prettier"
   ],
-  "rules": {
+  rules: {
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
     "@typescript-eslint/no-explicit-any": "warn",
     "@typescript-eslint/explicit-module-boundary-types": "off",
@@ -42,9 +42,30 @@
     "eqeqeq": ["error", "always"],
     "curly": ["error", "all"]
   },
-  "overrides": [
+  overrides: [
+    // JavaScript files - MUST BE FIRST to take precedence
     {
-      "files": [
+      files: ["**/*.js", "**/*.cjs", "**/*.mjs"],
+      parser: "espree",
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: "module"
+      },
+      env: {
+        node: true,
+        es2022: true
+      },
+      plugins: [],
+      extends: [],
+      rules: {
+        "no-console": "off",
+        "prefer-const": "error",
+        "no-var": "error",
+        "eqeqeq": ["error", "always"]
+      }
+    },
+    {
+      files: [
         "**/cli/**/*.{js,ts}",
         "**/bin/**/*.{js,ts}",
         "**/scripts/**/*.{js,ts}",
@@ -56,44 +77,44 @@
         "**/test-*.{ts,js}",
         "**/run-*.{ts,js}"
       ],
-      "rules": {
+      rules: {
         "no-console": "off"
       }
     },
     {
-      "files": ["**/*.test.{ts,js}", "**/*.spec.{ts,js}"],
-      "rules": {
+      files: ["**/*.test.{ts,js}", "**/*.spec.{ts,js}"],
+      rules: {
         "@typescript-eslint/no-explicit-any": "off",
         "@typescript-eslint/no-non-null-assertion": "off",
         "no-console": "off"
       }
     },
     {
-      "files": ["**/*.config.{ts,js}", "**/vitest.*.{ts,js}", "**/playwright.*.{ts,js}"],
-      "rules": {
+      files: ["**/*.config.{ts,js}", "**/vitest.*.{ts,js}", "**/playwright.*.{ts,js}"],
+      rules: {
         "import/no-default-export": "off"
       }
     },
     {
-      "files": ["apps/worker/**/*.{ts,js}"],
-      "rules": {
+      files: ["apps/worker/**/*.{ts,js}"],
+      rules: {
         "no-console": ["warn", { "allow": ["log", "warn", "error", "info"] }]
       }
     },
     {
-      "files": ["apps/api/src/slack/**/*.{ts,js}"],
-      "rules": {
+      files: ["apps/api/src/slack/**/*.{ts,js}"],
+      rules: {
         "no-console": ["warn", { "allow": ["log", "warn", "error", "info"] }]
       }
     },
     {
-      "files": ["docker/**/*.{js,ts}"],
-      "rules": {
+      files: ["docker/**/*.{js,ts}"],
+      rules: {
         "no-console": "off"
       }
     }
   ],
-  "ignorePatterns": [
+  ignorePatterns: [
     "node_modules",
     "dist",
     "build",
@@ -103,10 +124,12 @@
     "apps/docs/.docusaurus/**",
     "apps/docs/build/**",
     "**/__generated__/**",
-    "**/generated/**"
+    "**/generated/**",
+    "apps/*/src/**/*.js",
+    "packages/*/src/**/*.js"
   ],
-  "env": {
-    "node": true,
-    "es2022": true
+  env: {
+    node: true,
+    es2022: true
   }
-}
+};

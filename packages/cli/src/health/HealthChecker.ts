@@ -3,8 +3,8 @@ import chalk from 'chalk';
 import { Client } from 'pg';
 import Redis from 'redis';
 
-import { I18nManager } from '../i18n/I18nManager';
-import { HealthCheckResult, ServiceHealth } from '../types';
+import { I18nManager } from '../i18n/I18nManager.js';
+import { HealthCheckResult, ServiceHealth } from '../types/index.js';
 
 export class HealthChecker {
   private i18n: I18nManager;

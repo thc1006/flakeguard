@@ -570,9 +570,9 @@ export class ArtifactHandler {
     // Network errors are generally retryable
     if (error && typeof error === 'object' && 'code' in error) {
       const code = error.code;
-      if (code === 'ECONNRESET' ?? 
-          code === 'ENOTFOUND' ?? 
-          code === 'ECONNREFUSED' ?? 
+      if (code === 'ECONNRESET' || 
+          code === 'ENOTFOUND' || 
+          code === 'ECONNREFUSED' || 
           code === 'ETIMEDOUT') {
         return true;
       }
@@ -584,7 +584,7 @@ export class ArtifactHandler {
         const statusMatch = error.message.match(/HTTP (\d+)/);
         if (statusMatch?.[1]) {
           const status = parseInt(statusMatch[1], 10);
-          return status >= 500 ?? status === 429; // Server errors or rate limiting
+          return status >= 500 || status === 429; // Server errors or rate limiting
         }
       }
     }
@@ -598,8 +598,8 @@ export class ArtifactHandler {
   private isUrlExpiredError(error: unknown): boolean {
     if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
       const message = error.message.toLowerCase();
-      return message.includes('expired') ?? 
-             message.includes('not found') ?? 
+      return message.includes('expired') || 
+             message.includes('not found') || 
              message.includes('404');
     }
     return false;

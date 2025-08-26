@@ -762,7 +762,7 @@ describe('TestIngestionRepository', () => {
 
     it('should get execution statistics', async () => {
       if (useTestContainers) {
-        const stats = await repository.getExecutionStats(testRepositoryId, {
+        const stats = await repository.getTestExecutionStats(testRepositoryId, {
           runId: testRunId
         });
         
@@ -792,7 +792,7 @@ describe('TestIngestionRepository', () => {
           { status: 'skipped', _count: { status: 1 } }
         ] as any);
 
-        const stats = await repository.getExecutionStats(testRepositoryId);
+        const stats = await repository.getTestExecutionStats(testRepositoryId);
         
         expect(stats.totalTests).toBe(3);
         expect(stats.passedTests).toBe(1);

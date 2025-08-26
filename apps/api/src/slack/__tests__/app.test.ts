@@ -37,13 +37,42 @@ vi.mock('../../utils/logger.js', () => ({
 
 describe('FlakeGuardSlackApp', () => {
   let app: FlakeGuardSlackApp;
-  let mockPrisma: any;
-  let mockGithubAuth: any;
-  let mockCheckRunHandler: any;
-  let mockFlakinessScorer: any;
-  let mockSlackApp: any;
-  let mockRespond: any;
-  let mockAck: any;
+  let mockPrisma: {
+    repository: {
+      findFirst: vi.MockedFunction<() => Promise<unknown>>;
+      findUnique: vi.MockedFunction<() => Promise<unknown>>;
+    };
+    testResult: {
+      findMany: vi.MockedFunction<() => Promise<unknown[]>>;
+    };
+    flakeDetection: {
+      findFirst: vi.MockedFunction<() => Promise<unknown>>;
+      findMany: vi.MockedFunction<() => Promise<unknown[]>>;
+    };
+  };
+  let mockGithubAuth: {
+    getInstallationOctokit: vi.MockedFunction<() => Promise<unknown>>;
+  };
+  let mockCheckRunHandler: {
+    process: vi.MockedFunction<() => Promise<unknown>>;
+  };
+  let mockFlakinessScorer: {
+    computeFlakeScore: vi.MockedFunction<() => unknown>;
+  };
+  let mockSlackApp: {
+    command: vi.MockedFunction<() => void>;
+    action: vi.MockedFunction<() => void>;
+    error: vi.MockedFunction<() => void>;
+    start: vi.MockedFunction<() => Promise<void>>;
+    stop: vi.MockedFunction<() => Promise<void>>;
+    receiver: {
+      app: {
+        use: vi.MockedFunction<() => void>;
+      };
+    };
+  };
+  let mockRespond: vi.MockedFunction<() => Promise<void>>;
+  let mockAck: vi.MockedFunction<() => Promise<void>>;
 
   const mockConfig = {
     signingSecret: TestCrypto.generateSlackSigningSecret(),

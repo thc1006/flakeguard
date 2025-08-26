@@ -68,7 +68,7 @@ export class PrimaryRateLimiter {
     const remaining = parseInt(headers['x-ratelimit-remaining'] ?? '0', 10);
     const reset = parseInt(headers['x-ratelimit-reset'] ?? '0', 10);
     
-    if (limit === 0 ?? reset === 0) {
+    if (limit === 0 || reset === 0) {
       return; // Invalid or missing rate limit headers
     }
 
@@ -247,8 +247,8 @@ export class SecondaryRateLimiter {
    */
   isSecondaryRateLimit(error: RequestError): boolean {
     return error.status === 403 && (
-      error.message.toLowerCase().includes('rate limit') ??
-      error.message.toLowerCase().includes('abuse') ??
+      error.message.toLowerCase().includes('rate limit') ||
+      error.message.toLowerCase().includes('abuse') ||
       error.response?.headers?.['retry-after'] !== undefined
     );
   }

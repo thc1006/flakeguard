@@ -7,14 +7,23 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import type { FGRepository, FGTestCase } from '@prisma/client';
+import type {
+  FGRepository,
+  FGTestCase,
+  FGFlakeScore,
+  FGOccurrence,
+  FGQuarantineDecision,
+  FGQuarantineState,
+  FGFailureCluster,
+  Organization
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 // Utility types for query results
 interface FlakiestTest {
   testCase: FGTestCase & { repository: FGRepository };
-  flakeScore: { score: number; windowN: number; lastUpdatedAt: Date };
+  flakeScore: FGFlakeScore;
   recentFailures: number;
   totalRuns: number;
   lastFailureAt: Date | null;
@@ -55,6 +64,53 @@ interface TestCaseWithScore {
   } | null;
 }
 
+// Type for the findMany result with includes
+type TestCaseWithIncludes = FGTestCase & {
+  repository: FGRepository;
+  flakeScore: FGFlakeScore | null;
+  occurrences: FGOccurrence[];
+  _count: {
+    occurrences: number;
+  };
+};
+
+// Type for quarantine status query result
+type QuarantineDecisionWithTest = FGQuarantineDecision & {
+  testCase: {
+    name: string;
+    suite: string;
+    className: string | null;
+    repository: {
+      owner: string;
+      name: string;
+    };
+  };
+};
+
+// Type for repository dashboard query results
+type RepositoryInfo = {
+  owner: string;
+  name: string;
+  provider: string;
+};
+
+// Type for quarantine candidates query result
+type QuarantineCandidateRaw = FGTestCase & {
+  flakeScore: FGFlakeScore | null;
+  repository: {
+    owner: string;
+    name: string;
+  };
+  occurrences: {
+    createdAt: Date;
+    failureMessage: string | null;
+    runId: string;
+  }[];
+  _count: {
+    occurrences: number;
+  };
+};
+
 interface FailureClusterWithTestCases {
   id: string;
   failureMsgSignature: string;
@@ -77,7 +133,7 @@ class FlakeGuardQueries {
   ): Promise<FlakiestTest[]> {
     // Finding flakiest tests in repository
     
-    const results = await prisma.fGTestCase.findMany({
+    const results: TestCaseWithIncludes[] = await prisma.fGTestCase.findMany({
       where: {
         repoId,
         flakeScore: {
@@ -106,13 +162,19 @@ class FlakeGuardQueries {
       take: limit,
     });
 
-    return results.map(test => ({
-      testCase: { ...test, repository: test.repository },
-      flakeScore: test.flakeScore ?? { score: 0, windowN: 0, lastUpdatedAt: new Date() },
-      recentFailures: test.occurrences.length,
-      totalRuns: test._count.occurrences,
-      lastFailureAt: test.occurrences[0]?.createdAt ?? null,
-    }));
+    return results.map(test => {
+      if (!test.flakeScore) {
+        throw new Error(`Test ${test.id} has no flake score despite query filter`);
+      }
+      
+      return {
+        testCase: { ...test, repository: test.repository },
+        flakeScore: test.flakeScore,
+        recentFailures: test.occurrences.length,
+        totalRuns: test._count.occurrences,
+        lastFailureAt: test.occurrences[0]?.createdAt ?? null,
+      };
+    });
   }
 
   /**
@@ -161,7 +223,7 @@ class FlakeGuardQueries {
   async getQuarantineStatus(testId: string) {
     // Checking quarantine status
     
-    const decisions = await prisma.fGQuarantineDecision.findMany({
+    const decisions: QuarantineDecisionWithTest[] = await prisma.fGQuarantineDecision.findMany({
       where: { testId },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -182,10 +244,10 @@ class FlakeGuardQueries {
     
     return {
       isQuarantined: isQuarantined && !isExpired,
-      currentState: currentDecision?.state ?? 'NONE',
-      expiresAt: currentDecision?.until,
-      rationale: currentDecision?.rationale,
-      decidedBy: currentDecision?.byUser,
+      currentState: currentDecision?.state ?? ('NONE' as const),
+      expiresAt: currentDecision?.until ?? null,
+      rationale: currentDecision?.rationale ?? null,
+      decidedBy: currentDecision?.byUser ?? null,
       history: decisions,
     };
   }
@@ -196,14 +258,19 @@ class FlakeGuardQueries {
    */
   async findSimilarFailures(
     repoId: string,
-    failureMsgSignature: string
+    failureMsgSignature: string,
+    orgId: string = '' // Should be passed from context in real usage
   ): Promise<FailureCluster> {
     // Finding similar failures for signature
     
-    const cluster = (await prisma.fGFailureCluster.findUniqueOrThrow({
+    const cluster: FGFailureCluster & {
+      testCases: (FGTestCase & {
+        flakeScore: { score: number } | null;
+      })[];
+    } = await prisma.fGFailureCluster.findUniqueOrThrow({
       where: {
         orgId_repoId_failureMsgSignature: {
-          orgId: '', // Will be populated from context
+          orgId,
           repoId,
           failureMsgSignature
         }
@@ -214,13 +281,20 @@ class FlakeGuardQueries {
             id: true,
             name: true,
             suite: true,
+            className: true,
+            file: true,
+            ownerTeam: true,
+            orgId: true,
+            repoId: true,
+            createdAt: true,
+            updatedAt: true,
             flakeScore: {
               select: { score: true }
             }
           }
         }
       }
-    })) as FailureClusterWithTestCases;
+    });
 
     return {
       id: cluster.id,
@@ -256,7 +330,7 @@ class FlakeGuardQueries {
       prisma.fGRepository.findUniqueOrThrow({
         where: { id: repoId },
         select: { owner: true, name: true, provider: true }
-      }),
+      }) as Promise<RepositoryInfo>,
       
       // Total test count
       prisma.fGTestCase.count({
@@ -275,7 +349,7 @@ class FlakeGuardQueries {
       prisma.fGQuarantineDecision.count({
         where: {
           testCase: { repoId },
-          state: 'ACTIVE',
+          state: 'ACTIVE' as FGQuarantineState,
           OR: [
             { until: null },
             { until: { gt: new Date() } }
@@ -326,9 +400,9 @@ class FlakeGuardQueries {
       suite: string;
       totalRuns: bigint;
       failures: bigint;
-      avgDurationMs: number;
-      maxDurationMs: number;
-      flakeScore: number;
+      avgDurationMs: number | null;
+      maxDurationMs: number | null;
+      flakeScore: number | null;
     }>>`
       SELECT 
         tc.id as "testId",
@@ -355,7 +429,9 @@ class FlakeGuardQueries {
       totalRuns: Number(row.totalRuns),
       failures: Number(row.failures),
       failureRate: Number(row.failures) / Number(row.totalRuns),
-      avgDurationMs: Math.round(row.avgDurationMs),
+      avgDurationMs: Math.round(row.avgDurationMs ?? 0),
+      maxDurationMs: row.maxDurationMs ?? 0,
+      flakeScore: row.flakeScore ?? 0,
     }));
   }
 
@@ -370,7 +446,7 @@ class FlakeGuardQueries {
   ) {
     // Finding quarantine candidates
     
-    const candidates = await prisma.fGTestCase.findMany({
+    const candidates: QuarantineCandidateRaw[] = await prisma.fGTestCase.findMany({
       where: {
         repoId,
         flakeScore: {
@@ -380,7 +456,7 @@ class FlakeGuardQueries {
         // Not already quarantined
         quarantineDecisions: {
           none: {
-            state: 'ACTIVE',
+            state: 'ACTIVE' as FGQuarantineState,
             OR: [
               { until: null },
               { until: { gt: new Date() } }
@@ -427,7 +503,7 @@ class FlakeGuardQueries {
       windowSize: test.flakeScore?.windowN ?? 0,
       recentRuns: test._count.occurrences,
       recentFailures: test.occurrences,
-      recommendation: (test.flakeScore?.score ?? 0) > 0.8 ? 'IMMEDIATE' : 'REVIEW',
+      recommendation: (test.flakeScore?.score ?? 0) > 0.8 ? 'IMMEDIATE' as const : 'REVIEW' as const,
       rationale: `Test shows ${((test.flakeScore?.score ?? 0) * 100).toFixed(1)}% failure rate over ${test.flakeScore?.windowN ?? 0} runs. ${test.occurrences.length} recent failures in the last 7 days.`
     }));
   }
@@ -518,7 +594,7 @@ async function runExampleQueries() {
 }
 
 // Run examples if this file is executed directly
-if (require.main === module) {
+if (typeof require !== 'undefined' && require.main === module) {
   void runExampleQueries();
 }
 

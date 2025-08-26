@@ -5,8 +5,8 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import ora from 'ora';
 
-import { I18nManager } from '../i18n/I18nManager';
-import { GitHubConfig } from '../types';
+import { I18nManager } from '../i18n/I18nManager.js';
+import { GitHubConfig } from '../types/index.js';
 
 export class GitHubSetupGuide {
   private i18n: I18nManager;

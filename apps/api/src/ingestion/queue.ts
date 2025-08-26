@@ -14,6 +14,8 @@ import { QueueNames, JobPriorities } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
 import { Queue, Worker, Job, QueueEvents, JobsOptions } from 'bullmq';
 import type { Redis } from 'ioredis';
+import type { JobState } from 'bullmq';
+import type { SafeQueueStats, BullMQJobState } from '@flakeguard/shared';
 
 import { GitHubAuthManager } from '../github/auth.js';
 import { GitHubHelpers } from '../github/helpers.js';
@@ -273,21 +275,36 @@ export class IngestionQueueManager {
     failed: number;
     delayed: number;
   }> {
-    const [waiting, active, completed, failed, delayed] = await Promise.all([
-      this.queue.getWaiting(),
-      this.queue.getActive(),
-      this.queue.getCompleted(),
-      this.queue.getFailed(),
-      this.queue.getDelayed()
-    ]);
+    try {
+      const [waiting, active, completed, failed, delayed] = await Promise.all([
+        this.queue.getWaiting(),
+        this.queue.getActive(),
+        this.queue.getCompleted(0, -1, true), // start, end, asc - safe BullMQ call
+        this.queue.getFailed(0, -1, true), // start, end, asc - safe BullMQ call
+        this.queue.getDelayed()
+      ]);
 
-    return {
-      waiting: waiting.length,
-      active: active.length,
-      completed: completed.length,
-      failed: failed.length,
-      delayed: delayed.length
-    };
+      return {
+        waiting: waiting.length,
+        active: active.length,
+        completed: completed.length,
+        failed: failed.length,
+        delayed: delayed.length
+      };
+    } catch (error) {
+      logger.error('Failed to get queue statistics', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+      
+      // Return safe defaults on error
+      return {
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0
+      };
+    }
   }
 
   // ==========================================================================
@@ -538,18 +555,88 @@ export class IngestionQueueManager {
    */
   private async cleanupOldJobs(): Promise<void> {
     const { maxAge, maxCompletedJobs, maxFailedJobs } = this.config.cleanup;
-    const cutoffDate = new Date(Date.now() - maxAge);
 
-    await Promise.all([
-      this.queue.clean(maxAge, maxCompletedJobs, 'completed'),
-      this.queue.clean(maxAge, maxFailedJobs, 'failed')
-    ]);
+    try {
+      const [completedCleaned, failedCleaned] = await Promise.all([
+        this.safeCleanOldJobs(maxAge, maxCompletedJobs, 'completed'),
+        this.safeCleanOldJobs(maxAge, maxFailedJobs, 'failed')
+      ]);
 
-    logger.debug('Cleaned up old jobs', {
-      maxAge: `${maxAge}ms`,
-      maxCompleted: maxCompletedJobs,
-      maxFailed: maxFailedJobs
-    });
+      logger.debug('Cleaned up old jobs', {
+        maxAge: `${maxAge}ms`,
+        maxCompleted: maxCompletedJobs,
+        maxFailed: maxFailedJobs,
+        completedCleaned,
+        failedCleaned
+      });
+    } catch (error) {
+      logger.error('Failed to cleanup old jobs', {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  }
+
+  // ==========================================================================
+  // Safe BullMQ Operations
+  // ==========================================================================
+
+  /**
+   * Safely get jobs by state with error handling and pagination
+   */
+  private async safeGetJobsByState(
+    state: BullMQJobState,
+    start: number = 0,
+    end: number = -1
+  ): Promise<Job<IngestionJobData>[]> {
+    try {
+      switch (state) {
+        case 'completed':
+          return await this.queue.getCompleted(start, end, true);
+        case 'failed':
+          return await this.queue.getFailed(start, end, true);
+        case 'waiting':
+          return await this.queue.getWaiting(start, end);
+        case 'active':
+          return await this.queue.getActive(start, end);
+        case 'delayed':
+          return await this.queue.getDelayed(start, end);
+        case 'paused':
+          return await this.queue.getPaused(start, end);
+        default:
+          logger.warn(`Unsupported job state: ${state}`);
+          return [];
+      }
+    } catch (error) {
+      logger.error(`Failed to get ${state} jobs`, {
+        error: error instanceof Error ? error.message : String(error),
+        state,
+        start,
+        end
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Safely clean old jobs with error handling
+   */
+  private async safeCleanOldJobs(
+    maxAge: number,
+    limit: number,
+    type: 'completed' | 'failed'
+  ): Promise<number> {
+    try {
+      const result = await this.queue.clean(maxAge, limit, type);
+      return Array.isArray(result) ? result.length : 0;
+    } catch (error) {
+      logger.error(`Failed to clean ${type} jobs`, {
+        error: error instanceof Error ? error.message : String(error),
+        maxAge,
+        limit,
+        type
+      });
+      return 0;
+    }
   }
 
   // ==========================================================================

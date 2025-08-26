@@ -1,1 +1,0 @@
-// FlakeGuard Markdown Performance Demo

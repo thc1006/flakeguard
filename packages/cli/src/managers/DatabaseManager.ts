@@ -4,18 +4,21 @@ import ora from 'ora';
 import { Client } from 'pg';
 import Redis from 'redis';
 
-import { I18nManager } from '../i18n/I18nManager';
-import { DatabaseConfig } from '../types';
+import { I18nManager } from '../i18n/I18nManager.js';
+import { DatabaseConfig } from '../types/index.js';
+import { TranscriptLogger } from '../utils/TranscriptLogger.js';
 
 export class DatabaseManager {
   private i18n: I18nManager;
+  private logger: TranscriptLogger;
 
-  constructor(i18n: I18nManager) {
+  constructor(i18n: I18nManager, logger?: TranscriptLogger) {
     this.i18n = i18n;
+    this.logger = logger ?? new TranscriptLogger('database-manager');
   }
 
   async setupDatabase(): Promise<DatabaseConfig> {
-    console.log(chalk.gray(this.i18n.t('database.description')));
+    void this.logger.info(chalk.gray(this.i18n.t('database.description')));
 
     const { dbType } = await inquirer.prompt<{ dbType: 'docker' | 'existing' | 'cloud' }>([
       {
@@ -67,7 +70,7 @@ export class DatabaseManager {
   }
 
   private async setupDockerDatabases(): Promise<{ databaseUrl: string; redisUrl: string }> {
-    console.log('\n' + chalk.blue(this.i18n.t('database.dockerSetup')));
+    void this.logger.info('\n' + chalk.blue(this.i18n.t('database.dockerSetup')));
     
     const { startContainers } = await inquirer.prompt<{ startContainers: boolean }>([
       {
@@ -166,7 +169,7 @@ export class DatabaseManager {
   }
 
   private async setupExistingDatabases(): Promise<{ databaseUrl: string; redisUrl: string }> {
-    console.log('\n' + chalk.blue(this.i18n.t('database.existingSetup')));
+    void this.logger.info('\n' + chalk.blue(this.i18n.t('database.existingSetup')));
     
     const { databaseUrl } = await inquirer.prompt<{ databaseUrl: string }>([
       {
@@ -201,7 +204,7 @@ export class DatabaseManager {
   }
 
   private async setupCloudDatabases(): Promise<{ databaseUrl: string; redisUrl: string }> {
-    console.log('\n' + chalk.blue(this.i18n.t('database.cloudSetup')));
+    void this.logger.info('\n' + chalk.blue(this.i18n.t('database.cloudSetup')));
     
     const { provider } = await inquirer.prompt<{ provider: string }>([
       {
@@ -219,7 +222,7 @@ export class DatabaseManager {
       }
     ]);
 
-    console.log(chalk.yellow(`\n${this.i18n.t('database.cloudInstructions', { provider })}\n`));
+    void this.logger.info(chalk.yellow(`\n${this.i18n.t('database.cloudInstructions', { provider })}\n`));
 
     const { databaseUrl } = await inquirer.prompt<{ databaseUrl: string }>([
       {
@@ -274,8 +277,7 @@ export class DatabaseManager {
     } catch (error) {
       spinner.fail(this.i18n.t('database.connectionsFailed'));
       
-      console.log(chalk.red('\n' + this.i18n.t('database.connectionError') + ':'));
-      console.log(chalk.red(error instanceof Error ? error.message : String(error)));
+      void this.logger.error('\n' + this.i18n.t('database.connectionError') + ':', error);
       
       const { continueAnyway } = await inquirer.prompt<{ continueAnyway: boolean }>([
         {
@@ -359,9 +361,9 @@ export class DatabaseManager {
       await client.end();
       spinner.succeed(this.i18n.t('database.adminUserCreated'));
       
-      console.log(chalk.green(`\n✅ ${this.i18n.t('database.adminCredentials')}:`));
-      console.log(chalk.white(`   ${this.i18n.t('database.email')}: ${adminUser.email}`));
-      console.log(chalk.white(`   ${this.i18n.t('database.password')}: ${adminUser.password}`));
+      void this.logger.info(chalk.green(`\n✅ ${this.i18n.t('database.adminCredentials')}:`));
+      void this.logger.info(chalk.white(`   ${this.i18n.t('database.email')}: ${adminUser.email}`));
+      void this.logger.info(chalk.white(`   ${this.i18n.t('database.password')}: ${adminUser.password}`));
     } catch (error) {
       spinner.fail(this.i18n.t('database.adminUserFailed'));
       throw error;

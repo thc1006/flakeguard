@@ -334,7 +334,7 @@ export class FlakeDetector {
         totalFlaky,
         totalQuarantined,
         recentlyDetected,
-        topFlaky: topFlaky.map(test => ({
+        topFlaky: topFlaky.map((test: { testName: string; confidence: number; failureRate: number; lastFailureAt: Date | null }) => ({
           testName: test.testName,
           confidence: test.confidence,
           failureRate: test.failureRate,
@@ -400,12 +400,12 @@ export class FlakeDetector {
         },
       });
 
-      return results.map(result => ({
+      return results.map((result: { name: string; status: string; time: number; message: string | null; stack: string | null; createdAt: Date }) => ({
         name: result.name,
         status: result.status as 'passed' | 'failed' | 'skipped',
         duration: result.time ? result.time * 1000 : undefined, // Convert seconds to ms
-        errorMessage: result.message || undefined,
-        stackTrace: result.stack || undefined,
+        errorMessage: result.message ?? undefined,
+        stackTrace: result.stack ?? undefined,
       }));
 
     } catch (error) {

@@ -133,6 +133,36 @@ dist
 dist/
 build/
 
+# TypeScript compilation artifacts in source directories
+apps/*/src/**/*.js
+apps/*/src/**/*.js.map
+apps/*/src/**/*.d.ts
+apps/*/src/**/*.d.ts.map
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.d.ts.map
+
+# Test results and reports
+test-results/
+test-results-*/
+playwright-report/
+playwright/.cache
+
+# Generated binaries and scripts
+bin/
+
+# Next.js generated files
+next-env.d.ts
+
+# But keep configuration files
+!**/*.config.js
+!**/vitest.*.js
+!**/jest.*.js
+!**/next.config.js
+!**/postcss.config.js
+!**/tailwind.config.js
+
 # IDE
 .vscode/
 .idea/

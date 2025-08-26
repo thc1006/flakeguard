@@ -191,7 +191,7 @@ export interface ApiMetrics {
 }
 
 export interface RequestMetrics {
-  readonly method: string;
+  readonly method: HttpMethod | string;
   readonly endpoint: string;
   readonly startTime: Date;
   endTime?: Date;
@@ -224,7 +224,7 @@ export interface SecurityConfig {
 export interface AuditLogEntry {
   readonly timestamp: Date;
   readonly requestId: string;
-  readonly method: string;
+  readonly method: HttpMethod | string;
   readonly endpoint: string;
   readonly userAgent?: string;
   readonly installationId?: number;
@@ -326,7 +326,7 @@ export interface GitHubApiWrapper {
 }
 
 export interface RequestOptions {
-  readonly method: string;
+  readonly method: HttpMethod | string;
   readonly endpoint: string;
   readonly data?: unknown;
   readonly headers?: Record<string, string>;
@@ -470,3 +470,103 @@ export const DEFAULT_ARTIFACT_DOWNLOAD_CONFIG: ArtifactDownloadConfig = {
   useStreaming: true,
   streamChunkSize: 64 * 1024, // 64KB
 } as const;
+
+// =============================================================================
+// UTILITY TYPES
+// =============================================================================
+
+/**
+ * Safe type for unknown data that can be safely stringified
+ */
+export type SafeUnknown = string | number | boolean | null | undefined | SafeUnknown[] | { [key: string]: SafeUnknown };
+
+/**
+ * Type guard to check if a value is SafeUnknown
+ */
+export function isSafeUnknown(value: unknown): value is SafeUnknown {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
+  if (Array.isArray(value)) return value.every(item => isSafeUnknown(item));
+  if (typeof value === 'object' && value !== null) {
+    return Object.values(value as Record<string, unknown>).every(val => isSafeUnknown(val));
+  }
+  return false;
+}
+
+/**
+ * Type for HTTP request methods
+ */
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+
+/**
+ * Type for HTTP response with typed data
+ */
+export interface TypedResponse<T> {
+  readonly status: number;
+  readonly headers: Record<string, string>;
+  readonly data: T;
+}
+
+/**
+ * Type for paginated API responses
+ */
+export interface PaginatedResponse<T> {
+  readonly data: T[];
+  readonly pagination: {
+    readonly page: number;
+    readonly perPage: number;
+    readonly total: number;
+    readonly totalPages: number;
+    readonly hasNext: boolean;
+    readonly hasPrev: boolean;
+  };
+}
+
+// =============================================================================
+// BULLMQ TYPES
+// =============================================================================
+
+/**
+ * Safe BullMQ queue method types
+ */
+export interface SafeQueueStats {
+  readonly waiting: number;
+  readonly active: number;
+  readonly completed: number;
+  readonly failed: number;
+  readonly delayed: number;
+  readonly paused: number;
+}
+
+/**
+ * BullMQ job state types
+ */
+export type BullMQJobState = 
+  | 'completed'
+  | 'failed'
+  | 'delayed'
+  | 'active'
+  | 'waiting'
+  | 'waiting-children'
+  | 'prioritized'
+  | 'paused';
+
+/**
+ * Safe BullMQ operations with error handling
+ */
+export interface SafeBullMQOperations {
+  /**
+   * Get queue statistics with error handling
+   */
+  getQueueStats(): Promise<SafeQueueStats>;
+  
+  /**
+   * Get jobs by state with safe pagination
+   */
+  getJobsByState(state: BullMQJobState, start?: number, end?: number): Promise<unknown[]>;
+  
+  /**
+   * Clean old jobs with safety checks
+   */
+  cleanOldJobs(maxAge: number, limit: number, type: 'completed' | 'failed'): Promise<void>;
+}

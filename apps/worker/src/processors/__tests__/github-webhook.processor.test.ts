@@ -23,29 +23,54 @@ interface GitHubEventJob {
 
 // Mock types for testing
 interface MockPrismaClient {
-  $transaction: ReturnType<typeof vi.fn>;
+  $transaction: vi.MockedFunction<(callback: (prisma: MockPrismaClient) => Promise<unknown>) => Promise<unknown>>;
   workflowRun: {
-    upsert: ReturnType<typeof vi.fn>;
+    upsert: vi.MockedFunction<(args: { where: { id: number }; update: Record<string, unknown>; create: Record<string, unknown> }) => Promise<{ id: number; repoId: number }>>;
   };
   testCase: {
-    upsert: ReturnType<typeof vi.fn>;
+    upsert: vi.MockedFunction<(args: { where: Record<string, unknown>; update: Record<string, unknown>; create: Record<string, unknown> }) => Promise<{ id: string }>>;
   };
   occurrence: {
-    create: ReturnType<typeof vi.fn>;
+    create: vi.MockedFunction<(args: { data: Record<string, unknown> }) => Promise<{ id: string }>>;
   };
 }
 
 interface MockOctokitHelpers {
-  listRunArtifacts: ReturnType<typeof vi.fn>;
-  downloadArtifactZip: ReturnType<typeof vi.fn>;
+  listRunArtifacts: vi.MockedFunction<(params: {
+    owner: string;
+    repo: string;
+    runId: number;
+    installationId: number;
+  }) => Promise<Array<{ id: number; name: string; expired: boolean }>>>;
+  downloadArtifactZip: vi.MockedFunction<(params: {
+    owner: string;
+    repo: string;
+    artifactId: number;
+    installationId: number;
+  }) => Promise<string>>;
 }
 
 interface MockJob {
   id: string;
-  updateProgress: ReturnType<typeof vi.fn>;
+  updateProgress: vi.MockedFunction<(progress: number) => Promise<void>>;
   data: GitHubEventJob;
 }
 import { createGitHubWebhookProcessor } from '../github-webhook.processor.js';
+
+// Import the ProcessingResult type
+interface ProcessingResult {
+  success: boolean;
+  processedArtifacts: number;
+  totalTests: number;
+  failedTests: number;
+  testSuites: Array<{
+    name: string;
+    tests: number;
+    failures: number;
+    errors: number;
+  }>;
+  errors: string[];
+}
 
 // Mock dependencies
 vi.mock('@flakeguard/shared', () => ({
@@ -89,9 +114,9 @@ vi.mock('os', () => ({
 
 describe('GitHub Webhook Processor - P3', () => {
   let processor: ReturnType<typeof createGitHubWebhookProcessor>;
-  let mockPrisma: any;
-  let mockOctokitHelpers: any;
-  let mockJob: any;
+  let mockPrisma: MockPrismaClient;
+  let mockOctokitHelpers: MockOctokitHelpers;
+  let mockJob: MockJob;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -108,23 +133,23 @@ describe('GitHub Webhook Processor - P3', () => {
       occurrence: {
         create: vi.fn(),
       },
-    };
+    } as MockPrismaClient;
 
     // Mock Octokit helpers
     mockOctokitHelpers = {
       listRunArtifacts: vi.fn(),
       downloadArtifactZip: vi.fn(),
-    };
+    } as MockOctokitHelpers;
 
     const { createOctokitHelpers } = await import('@flakeguard/shared');
-    (createOctokitHelpers as ReturnType<typeof vi.fn>).mockReturnValue(mockOctokitHelpers);
+    (createOctokitHelpers as vi.MockedFunction<typeof createOctokitHelpers>).mockReturnValue(mockOctokitHelpers);
 
     // Mock Job
     mockJob = {
       id: 'test-job-id',
       updateProgress: vi.fn(),
       data: {} as GitHubEventJob,
-    };
+    } as MockJob;
 
     processor = createGitHubWebhookProcessor(mockPrisma as PrismaClient);
   });
@@ -222,13 +247,13 @@ describe('GitHub Webhook Processor - P3', () => {
         }),
         close: vi.fn(),
       };
-      (StreamZip.default.async as ReturnType<typeof vi.fn>).mockReturnValue(mockZip);
+      (StreamZip.default.async as vi.MockedFunction<typeof StreamZip.default.async>).mockReturnValue(mockZip);
 
       const path = await import('path');
-      (path.join as ReturnType<typeof vi.fn>).mockReturnValue('/tmp/test-results.xml');
-      (path.extname as ReturnType<typeof vi.fn>).mockReturnValue('.xml');
+      (path.join as vi.MockedFunction<typeof path.join>).mockReturnValue('/tmp/test-results.xml');
+      (path.extname as vi.MockedFunction<typeof path.extname>).mockReturnValue('.xml');
 
-      const result = await processor(mockJob as Job<GitHubEventJob>);
+      const result: ProcessingResult = await processor(mockJob as Job<GitHubEventJob>);
 
       expect(result.success).toBe(true);
       expect(result.processedArtifacts).toBe(1);
@@ -357,7 +382,7 @@ describe('GitHub Webhook Processor - P3', () => {
 
       // Mock ZIP extraction
       const StreamZip = await import('node-stream-zip');
-      (StreamZip.default.async as ReturnType<typeof vi.fn>).mockReturnValue({
+      (StreamZip.default.async as vi.MockedFunction<typeof StreamZip.default.async>).mockReturnValue({
         extract: vi.fn(),
         entries: vi.fn().mockResolvedValue({}),
         close: vi.fn(),
@@ -472,7 +497,7 @@ describe('GitHub Webhook Processor - P3', () => {
 
       // Mock ZIP extraction
       const StreamZip = await import('node-stream-zip');
-      (StreamZip.default.async as ReturnType<typeof vi.fn>).mockReturnValue({
+      (StreamZip.default.async as vi.MockedFunction<typeof StreamZip.default.async>).mockReturnValue({
         extract: vi.fn(),
         entries: vi.fn().mockResolvedValue({
           'results.xml': { name: 'results.xml', isDirectory: false },
@@ -481,12 +506,10 @@ describe('GitHub Webhook Processor - P3', () => {
       });
 
       const path = await import('path');
-      (path.extname as ReturnType<typeof vi.fn>).mockReturnValue('.xml');
+      (path.extname as vi.MockedFunction<typeof path.extname>).mockReturnValue('.xml');
 
       // Setup database transaction mock
-      let transactionCallback: (prisma: MockPrismaClient) => Promise<unknown>;
       mockPrisma.$transaction.mockImplementation(async (callback: (prisma: MockPrismaClient) => Promise<unknown>) => {
-        transactionCallback = callback;
         return callback(mockPrisma);
       });
 

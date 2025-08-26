@@ -1,11 +1,6 @@
 #!/usr/bin/env tsx
 
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// TypeScript validation script for Slack integration
 
 /**
  * FlakeGuard Slack Integration Validation Script
@@ -28,7 +23,7 @@ import { performance } from 'perf_hooks';
 
 import type { TestRun } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
-import { WebClient } from '@slack/web-api';
+import { WebClient, WebAPICallResult } from '@slack/web-api';
 
 import { FlakinessScorer } from '../apps/api/src/analytics/flakiness.js';
 import { GitHubAuthManager } from '../apps/api/src/github/auth.js';
@@ -50,7 +45,7 @@ interface ValidationResult {
   status: 'PASS' | 'FAIL' | 'SKIP' | 'WARN';
   duration: number;
   error?: string;
-  details?: any;
+  details?: unknown;
 }
 
 class SlackIntegrationValidator {
@@ -134,42 +129,45 @@ class SlackIntegrationValidator {
     const start = performance.now();
     
     try {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      this.slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
+      const slackToken = process.env.SLACK_BOT_TOKEN;
+      if (!slackToken) {
+        throw new Error('SLACK_BOT_TOKEN environment variable is required');
+      }
+      this.slackClient = new WebClient(slackToken);
       
       if (!this.config.skipApiCalls) {
         // Test authentication
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        const authTest = await this.slackClient.auth.test();
+        const authTest = await this.slackClient.auth.test() as WebAPICallResult & {
+          user?: string;
+          team?: string;
+          user_id?: string;
+        };
         
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         if (!authTest.ok) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          throw new Error(`Auth test failed: ${String(authTest.error)}`);
+          const errorMessage = 'error' in authTest ? String(authTest.error) : 'Unknown auth error';
+          throw new Error(`Auth test failed: ${errorMessage}`);
         }
 
-        // Add null checks for authTest properties
-        const authTestData = authTest as any;
-        const user = authTestData?.user ? String(authTestData.user) : '';
-        const team = authTestData?.team ? String(authTestData.team) : '';
+        const user = authTest.user || '';
+        const team = authTest.team || '';
 
         this.addResult('AUTHENTICATION', 'Bot Token', 'PASS', 
           performance.now() - start, undefined, { user, team });
 
-        // Test bot info
-        // Add null check for user_id before making bot info request
-        const authTestForBotInfo = authTest as any;
-        const userId = authTestForBotInfo?.user_id ? String(authTestForBotInfo.user_id) : '';
+        // Test bot info if user_id is available
+        const userId = authTest.user_id;
         
         if (userId) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          const botInfo = await this.slackClient.bots.info({ bot: userId });
+          const botInfo = await this.slackClient.bots.info({ bot: userId }) as WebAPICallResult & {
+            bot?: {
+              name?: string;
+              app_id?: string;
+            };
+          };
 
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-          if (botInfo.ok) {
-            const botData = (botInfo as any).bot;
-            const name = botData?.name ? String(botData.name) : '';
-            const appId = botData?.app_id ? String(botData.app_id) : '';
+          if (botInfo.ok && botInfo.bot) {
+            const name = botInfo.bot.name || '';
+            const appId = botInfo.bot.app_id || '';
             
             this.addResult('AUTHENTICATION', 'Bot Info', 'PASS', 
               performance.now() - start, undefined, { name, appId });
@@ -195,11 +193,19 @@ class SlackIntegrationValidator {
       // Initialize dependencies
       this.prisma = new PrismaClient();
       
+      const githubAppId = process.env.GITHUB_APP_ID;
+      const githubPrivateKey = process.env.GITHUB_APP_PRIVATE_KEY_BASE64;
+      const githubWebhookSecret = process.env.GITHUB_WEBHOOK_SECRET;
+      
+      if (!githubAppId || !githubPrivateKey || !githubWebhookSecret) {
+        throw new Error('Missing required GitHub environment variables');
+      }
+
       const githubAuth = new GitHubAuthManager({
         config: {
-          appId: parseInt(process.env.GITHUB_APP_ID!, 10),
-          privateKey: Buffer.from(process.env.GITHUB_APP_PRIVATE_KEY_BASE64!, 'base64').toString(),
-          webhookSecret: process.env.GITHUB_WEBHOOK_SECRET!,
+          appId: parseInt(githubAppId, 10),
+          privateKey: Buffer.from(githubPrivateKey, 'base64').toString(),
+          webhookSecret: githubWebhookSecret,
           clientId: process.env.GITHUB_CLIENT_ID ?? '',
           clientSecret: process.env.GITHUB_CLIENT_SECRET ?? ''
         }
@@ -214,10 +220,17 @@ class SlackIntegrationValidator {
       const flakinessScorer = new FlakinessScorer();
 
       // Create Slack app
+      const slackSigningSecret = process.env.SLACK_SIGNING_SECRET;
+      const slackBotToken = process.env.SLACK_BOT_TOKEN;
+      
+      if (!slackSigningSecret || !slackBotToken) {
+        throw new Error('Missing required Slack environment variables');
+      }
+
       this.slackApp = createFlakeGuardSlackApp(
         {
-          signingSecret: process.env.SLACK_SIGNING_SECRET!,
-          token: process.env.SLACK_BOT_TOKEN!,
+          signingSecret: slackSigningSecret,
+          token: slackBotToken,
           port: parseInt(process.env.SLACK_PORT ?? '3001', 10)
         },
         {
@@ -232,8 +245,8 @@ class SlackIntegrationValidator {
         performance.now() - start);
 
       // Test app methods
-      const app = (this.slackApp as any).getApp();
-      if (app && typeof (app).start === 'function') {
+      const app = this.slackApp.getApp();
+      if (app && typeof app.start === 'function') {
         this.addResult('INITIALIZATION', 'App Methods', 'PASS', 0);
       } else {
         this.addResult('INITIALIZATION', 'App Methods', 'FAIL', 0, 
@@ -370,7 +383,11 @@ class SlackIntegrationValidator {
         }]
       };
 
-      const actionValue = (mockAction.actions[0] as any).value as string;
+      const firstAction = mockAction.actions[0];
+      if (!firstAction || !('value' in firstAction)) {
+        throw new Error('Invalid action structure');
+      }
+      const actionValue = String(firstAction.value);
       const parsed = JSON.parse(actionValue) as { repositoryId?: unknown; testName?: unknown };
       if (parsed.repositoryId && parsed.testName) {
         this.addResult('BUTTON_INTERACTIONS', 'Quarantine Payload', 'PASS', 
@@ -639,7 +656,7 @@ class SlackIntegrationValidator {
       }
 
       // Test database connectivity
-      await (this.prisma as any).$connect();
+      await this.prisma.$connect();
       this.addResult('INTEGRATION', 'Database Connection', 'PASS', 0);
 
       // Test repository query structure
@@ -705,7 +722,7 @@ class SlackIntegrationValidator {
       }
 
       if (this.prisma) {
-        await (this.prisma as any).$disconnect();
+        await this.prisma.$disconnect();
       }
     } catch (error) {
       if (this.config.verbose) {
@@ -720,8 +737,7 @@ class SlackIntegrationValidator {
     status: ValidationResult['status'], 
     duration: number, 
     error?: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  details?: any
+    details?: unknown
   ): void {
     this.results.push({
       component,

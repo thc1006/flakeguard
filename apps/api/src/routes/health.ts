@@ -1,4 +1,4 @@
-import { FastifyInstance } from 'fastify';
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
 import { checkConnectionPool, checkMigrationStatus, validateTenantIsolation, checkQueryPerformance } from '../utils/database-health.js';
@@ -60,7 +60,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
         200: healthResponseSchema,
       },
     },
-  }, async (_request, reply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     let databaseStatus: 'connected' | 'disconnected' = 'disconnected';
     
     try {
@@ -88,7 +88,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
         503: z.object({ ready: z.boolean(), reason: z.string() }),
       },
     },
-  }, async (_request, reply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       // Test database connectivity
       await fastify.prisma.$queryRaw`SELECT 1`;
@@ -115,7 +115,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
         200: z.object({ alive: z.boolean(), uptime: z.number() }),
       },
     },
-  }, async (_request, reply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     // Simple liveness check - if we can respond, we're alive
     return reply.send({ 
       alive: true, 
@@ -187,7 +187,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-  }, async (_request, reply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     try {
       // const _startTime = Date.now(); // Currently unused
       
@@ -253,7 +253,7 @@ export async function healthRoutes(fastify: FastifyInstance) {
         503: detailedHealthSchema,
       },
     },
-  }, async (_request, reply) => {
+  }, async (_request: FastifyRequest, reply: FastifyReply) => {
     // const _startTime = Date.now(); // Currently unused
     
     // Parallel health checks for better performance

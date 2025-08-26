@@ -5,16 +5,19 @@ import path from 'path';
 import chalk from 'chalk';
 // import Cryptr from 'cryptr';
 
-import { I18nManager } from '../i18n/I18nManager';
+import { I18nManager } from '../i18n/I18nManager.js';
+import { TranscriptLogger } from '../utils/TranscriptLogger.js';
 
 export class ConfigurationManager {
   private i18n: I18nManager;
   private dryRun: boolean;
+  private logger: TranscriptLogger;
   // private cryptr: Cryptr;
 
-  constructor(i18n: I18nManager, dryRun: boolean) {
+  constructor(i18n: I18nManager, dryRun: boolean, logger?: TranscriptLogger) {
     this.i18n = i18n;
     this.dryRun = dryRun;
+    this.logger = logger ?? new TranscriptLogger('config-manager');
     // this.cryptr = new Cryptr('flakeguard-setup-encryption-key');
   }
 
@@ -51,10 +54,10 @@ export class ConfigurationManager {
     const envContent = this.generateEnvContent(finalConfig);
     
     if (this.dryRun) {
-      console.log('\n' + chalk.yellow(this.i18n.t('config.dryRunPreview')));
-      console.log(chalk.gray('='.repeat(50)));
-      console.log(this.maskSensitiveValues(envContent));
-      console.log(chalk.gray('='.repeat(50)));
+      void this.logger.info('\n' + chalk.yellow(this.i18n.t('config.dryRunPreview')));
+      void this.logger.info(chalk.gray('='.repeat(50)));
+      void this.logger.info(this.maskSensitiveValues(envContent));
+      void this.logger.info(chalk.gray('='.repeat(50)));
       return envPath;
     } else {
       // Write configuration file
@@ -63,12 +66,12 @@ export class ConfigurationManager {
       // Validate file permissions
       const stats = await fs.stat(envPath);
       if ((stats.mode & parseInt('777', 8)) !== parseInt('600', 8)) {
-        console.log(chalk.yellow(
+        void this.logger.warn(
           `\n⚠️  ${this.i18n.t('config.permissionWarning')}`
-        ));
+        );
       }
       
-      console.log(chalk.green(
+      void this.logger.info(chalk.green(
         `\n✅ ${this.i18n.t('config.fileCreated')}: ${chalk.bold(envPath)}`
       ));
       
@@ -204,7 +207,7 @@ export class ConfigurationManager {
     
     for (const key of sensitiveKeys) {
       const regex = new RegExp(`(${key}=)([^\n]+)`, 'g');
-      maskedContent = maskedContent.replace(regex, (_match, prefix, value) => {
+      maskedContent = maskedContent.replace(regex, (_match, prefix: string, value: string) => {
         if (value.length <= 8) {
           return `${prefix}${'*'.repeat(value.length)}`;
         }
@@ -224,11 +227,12 @@ export class ConfigurationManager {
       
       await fs.copyFile(envPath, backupPath);
       
-      console.log(chalk.blue(
+      void this.logger.info(chalk.blue(
         `💾 ${this.i18n.t('config.backupCreated')}: ${chalk.bold(backupPath)}`
       ));
     } catch (error) {
       // File doesn't exist, no need to backup
+      void this.logger.debug('No existing config file to backup', { error });
     }
   }
 
@@ -237,28 +241,29 @@ export class ConfigurationManager {
       const templateContent = await fs.readFile(templatePath, 'utf8');
       
       if (templatePath.endsWith('.json')) {
-        return JSON.parse(templateContent);
+        return JSON.parse(templateContent) as Record<string, unknown>;
       } else if (templatePath.endsWith('.yml') || templatePath.endsWith('.yaml')) {
         const yaml = await import('yaml');
-        return yaml.parse(templateContent);
+        return yaml.parse(templateContent) as Record<string, unknown>;
       } else {
         throw new Error(this.i18n.t('config.unsupportedTemplateFormat'));
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(
         this.i18n.t('config.templateLoadError', { 
           path: templatePath, 
-          error: error instanceof Error ? error.message : String(error) 
+          error: errorMessage
         })
       );
     }
   }
 
-  async validateConfiguration(config: Record<string, unknown>): Promise<{
+  validateConfiguration(config: Record<string, unknown>): {
     valid: boolean;
     errors: string[];
     warnings: string[];
-  }> {
+  } {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -284,8 +289,8 @@ export class ConfigurationManager {
 
     // Port validation
     const portValue = config.PORT;
-    if (portValue) {
-      const port = typeof portValue === 'string' ? parseInt(portValue) : Number(portValue);
+    if (portValue !== undefined && portValue !== null) {
+      const port = typeof portValue === 'string' ? parseInt(portValue, 10) : Number(portValue);
       if (isNaN(port) || port < 1 || port > 65535) {
         errors.push(this.i18n.t('config.validation.invalidPort'));
       }
@@ -303,12 +308,12 @@ export class ConfigurationManager {
     }
 
     // GitHub configuration validation
-    if (config.ENABLE_GITHUB_WEBHOOKS && !config.GITHUB_APP_ID) {
+    if (config.ENABLE_GITHUB_WEBHOOKS === true && !config.GITHUB_APP_ID) {
       errors.push(this.i18n.t('config.validation.missingGitHubConfig'));
     }
 
     // Slack configuration validation
-    if (config.ENABLE_SLACK_APP && !config.SLACK_BOT_TOKEN) {
+    if (config.ENABLE_SLACK_APP === true && !config.SLACK_BOT_TOKEN) {
       errors.push(this.i18n.t('config.validation.missingSlackConfig'));
     }
 
@@ -339,7 +344,7 @@ export class ConfigurationManager {
     ];
     
     for (const key of sensitiveKeys) {
-      if (exportConfig[key]) {
+      if (exportConfig[key] !== undefined && exportConfig[key] !== null) {
         exportConfig[key] = '<REDACTED>';
       }
     }

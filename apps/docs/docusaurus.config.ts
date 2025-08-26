@@ -1,6 +1,7 @@
 import type * as Preset from '@docusaurus/preset-classic';
 import type {Config} from '@docusaurus/types';
 import {themes as prismThemes} from 'prism-react-renderer';
+// eslint-disable-next-line import/no-unresolved
 import npm2yarn from '@docusaurus/remark-plugin-npm2yarn';
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)

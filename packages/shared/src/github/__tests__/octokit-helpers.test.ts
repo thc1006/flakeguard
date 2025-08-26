@@ -4,7 +4,7 @@
  * Unit tests for the P2 Octokit helper functions with mocked GitHub API.
  */
 
-import { describe, it, expect, beforeEach, vi, type MockedFunction } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { TestCrypto } from '../../utils/test-crypto.js';
 import { 
@@ -233,18 +233,31 @@ describe('OctokitHelpers - P2', () => {
 
       vi.mocked(fs.mkdtempSync).mockReturnValue('/tmp/flakeguard-artifact-test');
       vi.mocked(os.tmpdir).mockReturnValue('/tmp');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/unbound-method, @typescript-eslint/no-explicit-any
-      const pathJoinMock = vi.mocked(path.join) as any;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      pathJoinMock.mockReturnValue = vi.fn().mockReturnValue('/tmp/flakeguard-artifact-test/artifact-123.zip');
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-      pathJoinMock.mockReturnValue('/tmp/flakeguard-artifact-test/artifact-123.zip');
-      vi.mocked(fs.createWriteStream).mockReturnValue({
+      vi.mocked(path.join).mockReturnValue('/tmp/flakeguard-artifact-test/artifact-123.zip');
+      const mockWriteStream = {
         write: vi.fn(),
         end: vi.fn(),
         destroy: vi.fn(),
         writable: true,
-      } as unknown as import('fs').WriteStream);
+        readable: false,
+        pipe: vi.fn(),
+        on: vi.fn(),
+        once: vi.fn(),
+        emit: vi.fn(),
+        removeListener: vi.fn(),
+        addListener: vi.fn(),
+        off: vi.fn(),
+        removeAllListeners: vi.fn(),
+        setMaxListeners: vi.fn(),
+        getMaxListeners: vi.fn(),
+        listeners: vi.fn(),
+        rawListeners: vi.fn(),
+        listenerCount: vi.fn(),
+        prependListener: vi.fn(),
+        prependOnceListener: vi.fn(),
+        eventNames: vi.fn(),
+      } as unknown as import('fs').WriteStream;
+      vi.mocked(fs.createWriteStream).mockReturnValue(mockWriteStream);
       vi.mocked(streamPromises.pipeline).mockResolvedValue(undefined);
     });
 
@@ -253,7 +266,7 @@ describe('OctokitHelpers - P2', () => {
         url: 'https://github.com/artifacts/download/123',
       });
 
-      (global.fetch as MockedFunction<typeof fetch>).mockResolvedValue(
+      (global.fetch as vi.MockedFunction<typeof fetch>).mockResolvedValue(
         new Response(new ArrayBuffer(1024), {
           status: 200,
           statusText: 'OK',
@@ -285,7 +298,7 @@ describe('OctokitHelpers - P2', () => {
         url: 'https://github.com/artifacts/download/123',
       });
 
-      (global.fetch as MockedFunction<typeof fetch>).mockResolvedValue(
+      (global.fetch as vi.MockedFunction<typeof fetch>).mockResolvedValue(
         new Response(null, {
           status: 404,
           statusText: 'Not Found',

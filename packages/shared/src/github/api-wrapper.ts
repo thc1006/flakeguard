@@ -34,6 +34,7 @@ import type {
   RequestMetrics,
   RateLimitInfo,
   CircuitBreakerStatus,
+  HttpMethod,
 } from './types.js';
 
 /**
@@ -364,9 +365,9 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
         );
 
         const response = await this.octokit.request({
-          method: options.method as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD',
+          method: options.method as HttpMethod,
           url: options.endpoint,
-          data: options.data,
+          data: options.data as Record<string, unknown> | undefined,
           headers: {
             ...options.headers,
             'X-Request-ID': requestId,
@@ -388,7 +389,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
 
         return response.data as T;
       } catch (error) {
-        lastError = error instanceof Error ?? error instanceof RequestError 
+        lastError = (error instanceof Error || error instanceof RequestError) 
           ? error 
           : new Error(String(error));
 
@@ -441,8 +442,7 @@ export class EnhancedGitHubApiWrapper implements GitHubApiWrapper {
   /**
    * Create request hook for Octokit
    */
-  private createRequestHook() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private createRequestHook(): (request: (opts: Record<string, unknown>) => Promise<{ status: number; headers: Record<string, unknown>; data: unknown }>, options: Record<string, unknown>) => Promise<{ status: number; headers: Record<string, unknown>; data: unknown }> {
     return (request: (opts: Record<string, unknown>) => Promise<{ status: number; headers: Record<string, unknown>; data: unknown }>, options: Record<string, unknown>) => {
       const sanitizedOptions = this.securityManager.sanitizeRequest(options);
       
@@ -661,7 +661,7 @@ export function createGitHubApiWrapperFromEnv(logger: Logger): EnhancedGitHubApi
     ? parseInt(process.env.GITHUB_INSTALLATION_ID, 10)
     : undefined;
 
-  if (!appId ?? !privateKey) {
+  if (!appId || !privateKey) {
     throw new GitHubApiError(
       'CONFIGURATION_INVALID',
       'Missing required GitHub App configuration (GITHUB_APP_ID, GITHUB_PRIVATE_KEY)',

@@ -15,7 +15,9 @@ import { githubWebhookRoutes, SUPPORTED_WEBHOOK_EVENTS } from '../github-webhook
 describe('GitHub Webhook Core Functionality', () => {
   let app: ReturnType<typeof Fastify>;
   const webhookSecret = 'test-webhook-secret-12345';
-  let mockQueue: any;
+  let mockQueue: {
+    add: vi.MockedFunction<(name: string, data: unknown) => Promise<{ id: string }>>;
+  };
 
   beforeEach(async () => {
     // Set up minimal test environment

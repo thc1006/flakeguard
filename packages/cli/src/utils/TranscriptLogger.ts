@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
-import { TranscriptEntry } from '../types';
+import { TranscriptEntry } from '../types/index.js';
 
 export class TranscriptLogger {
   private filePath?: string;
@@ -56,6 +56,10 @@ export class TranscriptLogger {
 
   async debug(message: string, data?: unknown): Promise<void> {
     await this.log(message, data, 'debug');
+  }
+
+  async info(message: string, data?: unknown): Promise<void> {
+    await this.log(message, data, 'info');
   }
 
   private async writeHeader(): Promise<void> {
@@ -121,7 +125,7 @@ export class TranscriptLogger {
         .map(line => `    ${line}`)
         .join('\n');
     } catch (error) {
-      return `  Data: [Could not serialize data: ${error}]`;
+      return `  Data: [Could not serialize data: ${String(error)}]`;
     }
   }
 
@@ -179,13 +183,13 @@ export class TranscriptLogger {
     }
   }
 
-  async exportSummary(): Promise<{
+  exportSummary(): {
     totalEntries: number;
     errorCount: number;
     warningCount: number;
     duration: number;
     stages: string[];
-  }> {
+  } {
     const errorCount = this.entries.filter(e => e.level === 'error').length;
     const warningCount = this.entries.filter(e => e.level === 'warn').length;
     
@@ -209,7 +213,7 @@ export class TranscriptLogger {
   async close(): Promise<void> {
     if (!this.isEnabled || !this.filePath) {return;}
     
-    const summary = await this.exportSummary();
+    const summary = this.exportSummary();
     
     const footer = [
       '',

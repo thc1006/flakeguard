@@ -114,6 +114,13 @@ export type {
   
   // Interface Types
   GitHubApiWrapper,
+  
+  // Utility Types
+  SafeUnknown,
+  HttpMethod,
+  TypedResponse,
+  PaginatedResponse as GitHubPaginatedResponse,
+  isSafeUnknown,
 } from './types.js';
 
 // Default configurations

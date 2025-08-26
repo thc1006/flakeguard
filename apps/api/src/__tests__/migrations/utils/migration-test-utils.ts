@@ -98,8 +98,9 @@ export async function runMigrationsTo(dbUrl: string, migrationName?: string): Pr
       cwd: process.cwd(),
       stdio: 'pipe' 
     });
-  } catch (error: any) {
-    throw new Error(`Migration failed: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Migration failed: ${errorMessage}`);
   }
 }
 
@@ -120,7 +121,7 @@ export async function getSchemaInfo(prisma: PrismaClient): Promise<{
     ORDER BY table_name
   `;
   
-  const tables = tablesResult.map(row => row.table_name);
+  const tables = tablesResult.map((row: { table_name: string }) => row.table_name);
 
   // Get enums
   const enumsResult = await prisma.$queryRaw<Array<{ enum_name: string }>>`
@@ -131,7 +132,7 @@ export async function getSchemaInfo(prisma: PrismaClient): Promise<{
     ORDER BY t.typname
   `;
   
-  const enums = enumsResult.map(row => row.enum_name);
+  const enums = enumsResult.map((row: { enum_name: string }) => row.enum_name);
 
   // Get indexes by table
   const indexesResult = await prisma.$queryRaw<Array<{ 
@@ -150,7 +151,7 @@ export async function getSchemaInfo(prisma: PrismaClient): Promise<{
   `;
 
   const indexes: Record<string, string[]> = {};
-  indexesResult.forEach(row => {
+  indexesResult.forEach((row: { table_name: string; index_name: string }) => {
     if (!indexes[row.table_name]) {
       indexes[row.table_name] = [];
     }
@@ -176,7 +177,7 @@ export async function validateTable(
     ORDER BY column_name
   `;
   
-  const actualColumns = columnsResult.map(row => row.column_name).sort();
+  const actualColumns = columnsResult.map((row: { column_name: string }) => row.column_name).sort();
   const expectedColumnsSorted = [...expectedColumns].sort();
   
   return JSON.stringify(actualColumns) === JSON.stringify(expectedColumnsSorted);
@@ -217,7 +218,12 @@ export async function validateForeignKeys(
     ORDER BY tc.table_name, kcu.column_name
   `;
 
-  const actualFks = fkResult.map(row => ({
+  const actualFks = fkResult.map((row: {
+    table_name: string;
+    column_name: string;
+    foreign_table_name: string;
+    foreign_column_name: string;
+  }) => ({
     table: row.table_name,
     column: row.column_name,
     referencedTable: row.foreign_table_name,
@@ -225,8 +231,18 @@ export async function validateForeignKeys(
   }));
 
   // Check each expected FK exists
-  return expectedForeignKeys.every(expected =>
-    actualFks.some(actual =>
+  return expectedForeignKeys.every((expected: {
+    table: string;
+    column: string;
+    referencedTable: string;
+    referencedColumn: string;
+  }) =>
+    actualFks.some((actual: {
+    table: string;
+    column: string;
+    referencedTable: string;
+    referencedColumn: string;
+  }) =>
       actual.table === expected.table &&
       actual.column === expected.column &&
       actual.referencedTable === expected.referencedTable &&
@@ -254,7 +270,7 @@ export async function validateIndexes(
     ORDER BY i.relname
   `;
 
-  const actualIndexes = indexResult.map(row => row.index_name);
+  const actualIndexes = indexResult.map((row: { index_name: string }) => row.index_name);
   
   return expectedIndexes.every(expected => actualIndexes.includes(expected));
 }

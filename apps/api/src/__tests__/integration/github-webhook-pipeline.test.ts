@@ -20,9 +20,24 @@ import Fastify from 'fastify';
 import IORedis from 'ioredis-mock';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 
+// Define types for the test
+interface ProcessingResult {
+  success: boolean;
+  processedArtifacts: number;
+  totalTests: number;
+  failedTests: number;
+  testSuites: Array<{
+    name: string;
+    tests: number;
+    failures: number;
+    errors: number;
+  }>;
+  errors: string[];
+}
+
 // Mock implementation of the webhook processor
 const createGitHubWebhookProcessor = (_prisma: PrismaClient) => {
-  return async (_job: Job<GitHubEventJob>) => {
+  return async (_job: Job<GitHubEventJob>): Promise<ProcessingResult> => {
     // Mock processing logic for testing
     return {
       success: true,
@@ -354,7 +369,7 @@ describe('GitHub Webhook Processing Pipeline Integration', () => {
       });
       
       // Step 5: Process the job through the worker
-      const processingResult = await webhookProcessor(job as unknown as Job<GitHubEventJob>);
+      const processingResult: ProcessingResult = await webhookProcessor(job as unknown as Job<GitHubEventJob>);
       
       // Verify processing result
       expect(processingResult.success).toBe(true);
@@ -545,7 +560,7 @@ describe('GitHub Webhook Processing Pipeline Integration', () => {
         updateProgress: vi.fn(),
       };
       
-      const result = await webhookProcessor(job as unknown as Job<GitHubEventJob>);
+      const result: ProcessingResult = await webhookProcessor(job as unknown as Job<GitHubEventJob>);
       
       expect(result.success).toBe(true);
       expect(result.processedArtifacts).toBe(0);

@@ -6,8 +6,8 @@ import { spawn } from 'cross-spawn';
 import semver from 'semver';
 
 
-import { I18nManager } from '../i18n/I18nManager';
-import { ValidationResult, PortCheck } from '../types';
+import { I18nManager } from '../i18n/I18nManager.js';
+import { ValidationResult, PortCheck } from '../types/index.js';
 
 export class EnvironmentValidator {
   private i18n: I18nManager;
@@ -20,7 +20,7 @@ export class EnvironmentValidator {
     const results: Record<string, ValidationResult> = {};
 
     // Node.js version validation
-    results.node = await this.validateNodeVersion();
+    results.node = this.validateNodeVersion();
     
     // Package manager validation
     results.packageManager = await this.validatePackageManager();
@@ -43,7 +43,7 @@ export class EnvironmentValidator {
     return results;
   }
 
-  private async validateNodeVersion(): Promise<ValidationResult> {
+  private validateNodeVersion(): ValidationResult {
     try {
       const nodeVersion = process.version;
       const required = '>=20.0.0';
@@ -171,7 +171,7 @@ export class EnvironmentValidator {
       const curlVersion = await this.getCommandVersion('curl', '--version');
       const wgetVersion = await this.getCommandVersion('wget', '--version');
       
-      if (curlVersion || wgetVersion) {
+      if (curlVersion ?? wgetVersion) {
         checks.push(this.i18n.t('validation.system.httpClientOk'));
       } else {
         checks.push(this.i18n.t('validation.system.httpClientMissing'));
@@ -298,7 +298,7 @@ export class EnvironmentValidator {
       
       let output = '';
       
-      child.stdout.on('data', (data: Buffer) => {
+      child.stdout?.on('data', (data: Buffer) => {
         output += data.toString();
       });
       

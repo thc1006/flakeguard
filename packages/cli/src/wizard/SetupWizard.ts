@@ -6,27 +6,27 @@ import inquirer from 'inquirer';
 // import { Listr } from 'listr2';
 import ora from 'ora';
 
-import { GitHubSetupGuide } from '../guides/GitHubSetupGuide';
-import { SlackSetupGuide } from '../guides/SlackSetupGuide';
-import { HealthChecker } from '../health/HealthChecker';
-import { I18nManager } from '../i18n/I18nManager';
-import { ConfigurationManager } from '../managers/ConfigurationManager';
-import { DatabaseManager } from '../managers/DatabaseManager';
-import { WizardOptions, SetupState } from '../types';
-import { TranscriptLogger } from '../utils/TranscriptLogger';
-import { EnvironmentValidator } from '../validators/EnvironmentValidator';
+import { GitHubSetupGuide } from '../guides/GitHubSetupGuide.js';
+import { SlackSetupGuide } from '../guides/SlackSetupGuide.js';
+import { HealthChecker } from '../health/HealthChecker.js';
+import { I18nManager } from '../i18n/I18nManager.js';
+import { ConfigurationManager } from '../managers/ConfigurationManager.js';
+import { DatabaseManager } from '../managers/DatabaseManager.js';
+import { WizardOptions, SetupState } from '../types/index.js';
+import { TranscriptLogger } from '../utils/TranscriptLogger.js';
+import { EnvironmentValidator } from '../validators/EnvironmentValidator.js';
 
 export class FlakeGuardSetupWizard {
-  private options: WizardOptions;
-  private state: SetupState;
-  private logger: TranscriptLogger;
-  private i18n: I18nManager;
-  private environmentValidator: EnvironmentValidator;
-  private databaseManager: DatabaseManager;
-  private gitHubGuide: GitHubSetupGuide;
-  private slackGuide: SlackSetupGuide;
-  private configManager: ConfigurationManager;
-  private healthChecker: HealthChecker;
+  private readonly options: WizardOptions;
+  private readonly state: SetupState;
+  private readonly logger: TranscriptLogger;
+  private readonly i18n: I18nManager;
+  private readonly environmentValidator: EnvironmentValidator;
+  private readonly databaseManager: DatabaseManager;
+  private readonly gitHubGuide: GitHubSetupGuide;
+  private readonly slackGuide: SlackSetupGuide;
+  private readonly configManager: ConfigurationManager;
+  private readonly healthChecker: HealthChecker;
 
   constructor(options: WizardOptions) {
     this.options = options;
@@ -92,7 +92,7 @@ export class FlakeGuardSetupWizard {
 
     const { proceed } = await inquirer.prompt<{ proceed: boolean }>([
       {
-        type: 'confirm',
+        type: 'confirm' as const,
         name: 'proceed',
         message: this.i18n.t('welcome.confirmProceed'),
         default: true
@@ -153,7 +153,7 @@ export class FlakeGuardSetupWizard {
         
         const { continueAnyway } = await inquirer.prompt<{ continueAnyway: boolean }>([
           {
-            type: 'confirm',
+            type: 'confirm' as const,
             name: 'continueAnyway',
             message: this.i18n.t('validation.continueAnyway'),
             default: false
@@ -180,14 +180,14 @@ export class FlakeGuardSetupWizard {
     
     const envQuestions = [
       {
-        type: 'input',
+        type: 'list' as const,
         name: 'nodeEnv',
         message: this.i18n.t('environment.nodeEnv'),
         default: 'development',
         choices: ['development', 'production', 'staging', 'test']
       },
       {
-        type: 'number',
+        type: 'number' as const,
         name: 'port',
         message: this.i18n.t('environment.port'),
         default: 3000,
@@ -199,13 +199,13 @@ export class FlakeGuardSetupWizard {
         }
       },
       {
-        type: 'input',
+        type: 'input' as const,
         name: 'host',
         message: this.i18n.t('environment.host'),
         default: '0.0.0.0'
       },
       {
-        type: 'input',
+        type: 'input' as const,
         name: 'corsOrigin',
         message: this.i18n.t('environment.corsOrigin'),
         default: 'http://localhost:3000'
@@ -241,7 +241,7 @@ export class FlakeGuardSetupWizard {
     
     const { setupGitHub } = await inquirer.prompt<{ setupGitHub: boolean }>([
       {
-        type: 'confirm',
+        type: 'confirm' as const,
         name: 'setupGitHub',
         message: this.i18n.t('github.confirmSetup'),
         default: true
@@ -264,7 +264,7 @@ export class FlakeGuardSetupWizard {
     
     const { setupSlack } = await inquirer.prompt<{ setupSlack: boolean }>([
       {
-        type: 'confirm',
+        type: 'confirm' as const,
         name: 'setupSlack',
         message: this.i18n.t('slack.confirmSetup'),
         default: false

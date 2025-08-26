@@ -275,9 +275,9 @@ describe('Migration 01: Initial Schema (20240824000000_init)', () => {
       await testDb.prisma.user.create({ data: userData });
 
       // Try to create duplicate user
-      await expect(
-        testDb.prisma.user.create({ data: userData })
-      ).rejects.toThrow();
+      await expect(async () => {
+        await testDb.prisma.user.create({ data: userData });
+      }).rejects.toThrow();
 
       // Cleanup
       await testDb.prisma.user.delete({ where: { email: userData.email } });
@@ -285,14 +285,14 @@ describe('Migration 01: Initial Schema (20240824000000_init)', () => {
 
     it('should enforce foreign key constraints', async () => {
       // Try to create task with non-existent user
-      await expect(
-        testDb.prisma.task.create({
+      await expect(async () => {
+        await testDb.prisma.task.create({
           data: {
             title: 'Invalid Task',
             userId: 'non-existent-user-id'
           }
-        })
-      ).rejects.toThrow();
+        });
+      }).rejects.toThrow();
     });
   });
 });

@@ -13,7 +13,11 @@
 import { JobPriorities } from '@flakeguard/shared';
 import type { PrismaClient } from '@prisma/client';
 import type { Queue } from 'bullmq';
-
+import type { Octokit } from '@octokit/rest';
+import type {
+  CheckRunEvent,
+  WorkflowRunEvent
+} from '@octokit/webhooks-types';
 
 import { 
   createGitHubArtifactsIntegration,
@@ -39,53 +43,10 @@ import type {
   WorkflowRunWebhookPayload,
 } from './types.js';
 
-// Type definitions for GitHub API objects
-interface GitHubRepository {
-  id: number;
-  name: string;
-  full_name: string;
-  owner: {
-    login: string;
-    id: number;
-  };
-}
-
-interface GitHubCheckRun {
-  id: number;
-  name: string;
-  head_sha: string;
-  status: string;
-  conclusion: string | null;
-}
-
-interface GitHubWorkflowRun {
-  id: number;
-  name: string;
-  head_sha: string;
-  status: string;
-  conclusion: string | null;
-}
-
-interface GitHubOctokit {
-  rest: {
-    actions: {
-      reRunWorkflowFailedJobs: (params: unknown) => Promise<unknown>;
-      reRunWorkflow: (params: unknown) => Promise<unknown>;
-    };
-    issues: {
-      create: (params: unknown) => Promise<unknown>;
-    };
-    checks: {
-      update: (params: unknown) => Promise<unknown>;
-    };
-    pulls: {
-      get: (params: unknown) => Promise<{ data: { commits: Array<{ sha: string }> } }>;
-    };
-    search: {
-      issuesAndPullRequests: (params: unknown) => Promise<{ data: { items: Array<unknown> } }>;
-    };
-  };
-}
+// Type aliases for better readability
+type GitHubRepository = NonNullable<CheckRunEvent['repository']>;
+type GitHubCheckRun = CheckRunEvent['check_run'];
+type GitHubWorkflowRun = WorkflowRunEvent['workflow_run'];
 import {
   BaseWebhookProcessor,
 } from './webhook-router.js';
@@ -121,19 +82,24 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     this.flakeDetector = options.flakeDetector || createFlakeDetector({ prisma: options.prisma });
   }
 
-  async process(payload: CheckRunWebhookPayload): Promise<void> {
-    const { action, check_run, repository, installation, requested_action } = payload;
+  async process(payload: CheckRunEvent): Promise<void> {
+    const { action, check_run, repository, installation } = payload;
+    
+    if (!repository) {
+      logger.warn('Check run webhook received without repository context');
+      return;
+    }
 
     logger.info('Processing check run webhook', {
       action,
       checkRunId: check_run.id,
       checkRunName: check_run.name,
       repository: repository.full_name,
-      installationId: installation?.id || 0,
+      installationId: installation?.id ?? null,
     });
 
     // Store check run in database
-    await this.storeCheckRun(payload);
+    await this.storeCheckRun(payload as CheckRunWebhookPayload);
 
     switch (action) {
       case 'created':
@@ -149,10 +115,10 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
         break;
         
       case 'requested_action':
-        if (requested_action && requested_action.identifier) {
-          const actionId = requested_action.identifier as CheckRunAction;
+        if ('requested_action' in payload && payload.requested_action?.identifier) {
+          const actionId = payload.requested_action.identifier as CheckRunAction;
           if (['quarantine', 'rerun_failed', 'open_issue', 'dismiss_flake', 'mark_stable'].includes(actionId)) {
-            await this.handleCheckRunAction(payload, actionId);
+            await this.handleCheckRunAction(payload as CheckRunWebhookPayload, actionId);
           }
         }
         break;
@@ -162,8 +128,13 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     }
   }
 
-  private async handleCheckRunCreated(payload: CheckRunWebhookPayload): Promise<void> {
+  private async handleCheckRunCreated(payload: CheckRunEvent): Promise<void> {
     const { check_run, repository, installation } = payload;
+    
+    if (!repository) {
+      logger.warn('Check run created without repository context');
+      return;
+    }
     
     logger.debug('Check run created', {
       checkRunId: check_run.id,
@@ -177,13 +148,18 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
         repository.owner.login,
         repository.name,
         check_run.id,
-        installation?.id || 0
+        installation?.id ?? 0
       );
     }
   }
 
-  private async handleCheckRunCompleted(payload: CheckRunWebhookPayload): Promise<void> {
+  private async handleCheckRunCompleted(payload: CheckRunEvent): Promise<void> {
     const { check_run, repository, installation } = payload;
+    
+    if (!repository) {
+      logger.warn('Check run completed without repository context');
+      return;
+    }
     
     logger.debug('Check run completed', {
       checkRunId: check_run.id,
@@ -193,12 +169,12 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
 
     // Only analyze failed check runs for flake detection
     if (check_run.conclusion === 'failure') {
-      await this.analyzeFailedCheckRun(payload);
+      await this.analyzeFailedCheckRun(payload as CheckRunWebhookPayload);
     }
 
     // Update repository's check run record
     try {
-      await this.ensureRepository(repository, (installation?.id || 0).toString());
+      await this.ensureRepository(repository, (installation?.id ?? 0).toString());
       
       await this.prisma.checkRun.update({
         where: { githubId: check_run.id },
@@ -206,18 +182,18 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
           status: check_run.status,
           conclusion: check_run.conclusion,
           completedAt: check_run.completed_at ? new Date(check_run.completed_at) : null,
-          output: check_run.output,
+          output: check_run.output ? JSON.parse(JSON.stringify(check_run.output)) : null,
         },
       });
     } catch (error) {
       logger.error('Failed to update check run record', {
         checkRunId: check_run.id,
-        error,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
-  private async handleCheckRunRerequested(payload: CheckRunWebhookPayload): Promise<void> {
+  private async handleCheckRunRerequested(payload: CheckRunEvent): Promise<void> {
     const { check_run } = payload;
     
     logger.debug('Check run rerequested', {
@@ -242,7 +218,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     } catch (error) {
       logger.error('Failed to check flake detection for rerequested check run', {
         checkRunId: check_run.id,
-        error,
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -649,7 +625,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
           octokit,
           repository.owner.login,
           repository.name,
-          workflowRun,
+          workflowRun as unknown as GitHubWorkflowRun,
           check_run,
           failedJobs
         );
@@ -699,7 +675,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
           repository.owner.login,
           repository.name,
           associatedPR.number,
-          workflowRun,
+          workflowRun as unknown as GitHubWorkflowRun,
           failedJobs,
           currentRun.html_url
         );
@@ -763,12 +739,12 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
         octokit,
         repository.owner.login,
         repository.name,
-        flakeDetections.map(d => d.testName)
+        flakeDetections.map((d: any) => d.testName)
       );
 
       // Filter out tests that already have issues
       const newDetections = flakeDetections.filter(
-        detection => !existingIssues.some(issue => 
+        (detection: any) => !existingIssues.some(issue => 
           issue.title.includes(detection.testName) || 
           issue.body?.includes(detection.testName)
         )
@@ -812,9 +788,9 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
             detection,
             check_run,
             {
-              workflowRun,
+              workflowRun: workflowRun as unknown as GitHubWorkflowRun,
               pullRequest: associatedPR,
-              repository: repoRecord,
+              repository: repoRecord as unknown as GitHubRepository,
             }
           );
 
@@ -971,7 +947,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
    * Quarantine a specific test by modifying its file content
    */
   private async quarantineTest(
-    octokit: GitHubOctokit,
+    octokit: Octokit,
     owner: string,
     repo: string,
     branchName: string,
@@ -1306,7 +1282,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
    * Find associated pull request for a commit
    */
   private async findAssociatedPullRequest(
-    octokit: GitHubOctokit,
+    octokit: Octokit,
     owner: string,
     repo: string,
     headSha: string
@@ -1316,9 +1292,9 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
       const { data: prs } = await octokit.rest.pulls.list({
         owner,
         repo,
-        state: 'open',
-        sort: 'updated',
-        direction: 'desc',
+        state: 'open' as const,
+        sort: 'updated' as const,
+        direction: 'desc' as const,
         per_page: 50,
       });
 
@@ -1368,7 +1344,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
    * Create rerun comment on PR
    */
   private async createRerunComment(
-    octokit: GitHubOctokit,
+    octokit: Octokit,
     owner: string,
     repo: string,
     prNumber: number,
@@ -1383,7 +1359,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     const body = `## 🔄 Workflow Rerun Initiated by FlakeGuard
 
 **Workflow:** [${workflowRun.name}](${workflowUrl})  
-**Run ID:** ${workflowRun.githubId}  
+**Run ID:** ${(workflowRun as { id: number }).id}  
 **Rerun Type:** ${failedJobs.length === 0 ? 'Full workflow' : 'Failed jobs only'}  
 
 ### Failed Jobs Being Rerun
@@ -1412,7 +1388,7 @@ This rerun was automatically triggered to help identify flaky test behavior by r
    * Create persistent failure issue for workflows that repeatedly fail
    */
   private async createPersistentFailureIssue(
-    octokit: GitHubOctokit,
+    octokit: Octokit,
     owner: string,
     repo: string,
     workflowRun: GitHubWorkflowRun,
@@ -1427,7 +1403,7 @@ This rerun was automatically triggered to help identify flaky test behavior by r
     const body = `## Persistent Workflow Failures Detected
 
 **Workflow:** ${workflowRun.name}  
-**Run ID:** ${workflowRun.githubId}  
+**Run ID:** ${(workflowRun as { id: number }).id}  
 **Check Run:** ${checkRun.id}  
 
 This workflow has failed multiple times and reached the maximum rerun attempts limit. Manual investigation is required.
@@ -1465,7 +1441,7 @@ ${jobsList}
    * Find existing flake issues
    */
   private async findExistingFlakeIssues(
-    octokit: GitHubOctokit,
+    octokit: Octokit,
     owner: string,
     repo: string,
 _testNames: string[]
@@ -1500,7 +1476,7 @@ _testNames: string[]
    * Create detailed issue for individual flaky test
    */
   private async createDetailedFlakeIssue(
-    octokit: GitHubOctokit,
+    octokit: Octokit,
     owner: string,
     repo: string,
     detection: { testFilePath?: string; [key: string]: unknown },
@@ -1624,7 +1600,7 @@ A flaky test produces both passing and failing results without changes to the co
    * Create summary comment about created flake issues
    */
   private async createFlakeIssuesSummaryComment(
-    octokit: GitHubOctokit,
+    octokit: Octokit,
     owner: string,
     repo: string,
     prNumber: number,
@@ -1702,7 +1678,7 @@ Tests with higher confidence scores should be addressed first as they have stron
     }
   }
 
-  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<unknown> {
+  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date }> {
     return this.prisma.repository.upsert({
       where: { githubId: repository.id },
       update: {
@@ -1727,13 +1703,13 @@ Tests with higher confidence scores should be addressed first as they have stron
     });
   }
 
-  private async getRepositoryRecord(repository: GitHubRepository): Promise<unknown> {
+  private async getRepositoryRecord(repository: GitHubRepository): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date } | null> {
     return this.prisma.repository.findUnique({
       where: { githubId: repository.id },
     });
   }
 
-  private async findAssociatedWorkflowRun(headSha: string, repository: GitHubRepository): Promise<unknown> {
+  private async findAssociatedWorkflowRun(headSha: string, repository: GitHubRepository): Promise<{ id: string; githubId: number; name: string; headSha: string; status: string; conclusion: string | null; createdAt: Date; updatedAt: Date } | null> {
     return this.prisma.workflowRun.findFirst({
       where: {
         headSha,
@@ -2208,7 +2184,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     }
   }
 
-  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<unknown> {
+  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date }> {
     return this.prisma.repository.upsert({
       where: { githubId: repository.id },
       update: {
@@ -2233,7 +2209,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     });
   }
 
-  private async getRepositoryRecord(repository: GitHubRepository): Promise<unknown> {
+  private async getRepositoryRecord(repository: GitHubRepository): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date } | null> {
     return this.prisma.repository.findUnique({
       where: { githubId: repository.id },
     });
@@ -2525,7 +2501,7 @@ export class WorkflowJobHandler extends BaseWebhookProcessor<'workflow_job'> {
     }
   }
 
-  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<unknown> {
+  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date }> {
     return this.prisma.repository.upsert({
       where: { githubId: repository.id },
       update: {

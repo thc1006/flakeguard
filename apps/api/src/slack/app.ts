@@ -126,8 +126,10 @@ export class FlakeGuardSlackApp {
       await ack();
 
       try {
+        const userId = body.user_id || "unknown-user";
+        
         // Rate limiting check
-        if (!this.checkRateLimit(body.user?.id || "unknown-user")) {
+        if (!this.checkRateLimit(userId)) {
           await respond({
             text: '🚫 Rate limit exceeded. Please wait a moment before trying again.',
             response_type: 'ephemeral'
@@ -140,7 +142,7 @@ export class FlakeGuardSlackApp {
 
         logger.info('Processing FlakeGuard slash command', {
           subcommand,
-          userId: body.user?.id || "unknown-user",
+          userId,
           channelId: body.channel_id,
           teamId: body.team_id,
         });
@@ -161,7 +163,7 @@ export class FlakeGuardSlackApp {
         }
 
       } catch (error) {
-        logger.error({ error, userId: body.user?.id || "unknown-user" }, 'Failed to process slash command');
+        logger.error({ error, userId: body.user_id || "unknown-user" }, 'Failed to process slash command');
         await respond({
           text: '❌ An error occurred while processing your command. Please try again later.',
           response_type: 'ephemeral'
@@ -180,17 +182,22 @@ export class FlakeGuardSlackApp {
 
       try {
         const action = body as BlockAction;
-        const buttonAction = action.actions[0] as ButtonAction;
-        const { repositoryId, testName } = JSON.parse(buttonAction.value || '{}');
+        const buttonAction = action.actions?.[0] as ButtonAction | undefined;
+        if (!buttonAction?.value) {
+          throw new Error('Invalid button action payload');
+        }
+        
+        const { repositoryId, testName } = JSON.parse(buttonAction.value);
+        const userId = action.user?.id || "unknown-user";
 
         logger.info('Processing quarantine button action', {
           repositoryId,
           testName,
-          userId: body.user?.id || "unknown-user",
+          userId,
         });
 
         // Call existing GitHub quarantine handler
-        const result = await this.handleQuarantineAction(repositoryId, testName, body.user?.id || "unknown-user");
+        const result = await this.handleQuarantineAction(repositoryId, testName, userId);
         
         // Update the message with result
         await this.updateMessageWithResult(respond, 'quarantine', result, testName);
@@ -210,17 +217,22 @@ export class FlakeGuardSlackApp {
 
       try {
         const action = body as BlockAction;
-        const buttonAction = action.actions[0] as ButtonAction;
-        const { repositoryId, testName } = JSON.parse(buttonAction.value || '{}');
+        const buttonAction = action.actions?.[0] as ButtonAction | undefined;
+        if (!buttonAction?.value) {
+          throw new Error('Invalid button action payload');
+        }
+        
+        const { repositoryId, testName } = JSON.parse(buttonAction.value);
+        const userId = action.user?.id || "unknown-user";
 
         logger.info('Processing open issue button action', {
           repositoryId,
           testName,
-          userId: body.user?.id || "unknown-user",
+          userId,
         });
 
         // Call existing GitHub issue handler
-        const result = await this.handleOpenIssueAction(repositoryId, testName, body.user?.id || "unknown-user");
+        const result = await this.handleOpenIssueAction(repositoryId, testName, userId);
         
         // Update the message with result
         await this.updateMessageWithResult(respond, 'issue', result, testName);
@@ -240,8 +252,12 @@ export class FlakeGuardSlackApp {
 
       try {
         const action = body as BlockAction;
-        const buttonAction = action.actions[0] as ButtonAction;
-        const { repositoryId, testName } = JSON.parse(buttonAction.value || '{}');
+        const buttonAction = action.actions?.[0] as ButtonAction | undefined;
+        if (!buttonAction?.value) {
+          throw new Error('Invalid button action payload');
+        }
+        
+        const { repositoryId, testName } = JSON.parse(buttonAction.value);
 
         const details = await this.getTestDetails(repositoryId, testName);
         
@@ -603,31 +619,31 @@ export class FlakeGuardSlackApp {
    * Build repository status response blocks
    */
   private buildRepositoryStatusBlocks(summary: RepositoryFlakeSummary): SlackMessageBlock[] {
-    const blocks = [
+    const blocks: SlackMessageBlock[] = [
       {
-        type: 'section',
+        type: 'section' as const,
         text: {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*FlakeGuard Status: ${summary.repositoryName}* 📊`
         }
       },
       {
-        type: 'section',
+        type: 'section' as const,
         fields: [
           {
-            type: 'mrkdwn',
+            type: 'mrkdwn' as const,
             text: `*Total Tests Analyzed:*\n${summary.totalTests}`
           },
           {
-            type: 'mrkdwn',
+            type: 'mrkdwn' as const,
             text: `*Flaky Tests Found:*\n${summary.flakyTests} ${summary.flakyTests > 0 ? '⚠️' : '✅'}`
           },
           {
-            type: 'mrkdwn',
+            type: 'mrkdwn' as const,
             text: `*Quarantined Tests:*\n${summary.quarantinedTests} ${summary.quarantinedTests > 0 ? '🚫' : '✅'}`
           },
           {
-            type: 'mrkdwn',
+            type: 'mrkdwn' as const,
             text: `*Health Score:*\n${this.calculateHealthScore(summary)}% ${this.getHealthEmoji(summary)}`
           }
         ]
@@ -721,39 +737,38 @@ export class FlakeGuardSlackApp {
    * Build top flaky tests response blocks
    */
   private buildTopFlakyBlocks(topFlaky: GlobalFlakyTest[], limit: number): SlackMessageBlock[] {
-    const blocks = [
+    const blocks: SlackMessageBlock[] = [
       {
-        type: 'section',
+        type: 'section' as const,
         text: {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Top ${Math.min(topFlaky.length, limit)} Flakiest Tests Across All Repositories* 🌍`
         }
       },
       {
-        type: 'divider'
+        type: 'divider' as const
       }
     ];
 
     for (const [index, test] of topFlaky.entries()) {
-
       blocks.push({
-        type: 'section',
+        type: 'section' as const,
         text: {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*${index + 1}. ${test.testName}*\n📁 Repository: \`${test.repositoryName}\`\n🎯 Flake Score: ${(test.flakeScore * 100).toFixed(1)}% | 💥 Failure Rate: ${(test.failureRate * 100).toFixed(1)}%\n🔒 Confidence: ${(test.confidence * 100).toFixed(1)}% | 📅 Last Failure: ${test.lastFailure.toLocaleDateString()}`
         }
       });
     }
 
     blocks.push({
-      type: 'context',
+      type: 'context' as const,
       elements: [
         {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `📊 Analyzed tests from the last 30 days • Use \`/flakeguard status <owner/repo>\` for repository-specific actions`
         }
       ]
-    } as any);
+    });
 
     return blocks;
   }

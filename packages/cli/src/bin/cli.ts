@@ -3,8 +3,12 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 
-import { version } from '../../package.json' with { type: 'json' };
+import { createRequire } from 'module';
 import { FlakeGuardSetupWizard } from '../wizard/SetupWizard.js';
+
+const require = createRequire(import.meta.url);
+const packageJson = require('../../package.json');
+const version = packageJson.version;
 
 const program = new Command();
 

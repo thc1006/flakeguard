@@ -3,8 +3,8 @@ import chalk from 'chalk';
 import inquirer from 'inquirer';
 import ora from 'ora';
 
-import { I18nManager } from '../i18n/I18nManager';
-import { SlackConfig } from '../types';
+import { I18nManager } from '../i18n/I18nManager.js';
+import { SlackConfig } from '../types/index.js';
 
 export class SlackSetupGuide {
   private i18n: I18nManager;

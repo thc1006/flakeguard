@@ -1,4 +1,4 @@
-import { I18nMessages } from '../../types';
+import { I18nMessages } from '../../types/index.js';
 
 export const englishMessages: I18nMessages = {
   welcome: {

@@ -1,7 +1,7 @@
-import { I18nMessages } from '../types';
+import { I18nMessages } from '../types/index.js';
 
-import { englishMessages } from './messages/en';
-import { chineseMessages } from './messages/zh-TW';
+import { englishMessages } from './messages/en.js';
+import { chineseMessages } from './messages/zh-TW.js';
 
 export class I18nManager {
   private messages: I18nMessages;

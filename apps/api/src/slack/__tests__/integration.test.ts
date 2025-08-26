@@ -32,10 +32,28 @@ vi.mock('../../utils/logger.js', () => ({
 
 describe('FlakeGuard Slack App Integration', () => {
   let app: FlakeGuardSlackApp;
-  let mockPrisma: any;
-  let mockGithubAuth: any;
-  let mockCheckRunHandler: any;
-  let mockFlakinessScorer: any;
+  let mockPrisma: {
+    repository: {
+      findFirst: vi.MockedFunction<() => Promise<unknown>>;
+      findUnique: vi.MockedFunction<() => Promise<unknown>>;
+    };
+    testResult: {
+      findMany: vi.MockedFunction<() => Promise<unknown[]>>;
+    };
+    flakeDetection: {
+      findFirst: vi.MockedFunction<() => Promise<unknown>>;
+      findMany: vi.MockedFunction<() => Promise<unknown[]>>;
+    };
+  };
+  let mockGithubAuth: {
+    getInstallationOctokit: vi.MockedFunction<() => Promise<unknown>>;
+  };
+  let mockCheckRunHandler: {
+    process: vi.MockedFunction<() => Promise<unknown>>;
+  };
+  let mockFlakinessScorer: {
+    computeFlakeScore: vi.MockedFunction<() => unknown>;
+  };
   
   const mockConfig = {
     signingSecret: TestCrypto.generateSlackSigningSecret(),

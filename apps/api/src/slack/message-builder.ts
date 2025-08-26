@@ -19,9 +19,6 @@ import type {
   SlackHeaderBlock,
   SlackActionsBlock,
   SlackContextBlock,
-  SlackButton,
-  PlainTextElement,
-  MrkdwnElement,
 } from './types.js';
 
 // FlakeNotification imported above but not used currently
@@ -71,12 +68,12 @@ export class SlackMessageBuilder {
   ): SlackMessageTemplate {
     const templateId = `quarantine_report_${candidates.length}`;
     
-    const blocks = [
+    const blocks: SlackMessageBlock[] = [
       this.createHeaderBlock('📋 Quarantine Report', 'weekly'),
       {
-        type: 'section',
+        type: 'section' as const,
         text: {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Repository:* ${repository}\n*Found* \`${candidates.length}\` *tests recommended for quarantine*`,
         },
       },
@@ -104,17 +101,17 @@ export class SlackMessageBuilder {
    * Build quality summary with trend visualization
    */
   public buildQualitySummary(summary: QualitySummaryData): SlackMessageTemplate {
-    const blocks = [
+    const blocks: SlackMessageBlock[] = [
       this.createHeaderBlock('📊 Test Quality Summary', 'daily'),
       {
-        type: 'section',
+        type: 'section' as const,
         fields: [
           {
-            type: 'mrkdwn',
+            type: 'mrkdwn' as const,
             text: `*Repository:*\n${summary.repository}`,
           },
           {
-            type: 'mrkdwn',
+            type: 'mrkdwn' as const,
             text: `*Period:*\n${this.formatDateRange(summary.period)}`,
           },
         ],
@@ -146,26 +143,26 @@ export class SlackMessageBuilder {
     failureRate: number,
     affectedTests: string[]
   ): SlackMessageTemplate {
-    const blocks = [
+    const blocks: SlackMessageBlock[] = [
       {
-        type: 'header',
+        type: 'header' as const,
         text: {
-          type: 'plain_text',
+          type: 'plain_text' as const,
           text: '🔥 CRITICAL: Test Suite Failure Spike',
           emoji: true,
         },
       },
       {
-        type: 'section',
+        type: 'section' as const,
         text: {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Repository:* ${repository}\n*Issue:* Failure rate increased to ${(failureRate * 100).toFixed(1)}% in last hour`,
         },
       },
       {
-        type: 'section',
+        type: 'section' as const,
         text: {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Affected Tests (${affectedTests.length}):*\n${affectedTests.slice(0, 5).map(test => `• \`${test}\``).join('\n')}${affectedTests.length > 5 ? `\n• ... and ${affectedTests.length - 5} more` : ''}`,
         },
       },
@@ -197,13 +194,13 @@ export class SlackMessageBuilder {
     return {
       blocks: [
         {
-          type: 'section',
+          type: 'section' as const,
           text: {
-            type: 'mrkdwn',
+            type: 'mrkdwn' as const,
             text: `*${operation}*\n${progressBar} ${progress.toFixed(0)}%\n\n_${details}_`,
           },
         },
-      ] as SlackMessageBlock[],
+      ],
     };
   }
 
@@ -232,9 +229,9 @@ export class SlackMessageBuilder {
         currentSize += blockSize;
       } else {
         truncatedBlocks.push({
-          type: 'section',
+          type: 'section' as const,
           text: {
-            type: 'mrkdwn',
+            type: 'mrkdwn' as const,
             text: '⚠️ _Message truncated due to size limits_',
           },
         });
@@ -252,18 +249,18 @@ export class SlackMessageBuilder {
     return [
       this.createHeaderBlock(`${priorityEmoji} Flaky Test Alert`, flakeScore.recommendation.priority),
       {
-        type: 'section',
+        type: 'section' as const,
         fields: [
-          { type: 'mrkdwn', text: `*Repository:*\n${repository}` },
-          { type: 'mrkdwn', text: `*Test:*\n\`${flakeScore.testName}\`` },
-          { type: 'mrkdwn', text: `*Flakiness Score:*\n${(flakeScore.score * 100).toFixed(0)}% (${flakeScore.confidence >= 0.8 ? 'High' : 'Medium'} Confidence)` },
-          { type: 'mrkdwn', text: `*Failure Rate:*\n${(flakeScore.features.failSuccessRatio * 100).toFixed(1)}% (${flakeScore.features.recentFailures}/${flakeScore.features.totalRuns} runs)` },
+          { type: 'mrkdwn' as const, text: `*Repository:*\n${repository}` },
+          { type: 'mrkdwn' as const, text: `*Test:*\n\`${flakeScore.testName}\`` },
+          { type: 'mrkdwn' as const, text: `*Flakiness Score:*\n${(flakeScore.score * 100).toFixed(0)}% (${flakeScore.confidence >= 0.8 ? 'High' : 'Medium'} Confidence)` },
+          { type: 'mrkdwn' as const, text: `*Failure Rate:*\n${(flakeScore.features.failSuccessRatio * 100).toFixed(1)}% (${flakeScore.features.recentFailures}/${flakeScore.features.totalRuns} runs)` },
         ],
       },
       {
-        type: 'section',
+        type: 'section' as const,
         text: {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Analysis:*\n• Recent failures: ${flakeScore.features.recentFailures} in last 7 days\n• Consecutive failures: ${flakeScore.features.consecutiveFailures}/${flakeScore.features.maxConsecutiveFailures} max\n• Intermittency score: ${(flakeScore.features.intermittencyScore * 100).toFixed(0)}%\n• Recommendation: *${flakeScore.recommendation.action.toUpperCase()}*`,
         },
       },
@@ -280,9 +277,9 @@ export class SlackMessageBuilder {
 
       const emoji = this.getPriorityEmoji(priority as any);
       blocks.push({
-        type: 'section',
+        type: 'section' as const,
         text: {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*${emoji} ${priority.charAt(0).toUpperCase() + priority.slice(1)} Priority (${tests.length}):*\n${tests.slice(0, 3).map(test => `• \`${test.testName}\` - ${(test.flakeScore.score * 100).toFixed(0)}% flakiness`).join('\n')}${tests.length > 3 ? `\n• ... and ${tests.length - 3} more` : ''}`,
         },
       });
@@ -296,9 +293,9 @@ export class SlackMessageBuilder {
 
     return [
       {
-        type: 'section',
+        type: 'section' as const,
         text: {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Top Issues:*\n${issues.map((issue, i) => `${i + 1}. ${issue.category}: ${issue.description}`).join('\n')}`,
         },
       },
@@ -311,22 +308,22 @@ export class SlackMessageBuilder {
     const testTimeIcon = overview.avgTestTimeChange <= 0 ? '⚡' : '🐌';
 
     return {
-      type: 'section',
+      type: 'section' as const,
       fields: [
         {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Pass Rate:*\n${(overview.passRate * 100).toFixed(1)}% ${passRateIcon} (${overview.passRateChange >= 0 ? '+' : ''}${(overview.passRateChange * 100).toFixed(1)}%)`,
         },
         {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Flaky Tests:*\n${overview.flakyTests} ${flakyTestsIcon} (${overview.flakyTestsChange >= 0 ? '+' : ''}${overview.flakyTestsChange})`,
         },
         {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Quarantined:*\n${overview.quarantinedTests} tests`,
         },
         {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text: `*Avg Test Time:*\n${overview.avgTestTime.toFixed(1)}s ${testTimeIcon} (${overview.avgTestTimeChange >= 0 ? '+' : ''}${overview.avgTestTimeChange.toFixed(1)}s)`,
         },
       ],
@@ -335,12 +332,12 @@ export class SlackMessageBuilder {
 
   private createFlakeActionBlock(flakeScore: FlakeScore, repository: string): SlackActionsBlock {
     return {
-      type: 'actions',
+      type: 'actions' as const,
       elements: [
         {
-          type: 'button',
-          text: { type: 'plain_text', text: '🔒 Quarantine' },
-          style: 'danger',
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: '🔒 Quarantine' },
+          style: 'danger' as const,
           action_id: 'quarantine_test',
           value: JSON.stringify({
             testName: flakeScore.testName,
@@ -349,14 +346,14 @@ export class SlackMessageBuilder {
           }),
         },
         {
-          type: 'button',
-          text: { type: 'plain_text', text: '📊 View Details' },
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: '📊 View Details' },
           action_id: 'view_details',
           url: `${process.env.FLAKEGUARD_URL}/flakes/${encodeURIComponent(flakeScore.testFullName)}`,
         },
         {
-          type: 'button',
-          text: { type: 'plain_text', text: '❌ Dismiss' },
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: '❌ Dismiss' },
           action_id: 'dismiss_flake',
           value: JSON.stringify({
             testName: flakeScore.testName,
@@ -371,24 +368,24 @@ export class SlackMessageBuilder {
     const highPriority = candidates.filter(c => c.flakeScore.recommendation.priority === 'high' || c.flakeScore.recommendation.priority === 'critical').length;
 
     return {
-      type: 'actions',
+      type: 'actions' as const,
       elements: [
         ...(highPriority > 0 ? [{
-          type: 'button',
-          text: { type: 'plain_text', text: `🔒 Quarantine High Priority (${highPriority})` },
-          style: 'danger',
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: `🔒 Quarantine High Priority (${highPriority})` },
+          style: 'danger' as const,
           action_id: 'quarantine_high_priority',
           value: JSON.stringify({ candidates: highPriority }),
         }] : []),
         {
-          type: 'button',
-          text: { type: 'plain_text', text: '📋 View Full Report' },
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: '📋 View Full Report' },
           action_id: 'view_quarantine_report',
           url: `${process.env.FLAKEGUARD_URL}/quarantine`,
         },
         {
-          type: 'button',
-          text: { type: 'plain_text', text: '⚙️ Configure Alerts' },
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: '⚙️ Configure Alerts' },
           action_id: 'configure_alerts',
           url: `${process.env.FLAKEGUARD_URL}/settings/notifications`,
         },
@@ -398,24 +395,24 @@ export class SlackMessageBuilder {
 
   private createCriticalActionBlock(repository: string): SlackActionsBlock {
     return {
-      type: 'actions',
+      type: 'actions' as const,
       elements: [
         {
-          type: 'button',
-          text: { type: 'plain_text', text: '🚨 View Incident Dashboard' },
-          style: 'danger',
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: '🚨 View Incident Dashboard' },
+          style: 'danger' as const,
           action_id: 'view_incident',
           url: `${process.env.FLAKEGUARD_URL}/incidents/${encodeURIComponent(repository)}`,
         },
         {
-          type: 'button',
-          text: { type: 'plain_text', text: '📞 Notify On-Call' },
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: '📞 Notify On-Call' },
           action_id: 'notify_oncall',
           value: JSON.stringify({ repository, type: 'critical_failure_spike' }),
         },
         {
-          type: 'button',
-          text: { type: 'plain_text', text: '🔍 Run Diagnostics' },
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: '🔍 Run Diagnostics' },
           action_id: 'run_diagnostics',
           value: JSON.stringify({ repository }),
         },
@@ -425,11 +422,11 @@ export class SlackMessageBuilder {
 
   private createAnalyticsActionBlock(repository: string): SlackActionsBlock {
     return {
-      type: 'actions',
+      type: 'actions' as const,
       elements: [
         {
-          type: 'button',
-          text: { type: 'plain_text', text: '📊 View Analytics Dashboard' },
+          type: 'button' as const,
+          text: { type: 'plain_text' as const, text: '📊 View Analytics Dashboard' },
           action_id: 'view_analytics',
           url: `${process.env.FLAKEGUARD_URL}/analytics/${encodeURIComponent(repository)}`,
         },
@@ -439,9 +436,9 @@ export class SlackMessageBuilder {
 
   private createHeaderBlock(title: string, _priority?: string): SlackHeaderBlock {
     return {
-      type: 'header',
+      type: 'header' as const,
       text: {
-        type: 'plain_text',
+        type: 'plain_text' as const,
         text: title,
         emoji: true,
       },
@@ -450,10 +447,10 @@ export class SlackMessageBuilder {
 
   private createContextBlock(text: string): SlackContextBlock {
     return {
-      type: 'context',
+      type: 'context' as const,
       elements: [
         {
-          type: 'mrkdwn',
+          type: 'mrkdwn' as const,
           text,
         },
       ],

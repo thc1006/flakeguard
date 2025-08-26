@@ -2,7 +2,14 @@
  * High-performance Slack service with connection pooling and async operations
  */
 
-import { WebClient, LogLevel } from '@slack/web-api';
+import { 
+  WebClient, 
+  LogLevel, 
+  ChatPostMessageResponse,
+  ErrorCode,
+  Block,
+  KnownBlock
+} from '@slack/web-api';
 
 import { logger } from '../utils/logger.js';
 
@@ -12,7 +19,7 @@ import type {
   FlakeNotification,
   SlackMessageState,
   SlackMetrics,
-  SlackMessageBlock,
+  SlackMessageTemplate,
 } from './types.js';
 
 export class SlackService {
@@ -70,6 +77,8 @@ export class SlackService {
       
     } catch (error) {
       this.metrics.errorRate++;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage, notification: notification.type }, 'Failed to send flake notification');
       throw error;
     }
   }
@@ -78,39 +87,90 @@ export class SlackService {
     return { ...this.metrics, cacheHitRate: this.calculateCacheHitRate() };
   }
 
-  private buildNotificationTemplate(notification: FlakeNotification): { blocks: SlackMessageBlock[]; text: string } {
+  private buildNotificationTemplate(notification: FlakeNotification): SlackMessageTemplate {
     switch (notification.type) {
-      case 'flake_detected':
-        return this.messageBuilder.buildFlakeAlert(
-          notification.data.flakeScore || {
-            testName: 'unknown',
-            testFullName: 'unknown',
-            score: 0,
-            confidence: 0,
-            features: {
-              failSuccessRatio: 0,
-              recentFailures: 0,
-              totalRuns: 0,
-              consecutiveFailures: 0,
-              maxConsecutiveFailures: 0,
-              intermittencyScore: 0
-            },
-            recommendation: {
-              action: 'monitor' as const,
-              priority: 'low' as const,
-              rationale: 'Default unknown test data'
-            },
-            lastUpdated: new Date()
+      case 'flake_detected': {
+        const defaultFlakeScore = {
+          testName: 'unknown',
+          testFullName: 'unknown',
+          score: 0,
+          confidence: 0,
+          features: {
+            failSuccessRatio: 0,
+            rerunPassRate: 0,
+            failureClustering: 0,
+            intermittencyScore: 0,
+            messageSignatureVariance: 0,
+            totalRuns: 0,
+            recentFailures: 0,
+            consecutiveFailures: 0,
+            maxConsecutiveFailures: 0,
+            daysSinceFirstSeen: 0,
+            avgTimeBetweenFailures: 0
           },
+          recommendation: {
+            action: 'none' as const,
+            reason: 'Default unknown test data',
+            confidence: 0,
+            priority: 'low' as const
+          },
+          lastUpdated: new Date()
+        };
+        const result = this.messageBuilder.buildFlakeAlert(
+          notification.data.flakeScore || defaultFlakeScore,
           notification.repository
         );
-      case 'quarantine_recommended':
-        return this.messageBuilder.buildQuarantineReport(notification.repository, notification.data.quarantineCandidates || []);
-      case 'critical_spike':
+        return {
+          id: `flake_detected_${Date.now()}`,
+          blocks: result.blocks,
+          text: result.text,
+          metadata: {
+            version: '1.0',
+            checksum: '',
+            lastUsed: new Date()
+          }
+        };
+      }
+      case 'quarantine_recommended': {
+        const result = this.messageBuilder.buildQuarantineReport(notification.repository, notification.data.quarantineCandidates || []);
+        return {
+          id: `quarantine_recommended_${Date.now()}`,
+          blocks: result.blocks,
+          text: result.text,
+          metadata: {
+            version: '1.0',
+            checksum: '',
+            lastUsed: new Date()
+          }
+        };
+      }
+      case 'critical_spike': {
         const affectedTests = notification.data.metrics?.map(m => m.testName) || [];
-        return this.messageBuilder.buildCriticalAlert(notification.repository, 0.45, affectedTests);
-      case 'quality_summary':
-        return this.messageBuilder.buildQualitySummary(notification.data.summary!);
+        const result = this.messageBuilder.buildCriticalAlert(notification.repository, 0.45, affectedTests);
+        return {
+          id: `critical_spike_${Date.now()}`,
+          blocks: result.blocks,
+          text: result.text,
+          metadata: {
+            version: '1.0',
+            checksum: '',
+            lastUsed: new Date()
+          }
+        };
+      }
+      case 'quality_summary': {
+        const result = this.messageBuilder.buildQualitySummary(notification.data.summary!);
+        return {
+          id: `quality_summary_${Date.now()}`,
+          blocks: result.blocks,
+          text: result.text,
+          metadata: {
+            version: '1.0',
+            checksum: '',
+            lastUsed: new Date()
+          }
+        };
+      }
       default:
         throw new Error(`Unknown notification type: ${notification.type}`);
     }
@@ -142,47 +202,62 @@ export class SlackService {
         break;
     }
 
-    return [...new Set(channels)];
+    return Array.from(new Set(channels));
   }
 
-  private async sendBatchParallel(channels: string[], template: { blocks: SlackMessageBlock[]; text: string }, notification: FlakeNotification): Promise<void> {
+  private async sendBatchParallel(channels: string[], template: SlackMessageTemplate, notification: FlakeNotification): Promise<void> {
     const promises = channels.map(channel => this.sendToChannel(channel, template, notification));
     await Promise.allSettled(promises);
   }
 
-  private async sendBatchSequential(channels: string[], template: { blocks: SlackMessageBlock[]; text: string }, notification: FlakeNotification): Promise<void> {
+  private async sendBatchSequential(channels: string[], template: SlackMessageTemplate, notification: FlakeNotification): Promise<void> {
     for (const channel of channels) {
       try {
         await this.sendToChannel(channel, template, notification);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise<void>(resolve => setTimeout(resolve, 100));
       } catch (error) {
-        logger.warn({ channel, error: (error as Error).message }, 'Failed to send to channel');
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.warn({ channel, error: errorMessage }, 'Failed to send to channel');
       }
     }
   }
 
-  private async sendToChannel(channel: string, template: { blocks: SlackMessageBlock[]; text: string }, notification: FlakeNotification): Promise<void> {
+  private async sendToChannel(channel: string, template: SlackMessageTemplate, notification: FlakeNotification): Promise<void> {
     const client = this.getOptimalClient();
     
-    const result = await client.chat.postMessage({
-      channel,
-      blocks: template.blocks,
-      text: template.text,
-      thread_ts: notification.threading?.parentTs,
-    });
+    try {
+      const result = await client.chat.postMessage({
+        channel,
+        blocks: template.blocks as (Block | KnownBlock)[],
+        text: template.text,
+        thread_ts: notification.threading?.parentTs,
+      }) as ChatPostMessageResponse;
 
-    if (result.ok && result.ts) {
-      this.messageStates.set(result.ts, {
-        messageTs: result.ts,
-        channelId: channel,
-        type: notification.type,
-        data: notification.data,
-        interactions: 0,
-        lastUpdated: new Date(),
-      });
+      if (result.ok && result.ts) {
+        this.messageStates.set(result.ts, {
+          messageTs: result.ts,
+          channelId: channel,
+          type: notification.type,
+          data: notification.data as Record<string, unknown>,
+          interactions: 0,
+          lastUpdated: new Date(),
+        });
+      } else if (!result.ok) {
+        const errorMessage = 'error' in result ? String(result.error) : 'Unknown Slack API error';
+        throw new Error(`Slack API error: ${errorMessage}`);
+      }
+
+      this.updateChannelEngagement(channel);
+    } catch (error) {
+      if (error && typeof error === 'object' && 'code' in error) {
+        const slackError = error as { code: ErrorCode; data?: unknown };
+        logger.error({ channel, code: slackError.code, data: slackError.data }, 'Slack API error');
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error({ channel, error: errorMessage }, 'Failed to send message to Slack');
+      }
+      throw error;
     }
-
-    this.updateChannelEngagement(channel);
   }
 
   private initializeConnectionPool(): void {
@@ -209,7 +284,16 @@ export class SlackService {
       
       this.processing = true;
       const batch = this.sendQueue.splice(0, this.config.performance.maxConcurrentMessages);
-      await Promise.allSettled(batch.map(fn => fn()));
+      const results = await Promise.allSettled(batch.map(fn => fn()));
+      
+      // Log any failed queue operations
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const errorMessage = result.reason instanceof Error ? result.reason.message : 'Unknown error';
+          logger.warn({ index, error: errorMessage }, 'Queue processor task failed');
+        }
+      });
+      
       this.processing = false;
     }, 100);
   }

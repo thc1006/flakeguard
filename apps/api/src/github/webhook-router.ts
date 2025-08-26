@@ -34,6 +34,11 @@ import type {
   WorkflowRunWebhookPayload,
   InstallationWebhookPayload,
 } from './schemas.js';
+import type {
+  CheckRunEvent,
+  WorkflowRunEvent,
+  InstallationEvent
+} from '@octokit/webhooks-types';
 import { validateWebhookPayload, webhookHeadersSchema } from './schemas.js';
 
 
@@ -450,13 +455,13 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
 
     switch (action) {
       case 'created':
-        await this.handleCheckRunCreated(payload);
+        this.handleCheckRunCreated(payload);
         break;
       case 'completed':
-        await this.handleCheckRunCompleted(payload);
+        this.handleCheckRunCompleted(payload);
         break;
       case 'rerequested':
-        await this.handleCheckRunRerequested(payload);
+        this.handleCheckRunRerequested(payload);
         break;
       case 'requested_action':
         await this.handleCheckRunRequestedAction(payload);
@@ -466,7 +471,7 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
     }
   }
 
-  private async handleCheckRunCreated(payload: CheckRunWebhookPayload): Promise<void> {
+  private handleCheckRunCreated(payload: CheckRunWebhookPayload): void {
     // Implementation for when a check run is created
     this.logger.debug('Check run created', {
       checkRunId: payload.check_run.id,
@@ -474,7 +479,7 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
     });
   }
 
-  private async handleCheckRunCompleted(payload: CheckRunWebhookPayload): Promise<void> {
+  private handleCheckRunCompleted(payload: CheckRunWebhookPayload): void {
     // Implementation for when a check run is completed
     // This could trigger flake analysis
     this.logger.debug('Check run completed', {
@@ -483,7 +488,7 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
     });
   }
 
-  private async handleCheckRunRerequested(payload: CheckRunWebhookPayload): Promise<void> {
+  private handleCheckRunRerequested(payload: CheckRunWebhookPayload): void {
     // Implementation for when a check run is rerequested
     this.logger.debug('Check run rerequested', {
       checkRunId: payload.check_run.id,
@@ -513,7 +518,7 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
       
       // Get authenticated Octokit instance for this installation
       const octokit = installation ? 
-        await this.getInstallationOctokit(installation.id) : null;
+        this.getInstallationOctokit(installation.id) : null;
       
       if (!octokit) {
         this.logger.error('No installation context for requested action', {
@@ -534,8 +539,8 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
         });
         
         // Update metrics if available
-        if (this.metrics) {
-          this.metrics.incrementCounter(
+        if (this.metrics && 'incrementCounter' in this.metrics) {
+          (this.metrics as { incrementCounter: (name: string) => void }).incrementCounter(
             `webhook.check_run.action.${requested_action.identifier}.success`
           );
         }
@@ -548,8 +553,8 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
         });
         
         // Update metrics if available
-        if (this.metrics) {
-          this.metrics.incrementCounter(
+        if (this.metrics && 'incrementCounter' in this.metrics) {
+          (this.metrics as { incrementCounter: (name: string) => void }).incrementCounter(
             `webhook.check_run.action.${requested_action.identifier}.error`
           );
         }
@@ -567,8 +572,8 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
       });
       
       // Update metrics if available
-      if (this.metrics) {
-        this.metrics.incrementCounter(
+      if (this.metrics && 'incrementCounter' in this.metrics) {
+        (this.metrics as { incrementCounter: (name: string) => void }).incrementCounter(
           `webhook.check_run.action.${requested_action.identifier}.error`
         );
       }
@@ -582,10 +587,10 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
    * Get authenticated Octokit instance for installation
    * This is a placeholder - actual implementation would depend on auth setup
    */
-  private async getInstallationOctokit(installationId: number): Promise<{ rest: { actions: { reRunWorkflow: (params: unknown) => Promise<unknown>; reRunWorkflowFailedJobs: (params: unknown) => Promise<unknown> }; issues: { create: (params: unknown) => Promise<unknown> }; checks: { update: (params: unknown) => Promise<unknown> } } } | null> {
+  private getInstallationOctokit(_installationId: number): { rest: { actions: { reRunWorkflow: (params: unknown) => Promise<unknown>; reRunWorkflowFailedJobs: (params: unknown) => Promise<unknown> }; issues: { create: (params: unknown) => Promise<unknown> }; checks: { update: (params: unknown) => Promise<unknown> } } } | null {
     // This would integrate with the existing auth manager
     // For now, return a placeholder that would work with the auth system
-    this.logger.debug('Getting installation Octokit', { installationId });
+    this.logger.debug('Getting installation Octokit', { installationId: _installationId });
     
     // In real implementation, this would use GitHubAuthManager
     // return await this.authManager.getInstallationOctokit(installationId);
@@ -601,7 +606,7 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
 export class WorkflowRunProcessor extends BaseWebhookProcessor<'workflow_run'> {
   readonly eventType = 'workflow_run' as const;
 
-  async process(payload: WorkflowRunWebhookPayload): Promise<void> {
+  async process(payload: WorkflowRunEvent): Promise<void> {
     const { action, workflow_run, workflow, repository } = payload;
 
     this.logger.info('Processing workflow run webhook', {
@@ -622,11 +627,11 @@ export class WorkflowRunProcessor extends BaseWebhookProcessor<'workflow_run'> {
         await this.handleWorkflowRunInProgress(payload);
         break;
       default:
-        this.logger.warn(`Unhandled workflow run action: ${action}`);
+        this.logger.warn(`Unhandled workflow run action: ${String(action)}`);
     }
   }
 
-  private async handleWorkflowRunCompleted(payload: WorkflowRunWebhookPayload): Promise<void> {
+  private async handleWorkflowRunCompleted(payload: WorkflowRunEvent): Promise<void> {
     // Implementation for completed workflow runs
     // This is where flake analysis might be triggered
     this.logger.debug('Workflow run completed', {
@@ -635,13 +640,13 @@ export class WorkflowRunProcessor extends BaseWebhookProcessor<'workflow_run'> {
     });
   }
 
-  private async handleWorkflowRunRequested(payload: WorkflowRunWebhookPayload): Promise<void> {
+  private async handleWorkflowRunRequested(payload: WorkflowRunEvent): Promise<void> {
     this.logger.debug('Workflow run requested', {
       workflowRunId: payload.workflow_run.id,
     });
   }
 
-  private async handleWorkflowRunInProgress(payload: WorkflowRunWebhookPayload): Promise<void> {
+  private async handleWorkflowRunInProgress(payload: WorkflowRunEvent): Promise<void> {
     this.logger.debug('Workflow run in progress', {
       workflowRunId: payload.workflow_run.id,
     });
@@ -654,7 +659,7 @@ export class WorkflowRunProcessor extends BaseWebhookProcessor<'workflow_run'> {
 export class InstallationProcessor extends BaseWebhookProcessor<'installation'> {
   readonly eventType = 'installation' as const;
 
-  async process(payload: InstallationWebhookPayload): Promise<void> {
+  async process(payload: InstallationEvent): Promise<void> {
     const { action, installation } = payload;
 
     this.logger.info('Processing installation webhook', {
@@ -681,7 +686,7 @@ export class InstallationProcessor extends BaseWebhookProcessor<'installation'> 
     }
   }
 
-  private async handleInstallationCreated(payload: InstallationWebhookPayload): Promise<void> {
+  private async handleInstallationCreated(payload: InstallationEvent): Promise<void> {
     // Setup new installation
     this.logger.info('New installation created', {
       installationId: payload.installation.id,
@@ -689,20 +694,20 @@ export class InstallationProcessor extends BaseWebhookProcessor<'installation'> 
     });
   }
 
-  private async handleInstallationDeleted(payload: InstallationWebhookPayload): Promise<void> {
+  private async handleInstallationDeleted(payload: InstallationEvent): Promise<void> {
     // Cleanup installation data
     this.logger.info('Installation deleted', {
       installationId: payload.installation.id,
     });
   }
 
-  private async handleInstallationSuspended(payload: InstallationWebhookPayload): Promise<void> {
+  private async handleInstallationSuspended(payload: InstallationEvent): Promise<void> {
     this.logger.info('Installation suspended', {
       installationId: payload.installation.id,
     });
   }
 
-  private async handleInstallationUnsuspended(payload: InstallationWebhookPayload): Promise<void> {
+  private async handleInstallationUnsuspended(payload: InstallationEvent): Promise<void> {
     this.logger.info('Installation unsuspended', {
       installationId: payload.installation.id,
     });
@@ -717,7 +722,7 @@ export class InstallationProcessor extends BaseWebhookProcessor<'installation'> 
  * Request logging middleware
  */
 export function createLoggingMiddleware(logger: { info: (msg: string, ...args: unknown[]) => void }): WebhookMiddleware {
-  return async (request: FastifyRequest, reply: FastifyReply, payload: unknown): Promise<void> => {
+  return async (request: FastifyRequest, _reply: FastifyReply, _payload: unknown): Promise<void> => {
     const eventType = request.headers['x-github-event'];
     const deliveryId = request.headers['x-github-delivery'];
 
@@ -743,7 +748,7 @@ export function createRateLimitingMiddleware(options: {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     const clientIp = request.ip;
     const now = Date.now();
-    const windowStart = now - windowMs;
+    const _windowStart = now - windowMs;
 
     // Clean up old entries
     for (const [key, value] of storage.entries()) {
@@ -753,7 +758,7 @@ export function createRateLimitingMiddleware(options: {
     }
 
     // Check current rate limit
-    const current = storage.get(clientIp) || { count: 0, resetTime: now + windowMs };
+    const current = storage.get(clientIp) ?? { count: 0, resetTime: now + windowMs };
     
     if (current.resetTime < now) {
       current.count = 0;
@@ -764,7 +769,7 @@ export function createRateLimitingMiddleware(options: {
     storage.set(clientIp, current);
 
     if (current.count > maxRequests) {
-      reply.code(429).send({
+      void reply.code(429).send({
         success: false,
         error: {
           code: ErrorCode.RATE_LIMITED,
@@ -775,9 +780,9 @@ export function createRateLimitingMiddleware(options: {
     }
 
     // Add rate limit headers
-    reply.header('X-RateLimit-Limit', maxRequests.toString());
-    reply.header('X-RateLimit-Remaining', Math.max(0, maxRequests - current.count).toString());
-    reply.header('X-RateLimit-Reset', Math.ceil(current.resetTime / 1000).toString());
+    void reply.header('X-RateLimit-Limit', maxRequests.toString());
+    void reply.header('X-RateLimit-Remaining', Math.max(0, maxRequests - current.count).toString());
+    void reply.header('X-RateLimit-Reset', Math.ceil(current.resetTime / 1000).toString());
   };
 }
 
@@ -788,13 +793,13 @@ export function createRateLimitingMiddleware(options: {
 /**
  * Fastify plugin for registering webhook routes
  */
-export async function registerWebhookRoutes(
+export function registerWebhookRoutes(
   fastify: FastifyInstance,
   options: {
     router: WebhookRouter;
     path?: string;
   }
-): Promise<void> {
+): void {
   const { router, path = '/api/github/webhook' } = options;
 
   fastify.post(path, {

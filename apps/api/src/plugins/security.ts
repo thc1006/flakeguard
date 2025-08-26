@@ -11,8 +11,8 @@
  * - Audit logging for security events
  */
 
-import crypto from 'crypto';
-import fs from 'fs';
+import * as crypto from 'crypto';
+import * as fs from 'fs';
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
@@ -50,7 +50,7 @@ interface SecurityAuditEvent {
   type: 'webhook_verification' | 'rate_limit' | 'csrf_violation' | 'authentication_failure';
   severity: 'low' | 'medium' | 'high' | 'critical';
   source: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   timestamp: Date;
   userAgent?: string;
   ip?: string;
@@ -174,7 +174,7 @@ async function securityPlugin(
   // RATE LIMITING MIDDLEWARE
   // =============================================================================
 
-  fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     const key = getRateLimitKey(request);
     const limits = getRateLimitsForRoute(request.url);
     
@@ -194,7 +194,7 @@ async function securityPlugin(
         userAgent: request.headers['user-agent'],
       });
       
-      reply.status(429).send({
+      void reply.status(429).send({
         success: false,
         error: {
           code: 'RATE_LIMIT_EXCEEDED',
@@ -212,7 +212,7 @@ async function securityPlugin(
 
   if (securityConfig.enableCSRF) {
     // Generate CSRF token endpoint
-    fastify.get('/api/security/csrf-token', async (request: FastifyRequest, reply: FastifyReply) => {
+    fastify.get('/api/security/csrf-token', async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       const token = generateCSRFToken();
       const sessionId = request.headers['x-session-id'] as string || 'anonymous';
       
@@ -221,11 +221,11 @@ async function securityPlugin(
         expires: Date.now() + (30 * 60 * 1000), // 30 minutes
       });
       
-      reply.send({ token });
+      void reply.send({ token });
     });
 
     // CSRF validation for state-changing operations
-    fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
+    fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
       if (shouldValidateCSRF(request)) {
         const csrfToken = request.headers['x-csrf-token'] as string;
         const sessionId = request.headers['x-session-id'] as string || 'anonymous';
@@ -246,7 +246,7 @@ async function securityPlugin(
             userAgent: request.headers['user-agent'],
           });
           
-          reply.status(403).send({
+          void reply.status(403).send({
             success: false,
             error: {
               code: 'CSRF_TOKEN_INVALID',
@@ -263,7 +263,7 @@ async function securityPlugin(
   // SECURITY HEADERS
   // =============================================================================
 
-  fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     // Add security headers
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('X-Frame-Options', 'DENY');
@@ -291,8 +291,6 @@ async function securityPlugin(
     fastify.get('/api/security/audit-events', {
       preHandler: [requireAuthentication],
       schema: {
-        tags: ['Security'],
-        summary: 'Get security audit events',
         querystring: {
           type: 'object',
           properties: {
@@ -305,27 +303,27 @@ async function securityPlugin(
     }, async (request: FastifyRequest<{
       Querystring: {
         limit?: number;
-        severity?: string;
-        type?: string;
+        severity?: SecurityAuditEvent['severity'];
+        type?: SecurityAuditEvent['type'];
       };
-    }>, reply: FastifyReply) => {
+    }>, reply: FastifyReply): Promise<void> => {
       const { limit = 50, severity, type } = request.query;
       
       let filteredEvents = auditEvents.slice(-1000); // Keep last 1000 events
       
       if (severity) {
-        filteredEvents = filteredEvents.filter(event => event.severity === severity);
+        filteredEvents = filteredEvents.filter((event: SecurityAuditEvent) => event.severity === severity);
       }
       
       if (type) {
-        filteredEvents = filteredEvents.filter(event => event.type === type);
+        filteredEvents = filteredEvents.filter((event: SecurityAuditEvent) => event.type === type);
       }
       
       const paginatedEvents = filteredEvents
-        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        .sort((a: SecurityAuditEvent, b: SecurityAuditEvent) => b.timestamp.getTime() - a.timestamp.getTime())
         .slice(0, limit);
       
-      reply.send({
+      void reply.send({
         success: true,
         data: paginatedEvents,
         totalCount: filteredEvents.length,
@@ -355,14 +353,14 @@ async function securityPlugin(
 
   function getRateLimitKey(request: FastifyRequest): string {
     // Use authentication info if available, otherwise fall back to IP
-    const userId = (request as any).user?.id;
+    const userId = (request as FastifyRequest & { user?: { id: string } }).user?.id;
     if (userId) {
       return `user:${userId}`;
     }
     
     // For webhooks, use installation ID if available
     if (request.url.includes('/webhook')) {
-      const installationId = (request.body as any)?.installation?.id;
+      const installationId = (request.body as { installation?: { id: string } })?.installation?.id;
       if (installationId) {
         return `installation:${installationId}`;
       }
@@ -449,7 +447,7 @@ async function securityPlugin(
     // This is a placeholder - implement actual authentication logic
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      reply.status(401).send({
+      void reply.status(401).send({
         success: false,
         error: {
           code: 'AUTHENTICATION_REQUIRED',

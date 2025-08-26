@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await, import/order, import/no-duplicates */
 
 /**
  * Workflow Runs Ingestion Processor
@@ -8,15 +7,24 @@
  * comprehensive error handling and retry mechanisms.
  */
 
-import { Job } from 'bullmq';
-import { PrismaClient, Prisma } from '@prisma/client';
-import { Octokit } from '@octokit/rest';
 import { createReadStream, createWriteStream, mkdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
-import * as sax from 'sax';
+
+import { 
+  ARTIFACT_FILTERS,
+  QueueNames 
+} from '@flakeguard/shared';
+import { Octokit } from '@octokit/rest';
+import { PrismaClient, Prisma } from '@prisma/client';
+import { Job } from 'bullmq';
 import StreamZip from 'node-stream-zip';
+import * as sax from 'sax';
+import { z } from 'zod';
+
+
 import { logger } from '../utils/logger.js';
 import { 
   recordJobCompletion, 
@@ -26,10 +34,6 @@ import {
   artifactsProcessed,
   testResultsParsed
 } from '../utils/metrics.js';
-import { 
-  ARTIFACT_FILTERS,
-  QueueNames 
-} from '@flakeguard/shared';
 
 // ============================================================================
 // Types and Interfaces
@@ -95,6 +99,36 @@ export interface TestCase {
   };
 }
 
+// Zod schemas for runtime validation
+const GitHubArtifactSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  size_in_bytes: z.number(),
+  url: z.string(),
+  archive_download_url: z.string(),
+  expired: z.boolean(),
+  created_at: z.string().optional(),
+  expires_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+const GitHubArtifactListResponseSchema = z.object({
+  data: z.object({
+    artifacts: z.array(GitHubArtifactSchema)
+  }),
+  status: z.number()
+});
+
+const SAXNodeSchema = z.object({
+  name: z.string(),
+  attributes: z.record(z.unknown())
+});
+
+const StreamZipEntrySchema = z.object({
+  name: z.string(),
+  isDirectory: z.boolean().optional()
+});
+
 export interface GitHubArtifact {
   id: number;
   name: string;
@@ -102,10 +136,29 @@ export interface GitHubArtifact {
   url: string;
   archive_download_url: string;
   expired: boolean;
-  created_at: string;
-  expires_at: string;
-  updated_at: string;
+  created_at?: string;
+  expires_at?: string;
+  updated_at?: string;
 }
+
+export interface SAXNode {
+  name: string;
+  attributes: Record<string, unknown>;
+}
+
+export interface StreamZipEntry {
+  name: string;
+  isDirectory?: boolean;
+}
+
+export interface GitHubApiResponse<T> {
+  data: T;
+  status: number;
+}
+
+// Additional types for type safety
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+export type SafeUnknown = string | number | boolean | null | undefined | SafeUnknown[] | { [key: string]: SafeUnknown };
 
 // ============================================================================
 // Processor Implementation
@@ -142,14 +195,14 @@ export function createRunsIngestProcessor(
       });
 
       // Get GitHub client (mock if not available)
-      const github = octokit || createMockGitHubClient();
+      const github = octokit ?? createMockGitHubClient();
       
       // Fetch workflow run artifacts
       const artifacts = await fetchWorkflowArtifacts(github, data);
       
       if (artifacts.length === 0) {
         logger.info({ workflowRunId: data.workflowRunId }, 'No artifacts found for workflow run');
-        return createEmptyResult(job.id!, startTime);
+        return createEmptyResult(job.id ?? 'unknown', startTime);
       }
 
       // Update progress
@@ -164,7 +217,7 @@ export function createRunsIngestProcessor(
       
       if (testArtifacts.length === 0) {
         logger.info({ workflowRunId: data.workflowRunId }, 'No test result artifacts found');
-        return createEmptyResult(job.id!, startTime);
+        return createEmptyResult(job.id ?? 'unknown', startTime);
       }
 
       // Process each artifact
@@ -177,7 +230,9 @@ export function createRunsIngestProcessor(
 
       for (let i = 0; i < testArtifacts.length; i++) {
         const artifact = testArtifacts[i];
-        if (!artifact) {continue;}
+        if (!artifact) {
+          continue;
+        }
         
         try {
           // Update progress
@@ -318,11 +373,14 @@ async function fetchWorkflowArtifacts(
     const duration = Date.now() - startTime;
     recordGitHubApiCall('listWorkflowRunArtifacts', 'GET', response.status, duration);
     
-    return response.data.artifacts.map(artifact => ({
+    // Validate response structure
+    const validatedResponse = GitHubArtifactListResponseSchema.parse(response);
+    
+    return validatedResponse.data.artifacts.map(artifact => ({
       ...artifact,
-      created_at: artifact.created_at || new Date().toISOString(),
-      expires_at: artifact.expires_at || new Date().toISOString(),
-      updated_at: artifact.updated_at || new Date().toISOString()
+      created_at: artifact.created_at ?? new Date().toISOString(),
+      expires_at: artifact.expires_at ?? new Date().toISOString(),
+      updated_at: artifact.updated_at ?? new Date().toISOString()
     }));
     
   } catch (error) {
@@ -331,6 +389,11 @@ async function fetchWorkflowArtifacts(
     
     if (error instanceof Error && 'status' in error && (error as Error & { status: number }).status === 404) {
       logger.warn({ workflowRunId: data.workflowRunId }, 'Workflow run not found');
+      return [];
+    }
+    
+    if (error instanceof z.ZodError) {
+      logger.error({ error: error.errors, workflowRunId: data.workflowRunId }, 'Invalid GitHub API response structure');
       return [];
     }
     
@@ -363,8 +426,9 @@ async function downloadArtifact(
     // Write artifact data to file
     if (response.data instanceof ArrayBuffer) {
       const buffer = Buffer.from(response.data);
+      const readable = Readable.from(buffer);
       await pipeline(
-        Buffer.from(buffer),
+        readable,
         createWriteStream(destinationPath)
       );
     } else {
@@ -455,10 +519,15 @@ async function extractAndParseTestResults(zipPath: string, extractDir: string): 
     const entries = await zip.entries();
     
     // Find XML files
-    const xmlFiles = Object.values(entries).filter((entry: any) => {
-      return !entry.isDirectory && 
-             entry.name.toLowerCase().endsWith('.xml') &&
-             !entry.name.includes('__MACOSX'); // Skip macOS metadata
+    const xmlFiles = Object.values(entries).filter((entry: unknown): entry is StreamZipEntry => {
+      try {
+        const validEntry = StreamZipEntrySchema.parse(entry);
+        return !validEntry.isDirectory && 
+               validEntry.name.toLowerCase().endsWith('.xml') &&
+               !validEntry.name.includes('__MACOSX'); // Skip macOS metadata
+      } catch {
+        return false;
+      }
     });
     
     // Parse each XML file
@@ -497,23 +566,25 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
       normalize: true
     });
     
-    parser.on('error', (error: any) => {
+    parser.on('error', (error: Error) => {
       reject(new Error(`XML parsing error: ${error.message}`));
     });
     
-    parser.on('opentag', (node: any) => {
-      const { name, attributes } = node;
+    parser.on('opentag', (node: unknown) => {
+      try {
+        const validNode = SAXNodeSchema.parse(node);
+        const { name, attributes } = validNode;
       
       switch (name.toLowerCase()) {
         case 'testsuite':
           currentSuite = {
-            name: attributes.name as string || 'Unknown',
-            tests: parseInt(attributes.tests as string) || 0,
-            failures: parseInt(attributes.failures as string) || 0,
-            errors: parseInt(attributes.errors as string) || 0,
-            skipped: parseInt(attributes.skipped as string) || 0,
-            time: parseFloat(attributes.time as string) || 0,
-            timestamp: attributes.timestamp as string || new Date().toISOString(),
+            name: String(attributes.name || 'Unknown'),
+            tests: parseInt(String(attributes.tests || '0')) || 0,
+            failures: parseInt(String(attributes.failures || '0')) || 0,
+            errors: parseInt(String(attributes.errors || '0')) || 0,
+            skipped: parseInt(String(attributes.skipped || '0')) || 0,
+            time: parseFloat(String(attributes.time || '0')) || 0,
+            timestamp: String(attributes.timestamp || new Date().toISOString()),
             testCases: []
           };
           break;
@@ -521,9 +592,9 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
         case 'testcase':
           if (currentSuite) {
             currentTestCase = {
-              name: attributes.name as string || 'Unknown',
-              className: attributes.classname as string || attributes.class as string || 'Unknown',
-              time: parseFloat(attributes.time as string) || 0,
+              name: String(attributes.name || 'Unknown'),
+              className: String(attributes.classname || attributes.class || 'Unknown'),
+              time: parseFloat(String(attributes.time || '0')) || 0,
               status: 'passed' // Default, will be updated if failure/error found
             };
           }
@@ -533,8 +604,8 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
           if (currentTestCase) {
             currentTestCase.status = 'failed';
             currentTestCase.failure = {
-              message: attributes.message as string || '',
-              type: attributes.type as string || 'AssertionError'
+              message: String(attributes.message || ''),
+              type: String(attributes.type || 'AssertionError')
             };
           }
           break;
@@ -543,8 +614,8 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
           if (currentTestCase) {
             currentTestCase.status = 'error';
             currentTestCase.error = {
-              message: attributes.message as string || '',
-              type: attributes.type as string || 'Error'
+              message: String(attributes.message || ''),
+              type: String(attributes.type || 'Error')
             };
           }
           break;
@@ -557,6 +628,10 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
       }
       
       textContent = '';
+      } catch (error) {
+        logger.warn({ error: error instanceof Error ? error.message : String(error) }, 'Invalid SAX node structure');
+        textContent = '';
+      }
     });
     
     parser.on('text', (text: string) => {
@@ -573,8 +648,8 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
           break;
           
         case 'testcase':
-          if (currentTestCase && currentSuite) {
-            currentSuite.testCases!.push(currentTestCase as TestCase);
+          if (currentTestCase && currentSuite?.testCases) {
+            currentSuite.testCases.push(currentTestCase as TestCase);
             currentTestCase = null;
           }
           break;
@@ -620,23 +695,50 @@ async function storeTestResults(
   try {
     // Use database transaction for consistency
     await prisma.$transaction(async (_tx: Prisma.TransactionClient) => {
-      // Create or update workflow run record
-      await _tx.fGWorkflowRun.upsert({
+      // First ensure repository exists or create it
+      const repository = await _tx.fGRepository.upsert({
         where: {
-          id: String(data.workflowRunId)
+          orgId_provider_owner_name: {
+            orgId: data.repository.owner,
+            provider: 'github',
+            owner: data.repository.owner,
+            name: data.repository.repo
+          }
         },
         update: {
-          status: data.metadata?.runStatus || 'completed',
-          conclusion: data.metadata?.conclusion || 'success',
           updatedAt: new Date()
         },
         create: {
-          id: String(data.workflowRunId),
           orgId: data.repository.owner,
-          repoId: `${data.repository.owner}/${data.repository.repo}`,
+          provider: 'github',
+          owner: data.repository.owner,
+          name: data.repository.repo,
+          installationId: String(data.repository.installationId),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+
+      // Create or update workflow run record
+      await _tx.fGWorkflowRun.upsert({
+        where: {
+          orgId_repoId_runId: {
+            orgId: data.repository.owner,
+            repoId: repository.id,
+            runId: String(data.workflowRunId)
+          }
+        },
+        update: {
+          status: data.metadata?.runStatus ?? 'completed',
+          conclusion: data.metadata?.conclusion ?? 'success',
+          updatedAt: new Date()
+        },
+        create: {
+          orgId: data.repository.owner,
+          repoId: repository.id,
           runId: String(data.workflowRunId),
-          status: data.metadata?.runStatus || 'completed',
-          conclusion: data.metadata?.conclusion || 'success',
+          status: data.metadata?.runStatus ?? 'completed',
+          conclusion: data.metadata?.conclusion ?? 'success',
           createdAt: new Date(),
           updatedAt: new Date()
         }
@@ -650,9 +752,9 @@ async function storeTestResults(
             where: {
               orgId_repoId_suite_className_name: {
                 orgId: data.repository.owner,
-                repoId: `${data.repository.owner}/${data.repository.repo}`,
+                repoId: repository.id,
                 suite: suite.name,
-                className: testCase.className || '',
+                className: testCase.className ?? '',
                 name: testCase.name
               }
             },
@@ -661,7 +763,7 @@ async function storeTestResults(
             },
             create: {
               orgId: data.repository.owner,
-              repoId: `${data.repository.owner}/${data.repository.repo}`,
+              repoId: repository.id,
               suite: suite.name,
               className: testCase.className,
               name: testCase.name,
@@ -672,19 +774,32 @@ async function storeTestResults(
             }
           });
           
-          // Create occurrence record
-          await _tx.fGOccurrence.create({
-            data: {
-              orgId: data.repository.owner,
-              testId: fgTestCase.id,
-              runId: String(data.workflowRunId),
-              status: testCase.status,
-              durationMs: Math.round(testCase.time * 1000), // Convert seconds to milliseconds
-              failureMessage: testCase.failure?.message || testCase.error?.message,
-              failureStackTrace: testCase.failure?.stackTrace || testCase.error?.stackTrace,
-              createdAt: new Date()
+          // Get the workflow run record for the occurrence
+          const workflowRun = await _tx.fGWorkflowRun.findUnique({
+            where: {
+              orgId_repoId_runId: {
+                orgId: data.repository.owner,
+                repoId: repository.id,
+                runId: String(data.workflowRunId)
+              }
             }
           });
+
+          if (workflowRun) {
+            // Create occurrence record
+            await _tx.fGOccurrence.create({
+              data: {
+                orgId: data.repository.owner,
+                testId: fgTestCase.id,
+                runId: workflowRun.id,
+                status: testCase.status,
+                durationMs: Math.round(testCase.time * 1000), // Convert seconds to milliseconds
+                failureMessage: testCase.failure?.message ?? testCase.error?.message,
+                failureStackTrace: testCase.failure?.stackTrace ?? testCase.error?.stackTrace,
+                createdAt: new Date()
+              }
+            });
+          }
         }
       }
     });
@@ -732,11 +847,11 @@ function createMockGitHubClient(): Octokit {
   const mockClient = {
     rest: {
       actions: {
-        listWorkflowRunArtifacts: async () => ({
+        listWorkflowRunArtifacts: (): Promise<GitHubApiResponse<{ artifacts: GitHubArtifact[] }>> => Promise.resolve({
           data: { artifacts: [] },
           status: 200
         }),
-        downloadArtifact: async () => ({
+        downloadArtifact: (): Promise<GitHubApiResponse<ArrayBuffer>> => Promise.resolve({
           data: new ArrayBuffer(0),
           status: 200
         })

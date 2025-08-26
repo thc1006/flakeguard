@@ -105,10 +105,10 @@ function createJobPayload(
   return {
     eventType,
     deliveryId,
-    repositoryId: payload.repository?.id,
-    repositoryFullName: payload.repository?.full_name,
-    installationId: payload.installation?.id,
-    action: payload.action,
+    repositoryId: (payload.repository as any)?.id,
+    repositoryFullName: (payload.repository as any)?.full_name,
+    installationId: (payload.installation as any)?.id,
+    action: payload.action as string | undefined,
     payload,
     receivedAt: new Date().toISOString(),
   };
@@ -196,7 +196,15 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
         },
       },
     },
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (request: FastifyRequest<{
+    Headers: {
+      'x-github-event': string;
+      'x-github-delivery': string;
+      'x-hub-signature-256': string;
+      'user-agent'?: string;
+    };
+    Body: Record<string, unknown>;
+  }>, reply: FastifyReply) => {
     const startTime = Date.now();
     
     try {
@@ -204,7 +212,7 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
       const eventType = request.headers['x-github-event'] as string;
       const deliveryId = request.headers['x-github-delivery'] as string;
       const signature = request.headers['x-hub-signature-256'] as string;
-      const _userAgent = request.headers['user-agent'] as string;
+      // const _userAgent = request.headers['user-agent'] as string;
 
       logger.info('GitHub webhook received');
 
@@ -223,13 +231,13 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
       // P1 Requirement: Verify HMAC signature
       let rawPayload: string;
       try {
-        rawPayload = (request as any).rawBody || JSON.stringify(request.body);
+        rawPayload = (request as FastifyRequest & { rawBody?: string }).rawBody || JSON.stringify(request.body);
       } catch (error) {
-        logger.error('Failed to get raw payload for signature verification', {
+        logger.error({
           eventType,
           deliveryId,
           error: error instanceof Error ? error.message : String(error),
-        });
+        }, 'Failed to get raw payload for signature verification');
         return reply.code(400).send({
           success: false,
           error: 'Invalid request format',
@@ -244,11 +252,11 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
           webhookSecret
         );
       } catch (error) {
-        logger.error('Error during signature verification', {
+        logger.error({
           eventType,
           deliveryId,
           error: error instanceof Error ? error.message : String(error),
-        });
+        }, 'Error during signature verification');
         return reply.code(401).send({
           success: false,
           error: 'Invalid webhook signature',
@@ -256,12 +264,12 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
       }
 
       if (!isValidSignature) {
-        logger.error('Invalid webhook signature', { 
+        logger.error({ 
           eventType, 
           deliveryId,
           hasSignature: !!signature,
           signatureLength: signature?.length,
-        });
+        }, 'Invalid webhook signature');
         
         return reply.code(401).send({
           success: false,
@@ -293,18 +301,18 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
           },
         });
 
-        logger.info('GitHub webhook enqueued', {
+        logger.info({
           eventType,
           deliveryId,
           repositoryId: jobPayload.repositoryId,
           installationId: jobPayload.installationId,
           queueTime: Date.now() - startTime,
-        });
+        }, 'GitHub webhook enqueued');
       } else {
-        logger.warn('BullMQ queue not available, webhook not enqueued', {
+        logger.warn({
           eventType,
           deliveryId,
-        });
+        }, 'BullMQ queue not available, webhook not enqueued');
       }
 
       // P1 Requirement: Return 202 immediately
@@ -317,13 +325,13 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
     } catch (error) {
       const duration = Date.now() - startTime;
       
-      logger.error('GitHub webhook processing error', {
+      logger.error({
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
         deliveryId: request.headers['x-github-delivery'],
         eventType: request.headers['x-github-event'],
         duration,
-      });
+      }, 'GitHub webhook processing error');
 
       // Fastify will handle validation errors before reaching this handler,
       // so we don't need to check for ZodError here anymore
@@ -336,9 +344,9 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
     }
   });
 
-  logger.info('GitHub webhook routes registered', {
+  logger.info({
     supportedEvents: SUPPORTED_WEBHOOK_EVENTS,
-  });
+  }, 'GitHub webhook routes registered');
 }
 
 // Export types for use in other modules
