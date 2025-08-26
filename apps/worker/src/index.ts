@@ -81,7 +81,7 @@ async function initializeGitHubClient(): Promise<Octokit | undefined> {
       return undefined;
     }
     
-    const installation = installations.data[0] as { id: number };
+    const installation = installations.data[0];
     if (!installation?.id) {
       logger.warn('Invalid installation data');
       return undefined;
@@ -350,7 +350,9 @@ function setupEventHandlers(workers: Worker[]): void {
 async function updateQueueMetricsForQueue(queueName: string): Promise<void> {
   try {
     const queue = queues.find(q => q.name === queueName);
-    if (!queue) {return;}
+    if (!queue) {
+      return;
+    }
     
     const [waiting, active, completed, failed, delayed] = await Promise.all([
       queue.getWaiting(),

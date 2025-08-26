@@ -8,8 +8,6 @@
 
 import type {
   TestResult,
-  FlakeScore,
-  QuarantineRecommendation,
 } from '@flakeguard/shared';
 import { DEFAULT_QUARANTINE_POLICY } from '@flakeguard/shared';
 import type { Octokit } from '@octokit/rest';
@@ -17,7 +15,7 @@ import { minimatch } from 'minimatch';
 import yaml from 'yaml';
 import { z } from 'zod';
 
-import { config } from '../config/index.js';
+// import { config } from '../config/index.js'; // Unused
 import { logger } from '../utils/logger.js';
 
 /**
@@ -88,6 +86,7 @@ export type PolicyConfig = z.infer<typeof policyConfigSchema>;
  * Policy evaluation result with detailed decision rationale
  */
 export interface PolicyDecision {
+  readonly testName: string;
   readonly action: 'none' | 'warn' | 'quarantine';
   readonly reason: string;
   readonly confidence: number;
@@ -268,7 +267,7 @@ export class PolicyEngine {
   private evaluateTestPolicy(
     test: TestResult,
     policy: PolicyConfig,
-    repository: { owner: string; repo: string },
+    _repository: { owner: string; repo: string },
     context: {
       teamContext?: string;
       pullRequestLabels?: string[];
@@ -280,6 +279,7 @@ export class PolicyEngine {
     // Check if test is exempted
     if (this.isTestExempted(test, policy)) {
       return {
+        testName: test.name,
         action: 'none',
         reason: 'Test is explicitly exempted in policy configuration',
         confidence: 1.0,
@@ -296,6 +296,7 @@ export class PolicyEngine {
     // Check path exclusions
     if (this.isPathExcluded(testPath, policy.exclude_paths)) {
       return {
+        testName: test.name,
         action: 'none',
         reason: `Test path "${testPath}" matches exclusion pattern`,
         confidence: 1.0,
@@ -315,6 +316,7 @@ export class PolicyEngine {
     const flakeAnalysis = test.flakeAnalysis;
     if (!flakeAnalysis) {
       return {
+        testName: test.name,
         action: 'none',
         reason: 'No flakiness analysis data available for test',
         confidence: 0.1,
@@ -330,6 +332,7 @@ export class PolicyEngine {
     // Check minimum occurrences requirement
     if (flakeAnalysis.totalRuns < policy.min_occurrences) {
       return {
+        testName: test.name,
         action: 'none',
         reason: `Insufficient data: only ${flakeAnalysis.totalRuns} runs (minimum: ${policy.min_occurrences})`,
         confidence: 0.2,
@@ -345,6 +348,7 @@ export class PolicyEngine {
     // Check recent failures requirement
     if (flakeAnalysis.historicalFailures < policy.min_recent_failures) {
       return {
+        testName: test.name,
         action: 'none',
         reason: `Too few recent failures: ${flakeAnalysis.historicalFailures} (minimum: ${policy.min_recent_failures})`,
         confidence: 0.3,
@@ -360,6 +364,7 @@ export class PolicyEngine {
     // Check confidence threshold
     if (flakeAnalysis.confidence < policy.confidence_threshold) {
       return {
+        testName: test.name,
         action: 'none',
         reason: `Low confidence in flakiness analysis: ${flakeAnalysis.confidence.toFixed(3)} < ${policy.confidence_threshold}`,
         confidence: flakeAnalysis.confidence,
@@ -381,6 +386,7 @@ export class PolicyEngine {
       const canAutoQuarantine = this.canAutoQuarantine(policy, context.pullRequestLabels);
       
       return {
+        testName: test.name,
         action: 'quarantine',
         reason: `High flakiness score (${score.toFixed(3)}) exceeds quarantine threshold (${thresholds.quarantineThreshold})${
           canAutoQuarantine ? ' - auto-quarantine enabled' : ''
@@ -398,6 +404,7 @@ export class PolicyEngine {
 
     if (score >= thresholds.warnThreshold) {
       return {
+        testName: test.name,
         action: 'warn',
         reason: `Moderate flakiness score (${score.toFixed(3)}) exceeds warning threshold (${thresholds.warnThreshold})`,
         confidence: flakeAnalysis.confidence,
@@ -412,6 +419,7 @@ export class PolicyEngine {
     }
 
     return {
+      testName: test.name,
       action: 'none',
       reason: `Low flakiness score (${score.toFixed(3)}) below warning threshold (${thresholds.warnThreshold})`,
       confidence: flakeAnalysis.confidence,
@@ -629,7 +637,7 @@ export class PolicyEngine {
     let expired = 0;
     const hitsBySource: Record<string, number> = {};
     
-    for (const [key, cached] of this.cache.entries()) {
+    for (const [_key, cached] of this.cache.entries()) {
       if (now >= cached.expiresAt.getTime()) {
         expired++;
       }

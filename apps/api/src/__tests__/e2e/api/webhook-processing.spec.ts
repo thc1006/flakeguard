@@ -55,7 +55,10 @@ test.describe('GitHub Webhook Processing', () => {
     expect(response.status()).toBe(200);
 
     // Verify response
-    const responseData = await response.json();
+    const responseData = await response.json() as {
+      success?: boolean;
+      message?: string;
+    };
     expect(responseData).toEqual({
       success: true,
       message: 'Webhook processed successfully',
@@ -68,7 +71,13 @@ test.describe('GitHub Webhook Processing', () => {
     const workflowRunResponse = await request.get(`/api/workflow-runs/${workflowRunCompleted.workflow_run.id}`);
     expect(workflowRunResponse.status()).toBe(200);
 
-    const workflowRun = await workflowRunResponse.json();
+    const workflowRun = await workflowRunResponse.json() as {
+      externalId?: string;
+      name?: string;
+      status?: string;
+      conclusion?: string;
+      runNumber?: number;
+    };
     expect(workflowRun).toMatchObject({
       externalId: workflowRunCompleted.workflow_run.id.toString(),
       name: workflowRunCompleted.workflow_run.name,
@@ -81,7 +90,12 @@ test.describe('GitHub Webhook Processing', () => {
     const repositoryResponse = await request.get(`/api/repositories/${workflowRunCompleted.repository.full_name}`);
     expect(repositoryResponse.status()).toBe(200);
 
-    const repository = await repositoryResponse.json();
+    const repository = await repositoryResponse.json() as {
+      fullName?: string;
+      name?: string;
+      owner?: string;
+      installationId?: number;
+    };
     expect(repository).toMatchObject({
       fullName: workflowRunCompleted.repository.full_name,
       name: workflowRunCompleted.repository.name,
@@ -115,7 +129,12 @@ test.describe('GitHub Webhook Processing', () => {
     const checkRunResponse = await request.get(`/api/check-runs/${checkRunCompleted.check_run.id}`);
     expect(checkRunResponse.status()).toBe(200);
 
-    const checkRun = await checkRunResponse.json();
+    const checkRun = await checkRunResponse.json() as {
+      externalId?: string;
+      name?: string;
+      status?: string;
+      conclusion?: string;
+    };
     expect(checkRun).toMatchObject({
       externalId: checkRunCompleted.check_run.id.toString(),
       name: checkRunCompleted.check_run.name,
@@ -127,11 +146,13 @@ test.describe('GitHub Webhook Processing', () => {
     const jobsResponse = await request.get('/api/internal/jobs/ingestion');
     expect(jobsResponse.status()).toBe(200);
 
-    const jobs = await jobsResponse.json();
+    const jobs = await jobsResponse.json() as Array<{
+      data?: { repositoryFullName?: string };
+    }>;
     expect(jobs.length).toBeGreaterThan(0);
     
     // Verify at least one job is for our repository
-    const relevantJobs = jobs.filter((job: { data?: { repositoryFullName?: string } }) => 
+    const relevantJobs = jobs.filter((job) => 
       job.data?.repositoryFullName === checkRunCompleted.repository.full_name
     );
     expect(relevantJobs.length).toBeGreaterThan(0);
@@ -164,7 +185,7 @@ test.describe('GitHub Webhook Processing', () => {
       expect(quarantineResponse.status()).toBe(200);
 
       // Verify quarantine actions were created or updated
-      const quarantineData = await quarantineResponse.json();
+      const quarantineData = await quarantineResponse.json() as unknown[];
       expect(Array.isArray(quarantineData)).toBe(true);
     }
   });
@@ -186,7 +207,9 @@ test.describe('GitHub Webhook Processing', () => {
 
     expect(response.status()).toBe(401);
 
-    const errorData = await response.json();
+    const errorData = await response.json() as {
+      error?: string;
+    };
     expect(errorData).toMatchObject({
       error: 'Invalid webhook signature',
     });
@@ -227,7 +250,10 @@ test.describe('GitHub Webhook Processing', () => {
     // Should accept the webhook but handle gracefully
     expect(response.status()).toBe(200);
 
-    const responseData = await response.json();
+    const responseData = await response.json() as {
+      success?: boolean;
+      message?: string;
+    };
     expect(responseData).toEqual({
       success: true,
       message: 'Webhook received but could not be processed',
@@ -266,7 +292,7 @@ test.describe('GitHub Webhook Processing', () => {
     expect(response2.status()).toBe(200);
 
     // Both should succeed, but second should be detected as duplicate
-    const responseData2: { message?: string } = await response2.json();
+    const responseData2 = await response2.json() as { message?: string };
     expect(responseData2.message).toContain('already processed');
   });
 
@@ -307,7 +333,7 @@ test.describe('GitHub Webhook Processing', () => {
     );
     expect(analysisResponse.status()).toBe(200);
 
-    const analysis: { flakyTests?: unknown[] } = await analysisResponse.json();
+    const analysis = await analysisResponse.json() as { flakyTests?: unknown[] };
     expect(analysis).toBeDefined();
     expect(Array.isArray(analysis.flakyTests)).toBe(true);
   });
@@ -330,7 +356,7 @@ test.describe('GitHub Webhook Processing', () => {
 
     expect(response.status()).toBe(200);
 
-    const responseData = await response.json();
+    const responseData = await response.json() as { message?: string };
     expect(responseData.message).toContain('Event type not supported');
   });
 

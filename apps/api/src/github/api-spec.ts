@@ -12,17 +12,15 @@
  */
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
-// import type { z } from 'zod'; // Unused import
-// Unused types are commented out to avoid TS errors
 
 import type {
   WebhookEventMap,
+  // WebhookHandler, // Unused for now
   CheckRunAction,
   FlakeGuardCheckRun,
   TestArtifact,
   ApiResponse,
   PaginatedResponse,
-  // RepositoryInfo, // Unused
   CreateCheckRunParams,
   UpdateCheckRunParams,
 } from './types.js';
@@ -53,19 +51,19 @@ export interface WebhookEndpointSpec {
 }
 
 /**
- * Webhook payload processing interface
+ * Webhook payload processing interface - fixed async signature
  */
 export interface WebhookProcessor<T extends keyof WebhookEventMap> {
   readonly eventType: T;
-  validate(payload: unknown): Promise<WebhookEventMap[T]>;
+  validate(payload: unknown): WebhookEventMap[T] | Promise<WebhookEventMap[T]>;
   process(payload: WebhookEventMap[T]): Promise<void>;
   handleError(error: Error, payload?: unknown): Promise<void>;
 }
 
 /**
- * Generic webhook handler signature
+ * Fastify route handler signature for webhook endpoints
  */
-export interface WebhookHandler {
+export interface WebhookRouteHandler {
   (request: FastifyRequest, reply: FastifyReply): Promise<void>;
 }
 
@@ -772,17 +770,20 @@ export interface SystemHealth {
 }
 
 // =============================================================================
-// TYPE EXPORTS
+// TYPE EXPORTS - Export all relevant types from types.ts
 // =============================================================================
 
 export type {
   WebhookEventMap,
+  WebhookHandler,
+  WebhookDispatcher,
   CheckRunAction,
   FlakeGuardCheckRun,
   TestArtifact,
   ApiResponse,
   PaginatedResponse,
-  // RepositoryInfo, // Unused
   CreateCheckRunParams,
   UpdateCheckRunParams,
 } from './types.js';
+
+// WebhookRouteHandler is already exported from webhook-router.ts

@@ -14,8 +14,6 @@ import { QueueNames, JobPriorities } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
 import { Queue, Worker, Job, QueueEvents, JobsOptions } from 'bullmq';
 import type { Redis } from 'ioredis';
-import type { JobState } from 'bullmq';
-import type { SafeQueueStats, BullMQJobState } from '@flakeguard/shared';
 
 import { GitHubAuthManager } from '../github/auth.js';
 import { GitHubHelpers } from '../github/helpers.js';
@@ -197,7 +195,9 @@ export class IngestionQueueManager {
     const job = await this.queue.add('process-artifacts', jobData, jobOptions);
 
     // Update database status
-    await this.updateJobStatus(jobData.correlationId!, 'queued');
+    if (jobData.correlationId) {
+      await this.updateJobStatus(jobData.correlationId, 'queued');
+    }
 
     return job;
   }
@@ -279,8 +279,8 @@ export class IngestionQueueManager {
       const [waiting, active, completed, failed, delayed] = await Promise.all([
         this.queue.getWaiting(),
         this.queue.getActive(),
-        this.queue.getCompleted(0, -1, true), // start, end, asc - safe BullMQ call
-        this.queue.getFailed(0, -1, true), // start, end, asc - safe BullMQ call
+        this.queue.getCompleted(), // BullMQ v5 API
+        this.queue.getFailed(), // BullMQ v5 API
         this.queue.getDelayed()
       ]);
 
@@ -326,17 +326,17 @@ export class IngestionQueueManager {
 
     try {
       // Update status to processing
-      await this.updateJobStatus(job.id, 'processing', { startedAt: new Date() });
+      await this.updateJobStatus(job.id!, 'processing', { startedAt: new Date() });
 
       // Set up progress tracking
-      const progressTracker = this.createProgressTracker(job);
+      // const progressTracker = this.createProgressTracker(job);
 
       // Process the artifacts
       const result = await this.artifactsIntegration.processWorkflowArtifacts(data);
 
       // Update final status
       await this.updateJobStatus(
-        job.id,
+        job.id!,
         result.success ? 'completed' : 'failed',
         {
           completedAt: new Date(),
@@ -345,7 +345,7 @@ export class IngestionQueueManager {
           errorCount: result.totalErrors,
           processingTimeMs: result.processingTimeMs,
           metadata: {
-            ...((await this.getJobMetadata(job.id)) || {}),
+            ...((await this.getJobMetadata(job.id!)) || {}),
             errors: result.errors,
             result
           }
@@ -383,14 +383,14 @@ export class IngestionQueueManager {
 
       // Update status to failed
       await this.updateJobStatus(
-        job.id,
+        job.id!,
         'failed',
         {
           completedAt: new Date(),
           processingTimeMs: processingTime,
           errorMessage,
           metadata: {
-            ...((await this.getJobMetadata(job.id)) || {}),
+            ...((await this.getJobMetadata(job.id!)) || {}),
             error: errorMessage
           }
         }
@@ -415,26 +415,26 @@ export class IngestionQueueManager {
   /**
    * Create progress tracker for job
    */
-  private createProgressTracker(job: Job<IngestionJobData>) {
-    return {
-      updateProgress: async (progress: Partial<IngestionJobProgress>) => {
-        const fullProgress: IngestionJobProgress = {
-          phase: progress.phase || 'download',
-          processed: progress.processed || 0,
-          total: progress.total || 1,
-          currentFileName: progress.currentFileName,
-          percentage: Math.round(((progress.processed || 0) / (progress.total || 1)) * 100)
-        };
+  // private createProgressTracker(job: Job<IngestionJobData>) {
+  //   return {
+  //     updateProgress: async (progress: Partial<IngestionJobProgress>) => {
+  //       const fullProgress: IngestionJobProgress = {
+  //         phase: progress.phase || 'download',
+  //         processed: progress.processed || 0,
+  //         total: progress.total || 1,
+  //         currentFileName: progress.currentFileName,
+  //         percentage: Math.round(((progress.processed || 0) / (progress.total || 1)) * 100)
+  //       };
 
-        await job.updateProgress(fullProgress);
+  //       await job.updateProgress(fullProgress);
         
-        logger.debug('Job progress updated', {
-          jobId: job.id,
-          ...fullProgress
-        });
-      }
-    };
-  }
+  //       logger.debug('Job progress updated', {
+  //         jobId: job.id,
+  //         ...fullProgress
+  //       });
+  //     }
+  //   };
+  // }
 
   // ==========================================================================
   // Database Operations
@@ -517,7 +517,7 @@ export class IngestionQueueManager {
       logger.warn('Ingestion job stalled', { jobId });
     });
 
-    this.worker.on('progress', (job: Job, progress: IngestionJobProgress) => {
+    this.worker.on('progress', (job: Job, progress: any) => {
       logger.debug('Ingestion job progress', {
         jobId: job.id,
         phase: progress.phase,
@@ -525,7 +525,7 @@ export class IngestionQueueManager {
       });
     });
 
-    this.events.on('completed', ({ jobId, returnvalue }) => {
+    this.events.on('completed', ({ jobId, returnvalue: _returnvalue }) => {
       logger.debug('Job completed event', { jobId });
     });
 
@@ -583,39 +583,37 @@ export class IngestionQueueManager {
   /**
    * Safely get jobs by state with error handling and pagination
    */
-  private async safeGetJobsByState(
-    state: BullMQJobState,
-    start: number = 0,
-    end: number = -1
-  ): Promise<Job<IngestionJobData>[]> {
-    try {
-      switch (state) {
-        case 'completed':
-          return await this.queue.getCompleted(start, end, true);
-        case 'failed':
-          return await this.queue.getFailed(start, end, true);
-        case 'waiting':
-          return await this.queue.getWaiting(start, end);
-        case 'active':
-          return await this.queue.getActive(start, end);
-        case 'delayed':
-          return await this.queue.getDelayed(start, end);
-        case 'paused':
-          return await this.queue.getPaused(start, end);
-        default:
-          logger.warn(`Unsupported job state: ${state}`);
-          return [];
-      }
-    } catch (error) {
-      logger.error(`Failed to get ${state} jobs`, {
-        error: error instanceof Error ? error.message : String(error),
-        state,
-        start,
-        end
-      });
-      return [];
-    }
-  }
+  // private async safeGetJobsByState(
+  //   state: 'completed' | 'failed' | 'waiting' | 'active' | 'delayed',
+  //   start: number = 0,
+  //   end: number = -1
+  // ): Promise<Job<IngestionJobData>[]> {
+  //   try {
+  //     switch (state) {
+  //       case 'completed':
+  //         return await this.queue.getCompleted();
+  //       case 'failed':
+  //         return await this.queue.getFailed();
+  //       case 'waiting':
+  //         return await this.queue.getWaiting();
+  //       case 'active':
+  //         return await this.queue.getActive();
+  //       case 'delayed':
+  //         return await this.queue.getDelayed();
+  //       default:
+  //         logger.warn(`Unsupported job state: ${state}`);
+  //         return [];
+  //     }
+  //   } catch (error) {
+  //     logger.error(`Failed to get ${state} jobs`, {
+  //       error: error instanceof Error ? error.message : String(error),
+  //       state,
+  //       start,
+  //       end
+  //     });
+  //     return [];
+  //   }
+  // }
 
   /**
    * Safely clean old jobs with error handling

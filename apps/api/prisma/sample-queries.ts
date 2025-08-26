@@ -14,8 +14,7 @@ import type {
   FGOccurrence,
   FGQuarantineDecision,
   FGQuarantineState,
-  FGFailureCluster,
-  Organization
+  FGFailureCluster
 } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -55,7 +54,7 @@ interface FailureCluster {
   }>;
 }
 
-interface TestCaseWithScore {
+interface _TestCaseWithScore {
   id: string;
   name: string;
   suite: string;
@@ -111,14 +110,6 @@ type QuarantineCandidateRaw = FGTestCase & {
   };
 };
 
-interface FailureClusterWithTestCases {
-  id: string;
-  failureMsgSignature: string;
-  exampleMessage: string | null;
-  occurrenceCount: number;
-  testIds: string[];
-  testCases: TestCaseWithScore[];
-}
 
 class FlakeGuardQueries {
   

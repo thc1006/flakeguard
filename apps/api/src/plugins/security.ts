@@ -60,7 +60,8 @@ interface SecurityAuditEvent {
 // VALIDATION SCHEMAS
 // =============================================================================
 
-const webhookHeadersSchema = z.object({
+// Schema for validating webhook headers (used in validation middleware)
+export const webhookHeadersSchema = z.object({
   'x-github-event': z.string().optional(),
   'x-github-delivery': z.string().optional(),
   'x-hub-signature-256': z.string().optional(),
@@ -70,7 +71,8 @@ const webhookHeadersSchema = z.object({
   'user-agent': z.string().optional(),
 });
 
-const csrfTokenSchema = z.object({
+// Schema for validating CSRF tokens (used in token validation)
+export const csrfTokenSchema = z.object({
   token: z.string().min(32),
   expires: z.number(),
   userSession: z.string().optional(),
@@ -174,7 +176,7 @@ async function securityPlugin(
   // RATE LIMITING MIDDLEWARE
   // =============================================================================
 
-  fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+  fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
     const key = getRateLimitKey(request);
     const limits = getRateLimitsForRoute(request.url);
     
@@ -212,7 +214,7 @@ async function securityPlugin(
 
   if (securityConfig.enableCSRF) {
     // Generate CSRF token endpoint
-    fastify.get('/api/security/csrf-token', async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    fastify.get('/api/security/csrf-token', async (request: FastifyRequest, reply: FastifyReply) => {
       const token = generateCSRFToken();
       const sessionId = request.headers['x-session-id'] as string || 'anonymous';
       
@@ -225,7 +227,7 @@ async function securityPlugin(
     });
 
     // CSRF validation for state-changing operations
-    fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
       if (shouldValidateCSRF(request)) {
         const csrfToken = request.headers['x-csrf-token'] as string;
         const sessionId = request.headers['x-session-id'] as string || 'anonymous';
@@ -263,7 +265,7 @@ async function securityPlugin(
   // SECURITY HEADERS
   // =============================================================================
 
-  fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+  fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply) => {
     // Add security headers
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('X-Frame-Options', 'DENY');
@@ -300,14 +302,13 @@ async function securityPlugin(
           },
         },
       },
-    }, async (request: FastifyRequest<{
-      Querystring: {
+    }, async (request, reply) => {
+      const query = request.query as {
         limit?: number;
         severity?: SecurityAuditEvent['severity'];
         type?: SecurityAuditEvent['type'];
       };
-    }>, reply: FastifyReply): Promise<void> => {
-      const { limit = 50, severity, type } = request.query;
+      const { limit = 50, severity, type } = query;
       
       let filteredEvents = auditEvents.slice(-1000); // Keep last 1000 events
       
@@ -443,7 +444,7 @@ async function securityPlugin(
     );
   }
 
-  async function requireAuthentication(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  async function requireAuthentication(request: FastifyRequest, reply: FastifyReply) {
     // This is a placeholder - implement actual authentication logic
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {

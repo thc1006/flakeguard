@@ -1,7 +1,7 @@
 /**
  * Redis Caching Layer for FlakeGuard Performance Optimization
  */
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 
 import { logger } from '../utils/logger.js';
 
@@ -32,16 +32,20 @@ export class CacheLayer {
   };
 
   constructor(private config: CacheConfig) {
-    this.redis = new Redis(process.env.REDIS_URL!, {
-      retryDelayOnFailover: 100,
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+      throw new Error('REDIS_URL environment variable is required');
+    }
+    
+    this.redis = new Redis(redisUrl, {
       maxRetriesPerRequest: 3,
       lazyConnect: true,
       keepAlive: 30000,
     });
 
-    this.redis.on('error', (err) => {
+    this.redis.on('error', (err: Error) => {
       this.stats.errors++;
-      logger.error('Redis cache error', { error: err.message });
+      logger.error({ error: err.message }, 'Redis cache error');
     });
   }
 
@@ -59,10 +63,11 @@ export class CacheLayer {
       }
       
       this.stats.hits++;
-      return JSON.parse(value);
-    } catch (error) {
+      return JSON.parse(value) as T;
+    } catch (error: unknown) {
       this.stats.errors++;
-      logger.error('Cache get error', { key: fullKey, error: error instanceof Error ? error.message : String(error) });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error({ key: fullKey, error: errorMessage }, 'Cache get error');
       return null;
     }
   }
@@ -70,15 +75,16 @@ export class CacheLayer {
   async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     const startTime = Date.now();
     const fullKey = `${this.config.keyPrefix}:${key}`;
-    const cacheTtl = ttl || this.config.ttl;
+    const cacheTtl = ttl ?? this.config.ttl;
     
     try {
       await this.redis.setex(fullKey, cacheTtl, JSON.stringify(value));
       this.updateLatency(Date.now() - startTime);
       this.stats.sets++;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.errors++;
-      logger.error('Cache set error', { key: fullKey, error: error instanceof Error ? error.message : String(error) });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error({ key: fullKey, error: errorMessage }, 'Cache set error');
     }
   }
 
@@ -96,11 +102,12 @@ export class CacheLayer {
           return null;
         }
         this.stats.hits++;
-        return JSON.parse(value);
+        return JSON.parse(value) as T;
       });
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.errors++;
-      logger.error('Cache mget error', { keys: fullKeys, error: error instanceof Error ? error.message : String(error) });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error({ keys: fullKeys, error: errorMessage }, 'Cache mget error');
       return keys.map(() => null);
     }
   }
@@ -110,9 +117,10 @@ export class CacheLayer {
     try {
       await this.redis.del(fullKey);
       this.stats.deletes++;
-    } catch (error) {
+    } catch (error: unknown) {
       this.stats.errors++;
-      logger.error('Cache delete error', { key: fullKey, error: error instanceof Error ? error.message : String(error) });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error({ key: fullKey, error: errorMessage }, 'Cache delete error');
     }
   }
 
@@ -145,11 +153,11 @@ export class FlakeScoreCache extends CacheLayer {
     });
   }
 
-  async getFlakeScore(repositoryId: string, testFullName: string) {
+  async getFlakeScore(repositoryId: string, testFullName: string): Promise<unknown> {
     return this.get(`${repositoryId}:${testFullName}`);
   }
 
-  async setFlakeScore(repositoryId: string, testFullName: string, score: any) {
+  async setFlakeScore(repositoryId: string, testFullName: string, score: unknown): Promise<void> {
     return this.set(`${repositoryId}:${testFullName}`, score);
   }
 }
@@ -163,11 +171,11 @@ export class TestHistoryCache extends CacheLayer {
     });
   }
 
-  async getTestHistory(repositoryId: string, testFullName: string, limit: number = 50) {
+  async getTestHistory(repositoryId: string, testFullName: string, limit: number = 50): Promise<unknown> {
     return this.get(`${repositoryId}:${testFullName}:${limit}`);
   }
 
-  async setTestHistory(repositoryId: string, testFullName: string, limit: number, history: any[]) {
+  async setTestHistory(repositoryId: string, testFullName: string, limit: number, history: unknown[]): Promise<void> {
     return this.set(`${repositoryId}:${testFullName}:${limit}`, history);
   }
 }
@@ -181,12 +189,12 @@ export class TestStatsCache extends CacheLayer {
     });
   }
 
-  async getRepositoryStats(repositoryId: string, timeRange?: string) {
+  async getRepositoryStats(repositoryId: string, timeRange?: string): Promise<unknown> {
     const key = timeRange ? `${repositoryId}:${timeRange}` : repositoryId;
     return this.get(key);
   }
 
-  async setRepositoryStats(repositoryId: string, stats: any, timeRange?: string) {
+  async setRepositoryStats(repositoryId: string, stats: unknown, timeRange?: string): Promise<void> {
     const key = timeRange ? `${repositoryId}:${timeRange}` : repositoryId;
     return this.set(key, stats);
   }

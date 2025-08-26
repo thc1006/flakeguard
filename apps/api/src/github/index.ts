@@ -11,7 +11,7 @@
  * - Rate limiting and security measures
  */
 
-import crypto from 'crypto';
+// import crypto from 'crypto'; // Unused, handled by security plugin
 
 // import type { PrismaClient } from '@prisma/client';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
@@ -50,6 +50,10 @@ import {
   createLoggingMiddleware,
   registerWebhookRoutes,
 } from './webhook-router.js';
+import type {
+  CreateCheckRunParams,
+  UpdateCheckRunParams,
+} from './types.js';
 
 // Add type declarations for Fastify decorators
 declare module 'fastify' {
@@ -134,34 +138,7 @@ class GitHubErrorFactory implements ErrorFactory {
   }
 }
 
-/**
- * Webhook signature validator
- */
-class WebhookSignatureValidator {
-  private readonly secret: string;
-
-  constructor(secret: string) {
-    this.secret = secret;
-  }
-
-  async validate(payload: string, signature: string): Promise<boolean> {
-    if (!signature.startsWith('sha256=')) {
-      return false;
-    }
-
-    const expectedSignature = crypto
-      .createHmac('sha256', this.secret)
-      .update(payload, 'utf8')
-      .digest('hex');
-
-    const receivedSignature = signature.slice(7); // Remove 'sha256=' prefix
-    
-    return crypto.timingSafeEqual(
-      Buffer.from(expectedSignature, 'hex'),
-      Buffer.from(receivedSignature, 'hex')
-    );
-  }
-}
+// Webhook signature validation is now handled by the security plugin
 
 /**
  * Main GitHub App plugin
@@ -183,10 +160,16 @@ async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPlug
   // const signatureValidator = new WebhookSignatureValidator(githubConfig.webhookSecret);
 
   // Initialize webhook router
-  const webhookRouter = new WebhookRouter({
-    errorFactory,
-    logger,
-  });
+  const webhookRouter = new WebhookRouter(
+    {
+      enableMetrics: true,
+      validateSignatures: true,
+      timeoutMs: 30000,
+      maxRetries: 3,
+    },
+    undefined, // metrics
+    errorFactory
+  );
 
   // Add logging middleware
   webhookRouter.use(createLoggingMiddleware(logger));
@@ -199,9 +182,9 @@ async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPlug
     flakeDetector,
   });
 
-  webhookRouter.on('check_run', handlers.checkRunHandler);
-  webhookRouter.on('workflow_run', handlers.workflowRunHandler);
-  webhookRouter.on('installation', handlers.installationHandler);
+  webhookRouter.register('check_run', handlers.checkRunHandler);
+  webhookRouter.register('workflow_run', handlers.workflowRunHandler);
+  webhookRouter.register('installation', handlers.installationHandler);
 
   // Register webhook routes
   await registerWebhookRoutes(fastify, { 
@@ -340,7 +323,7 @@ async function githubAppPlugin(fastify: FastifyInstance, _options: GitHubAppPlug
     try {
       const { owner, repo, ref } = request.params;
       const { page = 1, perPage = 30, status, conclusion } = request.query;
-      const installationId = await getInstallationIdFromAuth(request);
+      // const installationId = await getInstallationIdFromAuth(request);
 
       // Get check runs from database
       const where: {

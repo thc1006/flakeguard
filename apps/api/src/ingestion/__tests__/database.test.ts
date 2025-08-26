@@ -11,28 +11,20 @@
  * - Data integrity and consistency validation
  */
 
-import { PrismaClient, TestResult, TestSuite, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 
 import {
   TestIngestionRepository,
   createTestIngestionRepository,
-  batchInsertTestResults,
-  batchInsertTestSuites,
-  batchUpsertTestResults
 } from '../database.js';
 import type {
   TestSuiteInput,
   TestResultInput,
   BatchIngestionInput,
   TestHistoryQueryOptions,
-  TestExecutionStats,
-  FlakeDetectionResult,
-  PerformanceMetrics
 } from '../database.js';
 import type {
-  TestSuite as JUnitTestSuite,
-  TestSuites as JUnitTestSuites,
   RepositoryContext
 } from '../types.js';
 

@@ -468,7 +468,7 @@ export class MockGitHubApiClient {
 
   constructor(private authToken?: string) {}
 
-  async getWorkflowRun(owner: string, repo: string, runId: number): Promise<MockWorkflowRun> {
+  async getWorkflowRun(_owner: string, _repo: string, runId: number): Promise<MockWorkflowRun> {
     this.checkRateLimit();
     this.incrementRequestCount();
 
@@ -493,7 +493,7 @@ export class MockGitHubApiClient {
     };
   }
 
-  async listWorkflowRunArtifacts(owner: string, repo: string, runId: number): Promise<{
+  async listWorkflowRunArtifacts(_owner: string, _repo: string, runId: number): Promise<{
     total_count: number;
     artifacts: MockArtifact[];
   }> {
@@ -519,7 +519,7 @@ export class MockGitHubApiClient {
     };
   }
 
-  async downloadArtifact(owner: string, repo: string, artifactId: number): Promise<Buffer> {
+  async downloadArtifact(_owner: string, _repo: string, artifactId: number): Promise<Buffer> {
     this.checkRateLimit();
     this.incrementRequestCount();
 
@@ -540,7 +540,7 @@ export class MockGitHubApiClient {
     return this.generateMockZipContent(artifact.name);
   }
 
-  async getArtifact(owner: string, repo: string, artifactId: number): Promise<MockArtifact> {
+  async getArtifact(_owner: string, _repo: string, artifactId: number): Promise<MockArtifact> {
     this.checkRateLimit();
     this.incrementRequestCount();
 

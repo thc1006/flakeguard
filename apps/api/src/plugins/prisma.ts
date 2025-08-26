@@ -111,13 +111,13 @@ async function prismaPlugin(fastify: FastifyInstance) {
       const duration = Date.now() - start;
       
       return {
-        status: 'healthy',
+        status: 'healthy' as const,
         responseTime: duration,
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
       return {
-        status: 'unhealthy',
+        status: 'unhealthy' as const,
         error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString(),
       };

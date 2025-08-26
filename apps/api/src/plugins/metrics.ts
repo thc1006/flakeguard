@@ -66,7 +66,7 @@ async function metricsPlugin(
         },
       },
     },
-  }, async (request, reply) => {
+  }, async (_request, reply) => {
     try {
       const metrics = await registry.metrics();
       reply

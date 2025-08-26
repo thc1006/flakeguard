@@ -6,7 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
 
 import { logger } from '../utils/logger.js';
@@ -22,7 +22,20 @@ interface TenantContext {
 // Extended FastifyRequest with tenant context
 declare module 'fastify' {
   interface FastifyRequest {
-    tenant: TenantContext;
+    tenant?: TenantContext;
+    tenantPrisma?: PrismaClient;
+    user?: {
+      id: string;
+      email: string;
+      name?: string;
+      role: string;
+    };
+  }
+
+  interface FastifyInstance {
+    prisma: PrismaClient;
+    getTenantContext: (request: FastifyRequest) => TenantContext | undefined;
+    requireTenantRole: (request: FastifyRequest, requiredRoles: string[]) => TenantContext;
   }
 }
 
@@ -31,7 +44,6 @@ interface TenantIsolationOptions {
   enabled?: boolean;
   bypassRoutes?: string[];
   requireInstallationId?: boolean;
-  adminRoles?: string[];
 }
 
 /**
@@ -72,13 +84,13 @@ async function extractTenantContext(
             status: 'active',
           },
           include: { 
-            organization: { where: { status: 'active' } },
+            organization: true,
             user: true,
           },
           orderBy: { joinedAt: 'desc' }, // Most recent org if multiple
         });
 
-        if (orgUser?.organization) {
+        if (orgUser?.organization && orgUser.organization.status === 'active') {
           return {
             orgId: orgUser.organization.id,
             userId,
@@ -174,55 +186,94 @@ function createTenantPrismaWrapper(
   prisma: PrismaClient,
   tenant: TenantContext
 ): PrismaClient {
+  // Models that should have orgId filtering applied
+  const tenantAwareModels = new Set([
+    'organization', 'organizationUser', 'auditLog', 'usageMetric', 'installation',
+    'repository', 'checkRun', 'workflowRun', 'testSuite', 'testResult', 'flakeDetection',
+    'fgRepository', 'fgWorkflowRun', 'fgTestCase', 'fgOccurrence', 'fgFlakeScore',
+    'fgQuarantineDecision', 'fgFailureCluster'
+  ]);
+
   // Create a proxy that automatically adds tenant filtering
   return new Proxy(prisma, {
     get(target, prop) {
       const originalMethod = target[prop as keyof PrismaClient];
+      const modelName = String(prop);
       
-      if (typeof originalMethod === 'object' && originalMethod !== null) {
-        // This is a model (like prisma.user)
+      if (typeof originalMethod === 'object' && originalMethod !== null && tenantAwareModels.has(modelName)) {
+        // This is a tenant-aware model (like prisma.organization)
         return new Proxy(originalMethod, {
           get(modelTarget, modelProp) {
             const originalModelMethod = modelTarget[modelProp as keyof typeof modelTarget];
             
             if (typeof originalModelMethod === 'function') {
               return function (this: any, ...args: any[]) {
-                // Auto-inject orgId filtering for queries
+                // Auto-inject orgId filtering for read queries
                 if (modelProp === 'findMany' || modelProp === 'findFirst' || 
                     modelProp === 'findUnique' || modelProp === 'count') {
                   const [queryArgs = {}] = args;
                   
-                  // Add orgId filter if the model has an orgId field
-                  if (queryArgs.where) {
+                  // Add orgId filter to where clause
+                  if (!queryArgs.where) {
+                    queryArgs.where = {};
+                  }
+                  
+                  // Only add orgId filter if not already present
+                  if (!queryArgs.where.orgId) {
                     queryArgs.where.orgId = tenant.orgId;
-                  } else {
-                    queryArgs.where = { orgId: tenant.orgId };
                   }
                   
                   args[0] = queryArgs;
                 }
                 
                 // Auto-inject orgId for creates
-                if (modelProp === 'create') {
+                if (modelProp === 'create' || modelProp === 'createMany') {
                   const [createArgs] = args;
-                  if (createArgs.data) {
-                    createArgs.data.orgId = tenant.orgId;
+                  if (createArgs) {
+                    if (modelProp === 'create' && createArgs.data && !createArgs.data.orgId) {
+                      createArgs.data.orgId = tenant.orgId;
+                    } else if (modelProp === 'createMany' && createArgs.data && Array.isArray(createArgs.data)) {
+                      createArgs.data = createArgs.data.map((item: any) => ({ ...item, orgId: item.orgId || tenant.orgId }));
+                    }
+                    args[0] = createArgs;
                   }
-                  args[0] = createArgs;
                 }
                 
                 // Auto-inject orgId for updates
-                if (modelProp === 'update' || modelProp === 'updateMany') {
+                if (modelProp === 'update' || modelProp === 'updateMany' || modelProp === 'upsert') {
                   const [updateArgs] = args;
-                  if (updateArgs.where) {
-                    updateArgs.where.orgId = tenant.orgId;
-                  } else {
-                    updateArgs.where = { orgId: tenant.orgId };
+                  if (updateArgs) {
+                    if (!updateArgs.where) {
+                      updateArgs.where = {};
+                    }
+                    
+                    // Only add orgId filter if not already present
+                    if (!updateArgs.where.orgId) {
+                      updateArgs.where.orgId = tenant.orgId;
+                    }
+                    
+                    args[0] = updateArgs;
                   }
-                  args[0] = updateArgs;
                 }
                 
-                return originalModelMethod.apply(modelTarget, args);
+                // Auto-inject orgId for deletes
+                if (modelProp === 'delete' || modelProp === 'deleteMany') {
+                  const [deleteArgs] = args;
+                  if (deleteArgs) {
+                    if (!deleteArgs.where) {
+                      deleteArgs.where = {};
+                    }
+                    
+                    // Only add orgId filter if not already present
+                    if (!deleteArgs.where.orgId) {
+                      deleteArgs.where.orgId = tenant.orgId;
+                    }
+                    
+                    args[0] = deleteArgs;
+                  }
+                }
+                
+                return (originalModelMethod as any).apply(modelTarget, args);
               };
             }
             
@@ -233,7 +284,7 @@ function createTenantPrismaWrapper(
       
       return originalMethod;
     },
-  });
+  }) as PrismaClient;
 }
 
 /**
@@ -247,7 +298,6 @@ async function tenantIsolationPlugin(
     enabled = true,
     bypassRoutes = ['/health', '/metrics', '/documentation', '/api/auth'],
     requireInstallationId = false,
-    adminRoles = ['super_admin'],
   } = options;
 
   if (!enabled) {
@@ -306,21 +356,26 @@ async function tenantIsolationPlugin(
 
     // Audit logging for sensitive operations
     if (request.method !== 'GET') {
-      await fastify.prisma.auditLog.create({
-        data: {
-          orgId: tenant.orgId,
-          userId: tenant.userId || null,
-          action: `${request.method.toLowerCase()}_request`,
-          resource: 'api_request',
-          details: {
-            path: request.url,
-            method: request.method,
-            userAgent: request.headers['user-agent'],
+      try {
+        await fastify.prisma.auditLog.create({
+          data: {
+            orgId: tenant.orgId,
+            userId: tenant.userId || null,
+            action: `${request.method.toLowerCase()}_request`,
+            resource: 'api_request',
+            details: {
+              path: request.url,
+              method: request.method,
+              userAgent: request.headers['user-agent'],
+            },
+            ipAddress: request.ip,
+            userAgent: request.headers['user-agent'] || null,
           },
-          ipAddress: request.ip,
-          userAgent: request.headers['user-agent'],
-        },
-      });
+        });
+      } catch (error) {
+        // Log audit creation failure but don't block the request
+        logger.warn('Failed to create audit log entry', { error, tenant, path });
+      }
     }
 
     logger.debug('Tenant context established', {
@@ -344,28 +399,34 @@ async function tenantIsolationPlugin(
     if (!tenant || !requiredRoles.includes(tenant.role)) {
       throw new Error(`Insufficient permissions. Required roles: ${requiredRoles.join(', ')}`);
     }
+    return tenant;
   });
 
   // Organization usage tracking
-  fastify.addHook('onResponse', async (request, reply) => {
-    if (!request.tenant || request.method === 'GET') {return;}
+  fastify.addHook('onResponse', async (request) => {
+    if (!request.tenant || request.method === 'GET') {
+      return;
+    }
 
     try {
       // Track API usage metrics
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
       await fastify.prisma.usageMetric.upsert({
         where: {
           orgId_metricType_period_date: {
             orgId: request.tenant.orgId,
             metricType: 'api_calls',
             period: 'daily',
-            date: new Date(new Date().toISOString().split('T')[0]),
+            date: today,
           },
         },
         create: {
           orgId: request.tenant.orgId,
           metricType: 'api_calls',
           period: 'daily',
-          date: new Date(new Date().toISOString().split('T')[0]),
+          date: today,
           value: 1,
         },
         update: {

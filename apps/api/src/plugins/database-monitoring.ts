@@ -21,7 +21,6 @@ import {
 } from '../utils/database-health.js';
 import { logger } from '../utils/logger.js';
 import { 
-  recordDatabaseQuery,
   databaseConnectionPool,
   databaseConnections,
 } from '../utils/metrics.js';

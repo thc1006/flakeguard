@@ -39,15 +39,17 @@ async function verifyPrismaClient(): Promise<void> {
     ]
     
     console.log('🔍 Checking for expected models...')
-    const availableModels = Object.keys((prisma as any)._engine?.datamodel?.models || {})
+    const availableModels = Object.keys(
+      (prisma as { _engine?: { datamodel?: { models?: Record<string, unknown> } } })._engine?.datamodel?.models ?? {}
+    )
     
     if (availableModels.length === 0) {
       // Fallback: check if model methods exist on the client
       const clientKeys = Object.keys(prisma).filter(key => 
         !key.startsWith('_') && 
         !key.startsWith('$') &&
-        typeof (prisma as any)[key] === 'object' &&
-        (prisma as any)[key] !== null
+        typeof (prisma as Record<string, unknown>)[key] === 'object' &&
+        (prisma as Record<string, unknown>)[key] !== null
       )
       
       console.log(`📊 Found ${clientKeys.length} model methods on client:`, clientKeys)

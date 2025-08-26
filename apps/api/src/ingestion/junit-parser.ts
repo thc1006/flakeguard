@@ -12,8 +12,7 @@
  */
 
 import { createReadStream } from 'fs';
-import { pipeline, Transform, Readable } from 'stream';
-import { promisify } from 'util';
+import { Transform, Readable } from 'stream';
 
 import * as sax from 'sax';
 
@@ -766,7 +765,7 @@ class SurefireParser extends BaseJUnitParser<'surefire'> {
     this.finalizeFailureElement(state, 'error');
   };
 
-  private handleSkippedClose: ElementHandler<'surefire'> = (state) => {
+  private handleSkippedClose: ElementHandler<'surefire'> = (_state) => {
     // Skipped elements don't typically contain stack traces
   };
 
@@ -805,11 +804,11 @@ class SurefireParser extends BaseJUnitParser<'surefire'> {
     }
   };
 
-  private handlePropertiesOpen: ElementHandler<'surefire'> = (state) => {
+  private handlePropertiesOpen: ElementHandler<'surefire'> = (_state) => {
     // Properties container - no specific action needed
   };
 
-  private handlePropertiesClose: ElementHandler<'surefire'> = (state) => {
+  private handlePropertiesClose: ElementHandler<'surefire'> = (_state) => {
     // Properties container closed - no specific action needed
   };
 

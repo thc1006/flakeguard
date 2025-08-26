@@ -12,19 +12,11 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { Queue, Worker, Job } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import { FastifyInstance } from 'fastify';
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 
 import { build } from '../../app.js';
-import type {
-  ProcessArtifactsRequest,
-  ProcessArtifactsResponse,
-  JobStatusResponse,
-  IngestionHistoryResponse,
-  ArtifactFilter,
-  IngestionJobConfig
-} from '../../routes/ingestion.js';
 
 // Define the statistics response type
 interface IngestionStatisticsResponse {

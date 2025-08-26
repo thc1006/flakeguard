@@ -96,7 +96,7 @@ export class GitHubHelpers {
           label: action.label,
           description: action.description,
           identifier: action.identifier,
-        })),
+        })) as Array<{ label: string; description: string; identifier: string }> | undefined,
       });
 
       const checkRun: FlakeGuardCheckRun = {
@@ -112,7 +112,7 @@ export class GitHubHelpers {
           summary: data.output?.summary || '',
           text: data.output?.text || undefined,
         },
-        actions: (data as { actions?: Array<{ label: string; description: string; identifier: string }> }).actions?.map((action: { label: string; description: string; identifier: string }) => ({
+        actions: ((data as any).actions as Array<{ label: string; description: string; identifier: string }> | undefined)?.map((action) => ({
           label: action.label,
           description: action.description,
           identifier: action.identifier as CheckRunAction,
@@ -172,7 +172,7 @@ export class GitHubHelpers {
           label: action.label,
           description: action.description,
           identifier: action.identifier,
-        })),
+        })) as Array<{ label: string; description: string; identifier: string }> | undefined,
       });
 
       const checkRun: FlakeGuardCheckRun = {
@@ -188,7 +188,7 @@ export class GitHubHelpers {
           summary: data.output?.summary || '',
           text: data.output?.text || undefined,
         },
-        actions: (data as { actions?: Array<{ label: string; description: string; identifier: string }> }).actions?.map((action: { label: string; description: string; identifier: string }) => ({
+        actions: ((data as any).actions as Array<{ label: string; description: string; identifier: string }> | undefined)?.map((action) => ({
           label: action.label,
           description: action.description,
           identifier: action.identifier as CheckRunAction,
@@ -413,7 +413,7 @@ export class GitHubHelpers {
         title,
         summary: summaryText,
       },
-      actions: actions.slice(0, 3),
+      actions: actions.slice(0, 3) as Array<{ readonly label: string; readonly description: string; readonly identifier: CheckRunAction }>,
     }, installationId);
   }
 
@@ -591,7 +591,12 @@ export class GitHubHelpers {
         run_id: runId,
       });
 
-      return data.jobs.map(job => ({...job, run_attempt: job.run_attempt ?? 1}));
+      return data.jobs.map(job => ({
+        ...job,
+        run_attempt: job.run_attempt ?? 1,
+        head_branch: job.head_branch || null,
+        workflow_name: job.workflow_name || null,
+      }));
 
     } catch (error: unknown) {
       logger.error('Failed to get workflow jobs', {
@@ -642,9 +647,9 @@ export class GitHubHelpers {
         url: artifact.url,
         archiveDownloadUrl: artifact.archive_download_url,
         expired: artifact.expired,
-        createdAt: artifact.created_at ?? new Date().toISOString(),
-        expiresAt: artifact.expires_at,
-        updatedAt: artifact.updated_at,
+        createdAt: artifact.created_at || new Date().toISOString(),
+        expiresAt: artifact.expires_at || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: artifact.updated_at || new Date().toISOString(),
       }));
 
     } catch (error: unknown) {

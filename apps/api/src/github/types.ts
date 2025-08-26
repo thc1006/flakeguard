@@ -458,7 +458,7 @@ export type ExtractEventData<T extends keyof WebhookEventMap, K extends string> 
  * Type guard for webhook event discrimination
  */
 export function isWebhookEvent<T extends keyof WebhookEventMap>(
-  event: string,
+  _event: string,
   payload: unknown
 ): payload is WebhookEventMap[T] {
   return typeof payload === 'object' && payload !== null;

@@ -5,7 +5,8 @@
  * without requiring an actual Redis instance or queue system.
  */
 
-import type { Job, Queue, Worker, JobsOptions } from 'bullmq';
+import type { JobsOptions } from 'bullmq';
+// import type { Job, Queue, Worker } from 'bullmq'; // Unused for now but may be needed for complete typing
 import { vi } from 'vitest';
 
 // ============================================================================
@@ -166,7 +167,7 @@ export class MockQueue {
   private jobs: Map<string, MockJob> = new Map();
   private jobCounter = 1000;
   
-  constructor(name: string, opts?: any) {
+  constructor(_name: string, _opts?: any) {
     // Initialize with sample jobs
     MOCK_JOBS.forEach(job => {
       this.jobs.set(job.id, { ...job });
@@ -301,14 +302,14 @@ export class MockQueue {
 
 export class MockWorker {
   private eventHandlers: Map<string, Function[]> = new Map();
-  private isRunning = false;
+  // private isRunning = false; // Unused for now
   
   constructor(
-    queueName: string,
-    processor: Function,
-    opts?: any
+    _queueName: string,
+    _processor: Function,
+    _opts?: any
   ) {
-    this.isRunning = true;
+    // this.isRunning = true; // Unused for now
   }
 
   on(event: string, handler: Function): this {
@@ -368,7 +369,7 @@ export function createMockWorker(
   queueName = 'test-queue',
   processor?: Function
 ): MockWorker {
-  const defaultProcessor = async (job: any) => {
+  const defaultProcessor = async (_job: any) => {
     // Default processor that simulates successful job processing
     return { success: true, processedAt: Date.now() };
   };

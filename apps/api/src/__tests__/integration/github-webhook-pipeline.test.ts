@@ -17,7 +17,6 @@ import { join } from 'path';
 import { PrismaClient } from '@prisma/client';
 import { Job } from 'bullmq';
 import Fastify from 'fastify';
-import IORedis from 'ioredis-mock';
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, vi } from 'vitest';
 
 // Define types for the test
@@ -37,7 +36,7 @@ interface ProcessingResult {
 
 // Mock implementation of the webhook processor
 const createGitHubWebhookProcessor = (_prisma: PrismaClient) => {
-  return async (_job: Job<GitHubEventJob>): Promise<ProcessingResult> => {
+  return (_job: Job<GitHubEventJob>): ProcessingResult => {
     // Mock processing logic for testing
     return {
       success: true,

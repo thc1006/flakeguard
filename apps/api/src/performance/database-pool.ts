@@ -3,8 +3,6 @@
  */
 import { PrismaClient, Prisma } from '@prisma/client';
 
-import { logger } from '../utils/logger.js';
-
 interface DatabasePoolConfig {
   maxConnections: number;
   minConnections: number;
@@ -13,10 +11,10 @@ interface DatabasePoolConfig {
 }
 
 const DEFAULT_POOL_CONFIG: DatabasePoolConfig = {
-  maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS || '30'),
-  minConnections: parseInt(process.env.DB_MIN_CONNECTIONS || '5'),
+  maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS ?? '30'),
+  minConnections: parseInt(process.env.DB_MIN_CONNECTIONS ?? '5'),
   acquireTimeoutMs: 30000,
-  queryTimeoutMs: parseInt(process.env.DB_QUERY_TIMEOUT_MS || '30000'),
+  queryTimeoutMs: parseInt(process.env.DB_QUERY_TIMEOUT_MS ?? '30000'),
 };
 
 export class DatabasePool {
@@ -41,7 +39,12 @@ export class DatabasePool {
   }
 
   private createOptimizedClient(): PrismaClient {
-    const databaseUrl = new URL(process.env.DATABASE_URL!);
+    const databaseUrlString = process.env.DATABASE_URL;
+    if (!databaseUrlString) {
+      throw new Error('DATABASE_URL environment variable is required');
+    }
+    
+    const databaseUrl = new URL(databaseUrlString);
     
     databaseUrl.searchParams.set('connection_limit', this.config.maxConnections.toString());
     databaseUrl.searchParams.set('pool_timeout', Math.floor(this.config.acquireTimeoutMs / 1000).toString());

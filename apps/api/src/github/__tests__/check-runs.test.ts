@@ -22,7 +22,6 @@ import {
   createFlakeGuardCheckRun,
   convertToTestCandidates,
   type TestCandidate,
-  type CheckRunOutput,
   type CheckRunParams,
 } from '../check-runs.js';
 

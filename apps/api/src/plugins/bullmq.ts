@@ -8,8 +8,10 @@
 import { Queue, QueueEvents } from 'bullmq';
 import type { FastifyInstance } from 'fastify';
 import fp from 'fastify-plugin';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import type { RedisOptions } from 'ioredis';
+
+import { logger } from '../utils/logger.js';
 
 // Queue configuration
 export interface BullMQPluginOptions {
@@ -59,7 +61,7 @@ async function bullmqPlugin(
   const config = { ...DEFAULT_OPTIONS, ...options };
 
   if (!config.enabled) {
-    fastify.log.info('BullMQ plugin disabled');
+    logger.debug('BullMQ plugin disabled');
     
     // Provide mock implementations for testing
     const mockQueue = {
@@ -74,14 +76,13 @@ async function bullmqPlugin(
     return;
   }
 
-  const logger = fastify.log;
+  // Use imported logger instead of fastify.log
 
   try {
     // Create Redis connection
     const redis = new Redis(config.redisUrl!, {
       ...config.redisOptions,
       maxRetriesPerRequest: 3,
-      retryDelayOnFailover: 100,
       lazyConnect: true,
       enableAutoPipelining: true,
     });
@@ -89,7 +90,7 @@ async function bullmqPlugin(
     // Wait for Redis connection
     await redis.connect();
     
-    logger.info({ redisUrl: config.redisUrl }, 'Connected to Redis for BullMQ');
+    logger.debug({ redisUrl: config.redisUrl }, 'Connected to Redis for BullMQ');
 
     // Create GitHub events queue
     const githubEventsQueue = new Queue(
@@ -107,7 +108,7 @@ async function bullmqPlugin(
 
     // Set up queue event logging
     queueEvents.on('completed', ({ jobId, returnvalue }) => {
-      logger.info({ jobId, returnvalue }, 'GitHub webhook job completed');
+      logger.debug({ jobId, returnvalue }, 'GitHub webhook job completed');
     });
 
     queueEvents.on('failed', ({ jobId, failedReason }) => {
@@ -139,20 +140,20 @@ async function bullmqPlugin(
 
     // Add graceful shutdown
     fastify.addHook('onClose', async () => {
-      logger.info('Closing BullMQ connections...');
+      logger.debug('Closing BullMQ connections...');
       
       try {
         await githubEventsQueue.close();
         await ingestionQueue.close();
         await queueEvents.close();
         await redis.disconnect();
-        logger.info('BullMQ connections closed successfully');
+        logger.debug('BullMQ connections closed successfully');
       } catch (error) {
         logger.error({ error }, 'Error closing BullMQ connections');
       }
     });
 
-    logger.info({
+    logger.debug({
       queueName: config.queues.githubEvents.name,
       defaultJobOptions: config.queues.githubEvents.defaultJobOptions,
     }, 'BullMQ plugin registered successfully');

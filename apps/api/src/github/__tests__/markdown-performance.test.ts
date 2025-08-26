@@ -12,13 +12,11 @@ import {
   benchmarkMarkdownGeneration,
   generateBenchmarkTestCandidates,
   renderOptimizedCheckRunOutput,
-  MarkdownBuilder,
   escapeMarkdown,
   createTruncatedTestTable,
   clearFormattingCache,
   getFormattingCacheStats,
   GITHUB_CHECK_RUN_TEXT_LIMIT,
-  type MarkdownPerformanceMetrics
 } from '../markdown-utils.js';
 
 describe('Markdown Performance Benchmarks', () => {

@@ -24,7 +24,6 @@ import type {
   IngestionResult
 } from './types.js';
 import {
-  validateUrl,
   sanitizeFileName,
   generateCorrelationId
 } from './utils.js';

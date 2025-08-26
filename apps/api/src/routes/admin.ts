@@ -379,7 +379,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       await fastify.prisma.auditLog.create({
         data: {
           orgId,
-          userId: _request.tenant.userId!,
+          userId: _request.tenant?.userId!,
           action: 'organization_updated_by_admin',
           resource: 'organization',
           resourceId: orgId,
@@ -537,7 +537,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
       await fastify.prisma.auditLog.create({
         data: {
           orgId,
-          userId: _request.tenant.userId!,
+          userId: _request.tenant?.userId!,
           action: 'organization_sync_triggered',
           resource: 'organization',
           resourceId: orgId,

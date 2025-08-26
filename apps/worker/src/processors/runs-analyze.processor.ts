@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await, import/order */
+/* eslint-disable @typescript-eslint/no-unused-vars, import/order */
 
 /**
  * Workflow Runs Analysis Processor
@@ -297,18 +297,23 @@ async function loadTestExecutionHistories(
       }
       
       const history = testHistoryMap.get(testKey);
-      if (!history) {continue;}
-      history.executions.push({
-        workflowRunId: parseInt(testCase.occurrences[0]?.workflowRun?.id || '0'),
-        status: (testCase.occurrences[0]?.status || 'passed') as 'passed' | 'failed' | 'error' | 'skipped',
-        executionTime: testCase.occurrences[0]?.durationMs || 0,
-        timestamp: testCase.createdAt,
-        branch: 'main', // Note: workflowRun doesn't have headBranch in the schema
-        commitSha: '', // Note: workflowRun doesn't have headSha in the schema
-        runNumber: 0, // Note: workflowRun doesn't have runNumber in the schema
-        failureMessage: testCase.occurrences[0]?.failureMsgSignature || undefined,
-        errorMessage: testCase.occurrences[0]?.failureStackDigest || undefined
-      });
+      if (!history) {
+        continue;
+      }
+      const firstOccurrence = testCase.occurrences[0];
+      if (firstOccurrence) {
+        history.executions.push({
+          workflowRunId: parseInt(firstOccurrence.workflowRun?.id || '0'),
+          status: (firstOccurrence.status || 'passed') as 'passed' | 'failed' | 'error' | 'skipped',
+          executionTime: firstOccurrence.durationMs || 0,
+          timestamp: testCase.createdAt,
+          branch: 'main', // Note: workflowRun doesn't have headBranch in the schema
+          commitSha: '', // Note: workflowRun doesn't have headSha in the schema
+          runNumber: 0, // Note: workflowRun doesn't have runNumber in the schema
+          failureMessage: firstOccurrence.failureMsgSignature || undefined,
+          errorMessage: firstOccurrence.failureStackDigest || undefined
+        });
+      }
     }
     
     // Filter tests with sufficient execution history
@@ -440,7 +445,9 @@ function analyzeTestFlakiness(history: TestExecutionHistory): FlakyTestResult {
  * Calculate inconsistency penalty (alternating pass/fail patterns)
  */
 function calculateInconsistencyPenalty(executions: TestExecution[]): number {
-  if (executions.length < 3) {return 0;}
+  if (executions.length < 3) {
+    return 0;
+  }
   
   let transitions = 0;
   let previousStatus = executions[0]?.status;
@@ -576,7 +583,9 @@ function generateTestRecommendation(
  * Calculate overall flakiness score
  */
 function calculateOverallFlakinessScore(flakyTests: FlakyTestResult[]): number {
-  if (flakyTests.length === 0) {return 0;}
+  if (flakyTests.length === 0) {
+    return 0;
+  }
   
   const totalScore = flakyTests.reduce((sum, test) => sum + test.flakinessScore, 0);
   return totalScore / flakyTests.length;
@@ -787,7 +796,9 @@ function createDetailedReport(flakyTests: FlakyTestResult[]): string {
   };
   
   for (const [severity, tests] of Object.entries(bySeverity)) {
-    if (tests.length === 0) {continue;}
+    if (tests.length === 0) {
+      continue;
+    }
     
     const icon: Record<string, string> = {
       critical: '🚨',

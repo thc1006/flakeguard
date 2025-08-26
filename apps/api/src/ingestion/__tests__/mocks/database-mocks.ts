@@ -5,7 +5,7 @@
  * database operations without requiring an actual database connection.
  */
 
-import type { PrismaClient, TestResult, TestSuite, Repository, IngestionJob, Prisma } from '@prisma/client';
+import type { TestResult, TestSuite, Repository, IngestionJob } from '@prisma/client';
 import { vi } from 'vitest';
 
 // ============================================================================
@@ -14,11 +14,17 @@ import { vi } from 'vitest';
 
 export const MOCK_REPOSITORY = {
   id: 'repo-test-123',
+  orgId: 'org-test-123',
+  githubId: 12345678,
+  nodeId: 'MDEwOlJlcG9zaXRvcnkxMjM0NTY3OA==',
   owner: 'test-org',
   name: 'test-repo',
   fullName: 'test-org/test-repo',
+  defaultBranch: 'main',
   private: false,
-  installationId: 12345678,
+  installationId: '12345678',
+  isActive: true,
+  settings: {},
   createdAt: new Date('2023-01-01T00:00:00Z'),
   updatedAt: new Date('2023-12-01T10:00:00Z')
 } satisfies Repository;
@@ -38,6 +44,7 @@ export const MOCK_TEST_SUITES: TestSuite[] = [
     runId: 'run-test-123',
     jobName: 'test-job',
     repositoryId: MOCK_REPOSITORY.id,
+    orgId: 'org-test-123',
     checkRunId: 'check-123',
     workflowJobId: 'job-456',
     systemOut: 'System output content',
@@ -63,6 +70,7 @@ export const MOCK_TEST_SUITES: TestSuite[] = [
     runId: 'run-test-123',
     jobName: 'test-job',
     repositoryId: MOCK_REPOSITORY.id,
+    orgId: 'org-test-123',
     checkRunId: 'check-123',
     workflowJobId: 'job-456',
     systemOut: 'Integration test output',
@@ -86,15 +94,13 @@ export const MOCK_TEST_RESULTS: TestResult[] = [
     file: 'UserServiceTest.java',
     status: 'passed',
     time: 0.521,
-    duration: 521,
     message: null,
     stack: null,
-    errorMessage: null,
-    stackTrace: null,
     attempt: 1,
     runId: 'run-test-123',
     jobName: 'test-job',
     repositoryId: MOCK_REPOSITORY.id,
+    orgId: 'org-test-123',
     testSuiteId: 'suite-1',
     checkRunId: 'check-123',
     workflowJobId: 'job-456',
@@ -110,15 +116,13 @@ export const MOCK_TEST_RESULTS: TestResult[] = [
     file: 'UserServiceTest.java',
     status: 'passed',
     time: 0.425,
-    duration: 425,
     message: null,
     stack: null,
-    errorMessage: null,
-    stackTrace: null,
     attempt: 1,
     runId: 'run-test-123',
     jobName: 'test-job',
     repositoryId: MOCK_REPOSITORY.id,
+    orgId: 'org-test-123',
     testSuiteId: 'suite-1',
     checkRunId: 'check-123',
     workflowJobId: 'job-456',
@@ -134,15 +138,13 @@ export const MOCK_TEST_RESULTS: TestResult[] = [
     file: 'DatabaseIntegrationTest.java',
     status: 'failed',
     time: 2.134,
-    duration: 2134,
     message: 'Assertion failed: Expected 1 record, but found 0',
     stack: 'org.opentest4j.AssertionFailedError: Assertion failed\n\tat DatabaseIntegrationTest.testInsertRecord(DatabaseIntegrationTest.java:58)',
-    errorMessage: 'Expected 1 record, but found 0',
-    stackTrace: 'org.opentest4j.AssertionFailedError: Assertion failed: Expected 1 record, but found 0\n\tat com.example.integration.DatabaseIntegrationTest.testInsertRecord(DatabaseIntegrationTest.java:58)',
     attempt: 1,
     runId: 'run-test-123',
     jobName: 'test-job',
     repositoryId: MOCK_REPOSITORY.id,
+    orgId: 'org-test-123',
     testSuiteId: 'suite-2',
     checkRunId: 'check-123',
     workflowJobId: 'job-456',
@@ -158,15 +160,13 @@ export const MOCK_TEST_RESULTS: TestResult[] = [
     file: 'DatabaseIntegrationTest.java',
     status: 'error',
     time: 3.421,
-    duration: 3421,
     message: 'Connection timeout after 5000ms',
     stack: 'java.sql.SQLTimeoutException: Connection timeout after 5000ms\n\tat DatabaseIntegrationTest.testTransactionRollback(DatabaseIntegrationTest.java:95)',
-    errorMessage: 'Connection timeout after 5000ms',
-    stackTrace: 'java.sql.SQLTimeoutException: Connection timeout after 5000ms\n\tat com.example.integration.DatabaseIntegrationTest.testTransactionRollback(DatabaseIntegrationTest.java:95)',
     attempt: 1,
     runId: 'run-test-123',
     jobName: 'test-job',
     repositoryId: MOCK_REPOSITORY.id,
+    orgId: 'org-test-123',
     testSuiteId: 'suite-2',
     checkRunId: 'check-123',
     workflowJobId: 'job-456',
@@ -182,15 +182,13 @@ export const MOCK_TEST_RESULTS: TestResult[] = [
     file: 'DatabaseIntegrationTest.java',
     status: 'skipped',
     time: 0,
-    duration: 0,
     message: 'Database connection pooling test disabled in CI environment',
     stack: null,
-    errorMessage: null,
-    stackTrace: null,
     attempt: 1,
     runId: 'run-test-123',
     jobName: 'test-job',
     repositoryId: MOCK_REPOSITORY.id,
+    orgId: 'org-test-123',
     testSuiteId: 'suite-2',
     checkRunId: 'check-123',
     workflowJobId: 'job-456',
@@ -199,13 +197,13 @@ export const MOCK_TEST_RESULTS: TestResult[] = [
   }
 ];
 
-export const MOCK_INGESTION_JOBS: IngestionJob[] = [
+export const MOCK_INGESTION_JOBS: any[] = [
   {
     id: 'job-completed-123',
     status: 'completed',
     repositoryId: MOCK_REPOSITORY.id,
-    workflowRunId: 987654321,
-    installationId: 12345678,
+    workflowRunId: '987654321',
+    installationId: '12345678',
     correlationId: 'correlation-123',
     priority: 'normal',
     attempts: 1,
@@ -234,8 +232,8 @@ export const MOCK_INGESTION_JOBS: IngestionJob[] = [
     id: 'job-failed-456',
     status: 'failed',
     repositoryId: MOCK_REPOSITORY.id,
-    workflowRunId: 987654322,
-    installationId: 12345678,
+    workflowRunId: '987654322',
+    installationId: '12345678',
     correlationId: 'correlation-456',
     priority: 'normal',
     attempts: 3,
@@ -254,8 +252,8 @@ export const MOCK_INGESTION_JOBS: IngestionJob[] = [
     id: 'job-active-789',
     status: 'active',
     repositoryId: MOCK_REPOSITORY.id,
-    workflowRunId: 987654323,
-    installationId: 12345678,
+    workflowRunId: '987654323',
+    installationId: '12345678',
     correlationId: 'correlation-789',
     priority: 'high',
     attempts: 1,
@@ -276,7 +274,7 @@ export const MOCK_INGESTION_JOBS: IngestionJob[] = [
 // Mock Prisma Client
 // ============================================================================
 
-export interface MockPrismaClient extends Partial<PrismaClient> {
+export interface MockPrismaClient extends Partial<any> {
   repository: {
     findFirst: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
@@ -495,16 +493,16 @@ export function setupRateLimitMocks(mockPrisma: MockPrismaClient) {
     }
   };
   
-  mockPrisma.repository.findFirst.mockImplementation(async (...args) => {
+  mockPrisma.repository.findFirst.mockImplementation(async (..._args) => {
     rateLimitChecker();
     return MOCK_REPOSITORY;
   });
   
-  mockPrisma.testSuite.create.mockImplementation(async (...args) => {
+  mockPrisma.testSuite.create.mockImplementation(async (..._args) => {
     rateLimitChecker();
     return {
       id: `suite-${Date.now()}`,
-      ...args[0].data,
+      ..._args[0].data,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -615,13 +613,13 @@ export class MockDatabaseState {
   }
 
   addRepository(repo: Partial<Repository>) {
-    const newRepo: Repository = {
+    const newRepo = {
       id: `repo-${Date.now()}`,
       owner: 'test-owner',
       name: 'test-repo',
       fullName: 'test-owner/test-repo',
       private: false,
-      installationId: 12345678,
+      installationId: '12345678',
       createdAt: new Date(),
       updatedAt: new Date(),
       ...repo
@@ -671,9 +669,7 @@ export class MockDatabaseState {
       duration: null,
       message: null,
       stack: null,
-      errorMessage: null,
-      stackTrace: null,
-      attempt: 1,
+          attempt: 1,
       runId: null,
       jobName: null,
       repositoryId: this.repositories[0].id,

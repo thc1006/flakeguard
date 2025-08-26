@@ -10,6 +10,21 @@
  * - Audit logging
  */
 
+// Set up test environment variables BEFORE any imports to avoid config validation errors
+process.env.NODE_ENV = 'test';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.GITHUB_APP_ID = '123456';
+process.env.GITHUB_CLIENT_ID = 'Iv1.test123456';
+// Add a proper test RSA private key (fake for testing only)
+process.env.GITHUB_PRIVATE_KEY = `-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA0Z5V7y8wZ4Z8Zq1nV2xP5N7F2e3F7q1l3d6Y8W5t3f2A9k4H
+2J8L0n6P3m7G8b4D5r2F8d5A1z3X9k7S6f4V2m8L9n5R1p6T8q9Y3w4E5s7H3k1
+M2x7L8f4N9r2V5q3P6d8S1t4F7w2Z9g5K3m1R8q4T6y7U9i2N5j8H3p1L4c6X7
+Z9k2M3t8R5v1Y4g7J8p2Q6s9F3n1K4m7L8x5C2v4B6d3G9h1I5j2N8q1P7w3Z4
+G6k9M2r5T8u1Y4a7C3f8J1l5N6p2S9v4E7x2A8g3H6k1M9q4R7t8W2Z5y1B3n6
+-----END RSA PRIVATE KEY-----`;
+
 import crypto from 'crypto';
 import fs from 'fs';
 import { tmpdir } from 'os';
@@ -41,16 +56,12 @@ describe('Security Plugin', () => {
     // Create temporary directory for test secrets
     tempDir = fs.mkdtempSync(path.join(tmpdir(), 'flakeguard-security-test-'));
     
-    // Set up test environment variables with runtime-generated secrets
-    process.env.NODE_ENV = 'test';
-    process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
-    process.env.REDIS_URL = 'redis://localhost:6379';
+    // Set up runtime-generated secrets
     process.env.JWT_SECRET = testSecrets.jwtSecret;
     process.env.API_KEY = testSecrets.apiKey;
-    process.env.GITHUB_APP_ID = '123456';
-    process.env.GITHUB_CLIENT_ID = 'Iv1.test123456';
     process.env.GITHUB_CLIENT_SECRET = testSecrets.clientSecret;
     process.env.GITHUB_WEBHOOK_SECRET = testSecrets.webhookSecret;
+    process.env.SLACK_SIGNING_SECRET = testSecrets.slackSigningSecret;
     
     // Build app with security plugin
     app = await buildApp();
@@ -70,6 +81,12 @@ describe('Security Plugin', () => {
     delete process.env.REDIS_URL;
     delete process.env.JWT_SECRET;
     delete process.env.API_KEY;
+    delete process.env.GITHUB_APP_ID;
+    delete process.env.GITHUB_CLIENT_ID;
+    delete process.env.GITHUB_CLIENT_SECRET;
+    delete process.env.GITHUB_WEBHOOK_SECRET;
+    delete process.env.GITHUB_PRIVATE_KEY;
+    delete process.env.SLACK_SIGNING_SECRET;
   });
 
   describe('Secrets Manager', () => {

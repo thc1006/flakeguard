@@ -4,9 +4,7 @@
  */
 
 import { createReadStream } from 'fs';
-import { pipeline } from 'stream';
 import type { Readable } from 'stream';
-import { promisify } from 'util';
 
 import * as sax from 'sax';
 
@@ -19,12 +17,13 @@ import type {
   JUnitFormat,
   FormatDetectionResult,
   FormatSpecificConfig,
-  StreamProcessingOptions,
-  ParsingFailedException
+  // StreamProcessingOptions // Unused for now
 } from '../types.js';
-import { detectFormatFromPath, createIngestionError } from '../utils.js';
+import { ParsingFailedException } from '../types.js';
+import { detectFormatFromPath } from '../utils.js';
+// import { createIngestionError } from '../utils.js'; // Unused for now
 
-const pipelineAsync = promisify(pipeline);
+// const pipelineAsync = promisify(pipeline); // Unused for now
 
 // ============================================================================
 // Parser State Management
@@ -33,19 +32,19 @@ const pipelineAsync = promisify(pipeline);
 /**
  * Parser state for SAX-based streaming
  */
-interface ParserState {
-  readonly format: JUnitFormat;
-  readonly currentPath: string[];
-  readonly testSuites: TestSuites;
-  readonly currentSuite?: TestSuite;
-  readonly currentTestCase?: TestCase;
-  readonly currentElement?: {
-    name: string;
-    attributes: Record<string, string>;
-    text: string;
-  };
-  readonly warnings: string[];
-}
+// interface ParserState { // Unused for now
+//   readonly format: JUnitFormat;
+//   readonly currentPath: string[];
+//   readonly testSuites: TestSuites;
+//   readonly currentSuite?: TestSuite;
+//   readonly currentTestCase?: TestCase;
+//   readonly currentElement?: {
+//     name: string;
+//     attributes: Record<string, string>;
+//     text: string;
+//   };
+//   readonly warnings: string[];
+// }
 
 /**
  * Mutable parser state for internal use
@@ -76,7 +75,7 @@ type ElementHandler = (
 /**
  * Text handler function type
  */
-type TextHandler = (state: MutableParserState, text: string) => void;
+// type TextHandler = (state: MutableParserState, text: string) => void; // Unused for now
 
 /**
  * Close element handler function type
@@ -224,6 +223,20 @@ abstract class BaseJUnitParser {
   protected abstract getCloseTagHandler(name: string): CloseHandler | null;
 
   /**
+   * Public accessor for open tag handlers (for parser composition)
+   */
+  public getOpenHandler(name: string): ElementHandler | null {
+    return this.getOpenTagHandler(name);
+  }
+
+  /**
+   * Public accessor for close tag handlers (for parser composition)
+   */
+  public getCloseHandler(name: string): CloseHandler | null {
+    return this.getCloseTagHandler(name);
+  }
+
+  /**
    * Finalize parsing result
    */
   protected finalizeResult(state: MutableParserState): TestSuites {
@@ -237,7 +250,7 @@ abstract class BaseJUnitParser {
       skipped: testSuites.skipped || 0,
       time: testSuites.time,
       timestamp: testSuites.timestamp,
-      suites: testSuites.suites || []
+      suites: (testSuites.suites as TestSuite[]) || []
     };
   }
 
@@ -461,11 +474,11 @@ class GradleParser extends BaseJUnitParser {
 
   protected getOpenTagHandler(name: string): ElementHandler | null {
     // Gradle uses similar structure to Surefire but with some differences
-    return new SurefireParser().getOpenTagHandler(name);
+    return new SurefireParser().getOpenHandler(name);
   }
 
   protected getCloseTagHandler(name: string): CloseHandler | null {
-    return new SurefireParser().getCloseTagHandler(name);
+    return new SurefireParser().getCloseHandler(name);
   }
 }
 
@@ -484,14 +497,14 @@ class JestParser extends BaseJUnitParser {
       case 'testsuites':
       case 'testsuite':
       case 'testcase':
-        return new SurefireParser().getOpenTagHandler(name);
+        return new SurefireParser().getOpenHandler(name);
       default:
         return null;
     }
   }
 
   protected getCloseTagHandler(name: string): CloseHandler | null {
-    return new SurefireParser().getCloseTagHandler(name);
+    return new SurefireParser().getCloseHandler(name);
   }
 }
 

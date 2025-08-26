@@ -574,17 +574,17 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
       try {
         const validNode = SAXNodeSchema.parse(node);
         const { name, attributes } = validNode;
-      
-      switch (name.toLowerCase()) {
+        
+        switch (name.toLowerCase()) {
         case 'testsuite':
           currentSuite = {
-            name: String(attributes.name || 'Unknown'),
-            tests: parseInt(String(attributes.tests || '0')) || 0,
-            failures: parseInt(String(attributes.failures || '0')) || 0,
-            errors: parseInt(String(attributes.errors || '0')) || 0,
-            skipped: parseInt(String(attributes.skipped || '0')) || 0,
-            time: parseFloat(String(attributes.time || '0')) || 0,
-            timestamp: String(attributes.timestamp || new Date().toISOString()),
+            name: String(attributes.name ?? 'Unknown'),
+            tests: parseInt(String(attributes.tests ?? '0')) || 0,
+            failures: parseInt(String(attributes.failures ?? '0')) || 0,
+            errors: parseInt(String(attributes.errors ?? '0')) || 0,
+            skipped: parseInt(String(attributes.skipped ?? '0')) || 0,
+            time: parseFloat(String(attributes.time ?? '0')) || 0,
+            timestamp: String(attributes.timestamp ?? new Date().toISOString()),
             testCases: []
           };
           break;
@@ -592,9 +592,9 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
         case 'testcase':
           if (currentSuite) {
             currentTestCase = {
-              name: String(attributes.name || 'Unknown'),
-              className: String(attributes.classname || attributes.class || 'Unknown'),
-              time: parseFloat(String(attributes.time || '0')) || 0,
+              name: String(attributes.name ?? 'Unknown'),
+              className: String(attributes.classname ?? attributes.class ?? 'Unknown'),
+              time: parseFloat(String(attributes.time ?? '0')) || 0,
               status: 'passed' // Default, will be updated if failure/error found
             };
           }
@@ -604,8 +604,8 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
           if (currentTestCase) {
             currentTestCase.status = 'failed';
             currentTestCase.failure = {
-              message: String(attributes.message || ''),
-              type: String(attributes.type || 'AssertionError')
+              message: String(attributes.message ?? ''),
+              type: String(attributes.type ?? 'AssertionError')
             };
           }
           break;
@@ -614,8 +614,8 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
           if (currentTestCase) {
             currentTestCase.status = 'error';
             currentTestCase.error = {
-              message: String(attributes.message || ''),
-              type: String(attributes.type || 'Error')
+              message: String(attributes.message ?? ''),
+              type: String(attributes.type ?? 'Error')
             };
           }
           break;

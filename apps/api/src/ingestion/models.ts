@@ -8,7 +8,6 @@
 import type { 
   TestResult, 
   TestSuite, 
-  Prisma,
   PrismaClient 
 } from '@prisma/client';
 import { z } from 'zod';
@@ -18,7 +17,6 @@ import type {
   TestSuite as JUnitTestSuite,
   TestSuites as JUnitTestSuites,
   TestCaseStatus,
-  TestFailure,
   RepositoryContext
 } from './types.js';
 

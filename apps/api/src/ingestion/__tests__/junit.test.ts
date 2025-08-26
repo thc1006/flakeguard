@@ -11,7 +11,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { createReadStream, createWriteStream, promises as fs } from 'fs';
+import { createWriteStream, promises as fs } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { Readable, Transform } from 'stream';
@@ -26,7 +26,6 @@ import {
 } from '../junit.js';
 import type {
   IngestionParameters,
-  IngestionResult,
   ArtifactSource,
   RepositoryContext,
   RetryConfig,
@@ -34,10 +33,7 @@ import type {
   FileProcessingResult
 } from '../types.js';
 import {
-  IngestionException,
-  DownloadFailedException,
   ParsingFailedException,
-  TimeoutException
 } from '../types.js';
 
 // Mock external dependencies

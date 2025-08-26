@@ -8,16 +8,15 @@
 
 import type {
   TestResult,
-  PolicyDecision,
   PolicyEvaluation,
 } from '@flakeguard/shared';
-import type { Octokit } from '@octokit/rest';
+// import type { Octokit } from '@octokit/rest'; // Unused
 
 
 import { GitHubAuthManager } from '../github/auth.js';
 import { logger } from '../utils/logger.js';
 
-import { getPolicyEngine, type PolicyConfig } from './engine.js';
+import { getPolicyEngine, type PolicyConfig, type PolicyDecision } from './engine.js';
 
 export interface EvaluatePolicyRequest {
   owner: string;

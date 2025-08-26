@@ -21,8 +21,6 @@ import { createTestMocks ,
   createMockCheckRunPayload,
   createMockWorkflowRunPayload,
   createMockInstallationPayload,
-  createMockRepository,
-  createMockInstallation,
   createMockPrismaClient,
   signWebhookPayload,
 } from './mocks.js';

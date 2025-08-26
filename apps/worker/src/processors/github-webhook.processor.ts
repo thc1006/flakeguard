@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 /**
  * GitHub Webhook Event Processor
@@ -43,23 +43,26 @@ export function createGitHubWebhookProcessor(_prisma: PrismaClient) {
   return async function processGitHubWebhook(
     job: Job<GitHubEventJob>
   ): Promise<ProcessingResult> {
-    const { data } = job as unknown as { data: GitHubEventJob };
+    const { data } = job;
+    if (!data) {
+      throw new Error('Job data is required');
+    }
     const startTime = Date.now();
 
     logger.info({
       jobId: job.id,
-      eventType: String(data.eventType ?? ''),
-      deliveryId: String(data.deliveryId ?? ''),
-      repositoryFullName: String(data.repositoryFullName ?? ''),
-      installationId: Number(data.installationId ?? 0),
+      eventType: data.eventType || 'unknown',
+      deliveryId: data.deliveryId || 'unknown',
+      repositoryFullName: data.repositoryFullName || 'unknown',
+      installationId: data.installationId || 0,
     }, 'Processing GitHub webhook event');
 
     try {
       // Only process workflow_run completed events for now
       if (data.eventType !== 'workflow_run' || data.action !== 'completed') {
         logger.info({
-          eventType: String(data.eventType),
-          action: String(data.action),
+          eventType: data.eventType || 'unknown',
+          action: data.action || 'unknown',
         }, 'Skipping event - not a completed workflow run');
 
         return {
@@ -114,8 +117,8 @@ export function createGitHubWebhookProcessor(_prisma: PrismaClient) {
       const processingTimeMs = Date.now() - startTime;
       logger.error({
         jobId: job.id,
-        eventType: data.eventType,
-        deliveryId: data.deliveryId,
+        eventType: data.eventType || 'unknown',
+        deliveryId: data.deliveryId || 'unknown',
         error: error instanceof Error ? error.message : String(error),
         processingTimeMs,
       }, 'GitHub webhook event processing failed');

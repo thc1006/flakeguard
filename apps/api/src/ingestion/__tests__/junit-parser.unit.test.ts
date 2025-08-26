@@ -6,20 +6,16 @@
 
 import { Readable } from 'stream';
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import {
   parseJUnitXMLString,
-  parseJUnitXMLFile,
   parseJUnitXMLAdvanced,
   detectJUnitFormat,
   extractJUnitTestCases,
   createJUnitParser,
-  type JUnitTestCase,
-  type JUnitParseResult,
-  type FormatSpecificResult,
 } from '../junit-parser.js';
-import type { TestSuites, JUnitFormat } from '../types.js';
+import type { JUnitFormat } from '../types.js';
 
 // Mock file system for file-based tests
 vi.mock('fs', () => ({

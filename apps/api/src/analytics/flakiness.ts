@@ -136,7 +136,7 @@ export class FlakinessScorer {
     let totalRetries = 0;
     let successfulRetries = 0;
 
-    for (const [, runsInSameWorkflow] of groupedByRunId) {
+    groupedByRunId.forEach((runsInSameWorkflow) => {
       const sortedRuns = runsInSameWorkflow.sort((a, b) => a.attempt - b.attempt);
       
       for (let i = 1; i < sortedRuns.length; i++) {
@@ -145,7 +145,7 @@ export class FlakinessScorer {
           successfulRetries++;
         }
       }
-    }
+    });
 
     return totalRetries > 0 ? successfulRetries / totalRetries : 0;
   }
@@ -228,7 +228,7 @@ export class FlakinessScorer {
 
     const normalizedMessages = failedRuns
       .filter(run => run.message)
-      .map(run => this.normalizeMessage(run.message || ''));
+      .map(run => this.normalizeMessage(run.message ?? ''));
 
     const uniqueMessages = new Set(normalizedMessages);
     return uniqueMessages.size / normalizedMessages.length;
@@ -635,7 +635,7 @@ export class FlakinessScorer {
     if (!firstSeen || !lastSeen) {
       throw new Error('Invalid run data: missing createdAt timestamps');
     }
-    const lastFailure = sortedRuns.reverse().find(r => r.status === 'failed' || r.status === 'error')?.createdAt;
+    const lastFailure = [...sortedRuns].reverse().find(r => r.status === 'failed' || r.status === 'error')?.createdAt;
     
     const avgDuration = runs.reduce((sum, r) => sum + r.duration, 0) / runs.length;
     

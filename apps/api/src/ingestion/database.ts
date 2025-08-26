@@ -8,8 +8,6 @@
 import { PrismaClient, TestResult, TestSuite, Prisma } from '@prisma/client';
 
 import type {
-  TestCase,
-  TestSuite as JUnitTestSuite,
   TestSuites as JUnitTestSuites,
   RepositoryContext
 } from './types.js';
@@ -166,7 +164,8 @@ export class TestIngestionRepository {
   async upsertTestSuite(suite: TestSuiteInput): Promise<TestSuite> {
     return this.prisma.testSuite.upsert({
       where: {
-        repositoryId_name_runId: {
+        orgId_repositoryId_name_runId: {
+          orgId: 'default-org',
           repositoryId: suite.repositoryId,
           name: suite.name,
           runId: suite.runId || '',
@@ -174,7 +173,7 @@ export class TestIngestionRepository {
       },
       create: {
         ...suite,
-        properties: suite.properties || {},
+        properties: (suite.properties || {}) as any,
       },
       update: {
         package: suite.package,
@@ -190,7 +189,7 @@ export class TestIngestionRepository {
         workflowJobId: suite.workflowJobId,
         systemOut: suite.systemOut,
         systemErr: suite.systemErr,
-        properties: suite.properties || {},
+        properties: (suite.properties || {}) as any,
         updatedAt: new Date(),
       },
     });
@@ -202,18 +201,18 @@ export class TestIngestionRepository {
   async upsertTestResult(testResult: TestResultInput): Promise<TestResult> {
     return this.prisma.testResult.upsert({
       where: {
-        repositoryId_testFullName_file_suite: {
+        orgId_repositoryId_testFullName_file_suite: {
+          orgId: 'default-org',
           repositoryId: testResult.repositoryId,
           testFullName: testResult.testFullName,
           file: testResult.file || '',
           suite: testResult.suite,
         },
       },
-      create: testResult,
+      create: { ...testResult, orgId: 'default-org' } as any,
       update: {
         status: testResult.status,
         time: testResult.time,
-        duration: testResult.duration,
         message: testResult.message,
         stack: testResult.stack,
         errorMessage: testResult.errorMessage,
@@ -263,7 +262,7 @@ export class TestIngestionRepository {
           workflowJobId: context.workflowJobId,
           systemOut: suite.systemOut,
           systemErr: suite.systemErr,
-          properties: suite.properties || {},
+          properties: (suite.properties || {}) as any,
         };
 
         testSuiteInputs.push(suiteInput);
@@ -306,12 +305,17 @@ export class TestIngestionRepository {
       // Map suite names to IDs for test results
       const suiteNameToId = new Map<string, string>();
       testSuites.forEach(suite => {
-        suiteNameToId.set(suite.name, suite.id);
+        if (suite.name && suite.id) {
+          suiteNameToId.set(suite.name, suite.id);
+        }
       });
 
       // Update test results with suite IDs
       testResultInputs.forEach(testResult => {
-        testResult.testSuiteId = suiteNameToId.get(testResult.suite);
+        const suiteId = suiteNameToId.get(testResult.suite);
+        if (suiteId) {
+          (testResult as any).testSuiteId = suiteId;
+        }
       });
 
       // Batch upsert test results
@@ -357,7 +361,7 @@ export class TestIngestionRepository {
       this.prisma.testResult.count({ where: { ...whereClause, status: 'error' } }),
       this.prisma.testResult.count({ where: { ...whereClause, status: 'skipped' } }),
       this.prisma.testResult.aggregate({
-        where: { ...whereClause, time: { not: null } },
+        where: { ...whereClause, time: { not: null as any } },
         _avg: { time: true },
         _sum: { time: true },
       }),
@@ -377,8 +381,8 @@ export class TestIngestionRepository {
       failedTests,
       errorTests,
       skippedTests,
-      averageTime: timeStats._avg.time || 0,
-      totalTime: timeStats._sum.time || 0,
+      averageTime: (timeStats._avg?.time ?? 0) as number,
+      totalTime: (timeStats._sum?.time ?? 0) as number,
       suiteCount,
     };
   }
@@ -421,10 +425,7 @@ export class TestIngestionRepository {
       this.prisma.testResult.findMany({
         where: whereClause,
         include: {
-          testSuite: true,
-          repository: true,
-          checkRun: true,
-          workflowJob: true,
+          testSuite: true
         },
         orderBy: { [orderBy]: orderDirection },
         skip: offset,
@@ -540,7 +541,7 @@ export class TestIngestionRepository {
     for (const suite of suites) {
       const result = await tx.testSuite.upsert({
         where: {
-          repositoryId_name_runId: {
+          orgId_repositoryId_name_runId: {
             repositoryId: suite.repositoryId,
             name: suite.name,
             runId: suite.runId || '',
@@ -548,7 +549,7 @@ export class TestIngestionRepository {
         },
         create: {
           ...suite,
-          properties: suite.properties || {},
+          properties: (suite.properties || {}) as any,
         },
         update: {
           package: suite.package,
@@ -564,7 +565,7 @@ export class TestIngestionRepository {
           workflowJobId: suite.workflowJobId,
           systemOut: suite.systemOut,
           systemErr: suite.systemErr,
-          properties: suite.properties || {},
+          properties: (suite.properties || {}) as any,
           updatedAt: new Date(),
         },
       });
@@ -587,19 +588,18 @@ export class TestIngestionRepository {
     for (const testResult of testResults) {
       const result = await tx.testResult.upsert({
         where: {
-          repositoryId_testFullName_file_suite: {
+          orgId_repositoryId_testFullName_file_suite: {
             repositoryId: testResult.repositoryId,
             testFullName: testResult.testFullName,
             file: testResult.file || '',
             suite: testResult.suite,
           },
         },
-        create: testResult,
+        create: { ...testResult, orgId: 'default-org' } as any,
         update: {
           status: testResult.status,
           time: testResult.time,
-          duration: testResult.duration,
-          message: testResult.message,
+            message: testResult.message,
           stack: testResult.stack,
           errorMessage: testResult.errorMessage,
           stackTrace: testResult.stackTrace,

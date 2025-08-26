@@ -744,3 +744,31 @@ model FlakeDetection {
   @@index([orgId, repositoryId])
   @@index([orgId, isFlaky])
 }
+
+// Ingestion Job model for background processing
+model IngestionJob {
+  id              String    @id @default(cuid())
+  correlationId   String?   @unique // External correlation ID
+  workflowRunId   String
+  repositoryId    String
+  priority        String    @default("normal") // low, normal, high, critical
+  status          String    @default("queued") // queued, processing, completed, failed, cancelled
+  artifactCount   Int?      // Number of artifacts processed
+  testCount       Int?      // Number of test cases found
+  failureCount    Int?      // Number of failed tests
+  errorCount      Int?      // Number of errored tests
+  processingTimeMs Int?     // Processing duration
+  errorMessage    String?   // Error message if failed
+  metadata        Json      @default("{}") // Additional job metadata
+  startedAt       DateTime? // When job started processing
+  completedAt     DateTime? // When job completed (success or failure)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([workflowRunId])
+  @@index([repositoryId])
+  @@index([createdAt])
+  @@index([correlationId])
+  @@index([status, createdAt])
+}

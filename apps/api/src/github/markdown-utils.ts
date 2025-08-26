@@ -192,7 +192,7 @@ export function renderOptimizedCheckRunOutput(tests: readonly TestCandidate[]): 
   
   // Create test table with smart truncation
   const remainingSpace = builder.getRemainingSpace() - 2000; // Reserve space for footer content
-  const { table, truncated, shown } = createTruncatedTestTable(tests, remainingSpace);
+  const { table, truncated: _truncated, shown: _shown } = createTruncatedTestTable(tests, remainingSpace);
   
   builder.append(table);
   
@@ -282,7 +282,7 @@ export function generateBenchmarkTestCandidates(count: number): TestCandidate[] 
       rerunPassRate: Math.random() * 0.8 + 0.2,
       lastFailedRun: Math.random() > 0.3 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : null,
       confidence: Math.random(),
-      failurePattern: Math.random() > 0.5 ? ['timeout', 'race condition', 'network error', 'connection refused'][Math.floor(Math.random() * 4)] : null,
+      failurePattern: Math.random() > 0.5 ? (['timeout', 'race condition', 'network error', 'connection refused'][Math.floor(Math.random() * 4)] || null) : null,
       totalRuns: Math.floor(Math.random() * 100) + 10,
     });
   }

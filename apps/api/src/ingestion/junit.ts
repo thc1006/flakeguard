@@ -4,10 +4,10 @@
  */
 
 import { EventEmitter } from 'events';
-import { createReadStream, createWriteStream } from 'fs';
+import { createWriteStream } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { pipeline, Readable } from 'stream';
+import { pipeline } from 'stream';
 import { promisify } from 'util';
 
 import type { PrismaClient } from '@prisma/client';
@@ -17,7 +17,7 @@ import { GitHubHelpers } from '../github/helpers.js';
 import { logger } from '../utils/logger.js';
 
 import { TestIngestionRepository } from './database.js';
-import { parseJUnitXML, parseJUnitXMLFile } from './parsers/junit-parser.js';
+import { parseJUnitXMLFile } from './parsers/junit-parser.js';
 import type {
   IngestionParameters,
   IngestionResult,
@@ -29,7 +29,6 @@ import type {
   RepositoryContext,
   RetryConfig,
   JUnitFormat,
-  TestSuites,
   ZipEntryInfo,
   IngestionErrorType,
   AsyncIngestionResult
@@ -38,15 +37,12 @@ import {
   IngestionException,
   DownloadFailedException,
   ParsingFailedException,
-  TimeoutException
 } from './types.js';
 import {
   createArtifactFilter,
-  createXMLFileFilter,
   createJUnitXMLFilter,
   createRetryableFetch,
   withRetry,
-  validateUrl,
   validateArtifactSource,
   sanitizeFileName,
   generateCorrelationId,

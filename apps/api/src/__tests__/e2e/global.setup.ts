@@ -52,11 +52,13 @@ async function globalSetup(_config: FullConfig) {
     dockerProcess.stdout?.on('data', (data: Buffer) => {
       const output = data.toString();
       if (output.includes('error') || output.includes('Error')) {
-        console.error('Docker Compose error:', output);
+        // Using console.error is necessary for Docker error reporting in CI
+        console.error('Docker Compose error:', output); // eslint-disable-line no-console
       }
     });
 
     dockerProcess.stderr?.on('data', (data: Buffer) => {
+      // eslint-disable-next-line no-console
       console.error('Docker Compose stderr:', data.toString());
     });
 
@@ -68,7 +70,7 @@ async function globalSetup(_config: FullConfig) {
     // Seed test data
     // eslint-disable-next-line no-console
     console.log('🌱 Seeding test data...');
-    await seedTestData(projectRoot);
+    seedTestData(projectRoot);
 
     // Verify services are accessible
     // eslint-disable-next-line no-console
@@ -142,7 +144,7 @@ async function waitForServicesHealthy(projectRoot: string, maxWaitTime = 120000)
   throw new Error('Services failed to become healthy within the timeout period');
 }
 
-async function seedTestData(projectRoot: string) {
+function seedTestData(projectRoot: string): void {
   try {
     execSync('docker-compose -f docker-compose.test.yml --profile seeder up test-seeder --abort-on-container-exit', {
       cwd: projectRoot,

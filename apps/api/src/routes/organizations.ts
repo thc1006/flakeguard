@@ -133,7 +133,13 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
 
       const [organization, usage] = await Promise.all([
         fastify.prisma.organization.findUnique({
@@ -206,18 +212,24 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
       const settings = request.body as z.infer<typeof updateSettingsSchema>;
 
       await tenantService.updateOrganizationSettings(
         orgId,
         settings,
-        request.tenant.userId!
+        request.tenant!.userId
       );
 
       logger.info('Organization settings updated', {
         orgId,
-        userId: request.tenant.userId,
+        userId: request.tenant!.userId,
         changes: Object.keys(settings),
       });
 
@@ -251,7 +263,13 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
       const { page = 1, limit = 20, role } = request.query as any;
       const offset = (page - 1) * limit;
 
@@ -316,20 +334,26 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
       const invitation = request.body as z.infer<typeof inviteUserSchema>;
 
       const result = await tenantService.inviteUser(
         orgId,
         invitation,
-        request.tenant.userId!
+        request.tenant!.userId
       );
 
       if (result.success) {
         logger.info('User invited to organization', {
           orgId,
           invitedEmail: invitation.email,
-          invitedBy: request.tenant.userId,
+          invitedBy: request.tenant!.userId,
         });
 
         return reply.code(201).send({
@@ -379,12 +403,18 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
       const { userId } = request.params as { userId: string };
       const { role } = request.body as z.infer<typeof updateUserRoleSchema>;
 
       // Prevent users from changing their own role
-      if (userId === request.tenant.userId) {
+      if (userId === request.tenant!.userId) {
         return reply.code(400).send({
           error: 'Bad Request',
           message: 'Cannot change your own role',
@@ -421,7 +451,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
       await fastify.prisma.auditLog.create({
         data: {
           orgId,
-          userId: request.tenant.userId!,
+          userId: request.tenant!.userId,
           action: 'member_role_updated',
           resource: 'organization_user',
           resourceId: updated.id,
@@ -437,7 +467,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
         orgId,
         targetUserId: userId,
         newRole: role,
-        updatedBy: request.tenant.userId,
+        updatedBy: request.tenant!.userId,
       });
 
       return reply.send({ success: true });
@@ -469,23 +499,29 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
       const { userId } = request.params as { userId: string };
 
       // Prevent users from removing themselves
-      if (userId === request.tenant.userId) {
+      if (userId === request.tenant!.userId) {
         return reply.code(400).send({
           error: 'Bad Request',
           message: 'Cannot remove yourself from organization',
         });
       }
 
-      await tenantService.removeUser(orgId, userId, request.tenant.userId!);
+      await tenantService.removeUser(orgId, userId, request.tenant!.userId);
 
       logger.info('Member removed from organization', {
         orgId,
         removedUserId: userId,
-        removedBy: request.tenant.userId,
+        removedBy: request.tenant!.userId,
       });
 
       return reply.send({ success: true });
@@ -528,7 +564,13 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
       const { page = 1, limit = 20, active, hasActions, search } = request.query as any;
       const offset = (page - 1) * limit;
 
@@ -622,7 +664,13 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
       const options = request.body as z.infer<typeof syncRepositoriesSchema>;
 
       // Get organization installations
@@ -655,7 +703,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
 
       logger.info('Repository sync triggered', {
         orgId,
-        userId: request.tenant.userId,
+        userId: request.tenant!.userId,
         installationCount: installations.length,
       });
 
@@ -687,7 +735,13 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
       const { period = 'monthly' } = request.query as any;
 
       const [usage, quotaStatus] = await Promise.all([
@@ -730,7 +784,13 @@ export async function organizationRoutes(fastify: FastifyInstance) {
     },
   }, async (request, reply) => {
     try {
-      const orgId = request.tenant.orgId;
+      const orgId = request.tenant?.orgId;
+      if (!orgId) {
+        return reply.code(401).send({
+          error: 'Unauthorized',
+          message: 'Organization context required',
+        });
+      }
       const { page = 1, limit = 50, action, resource, userId } = request.query as any;
       const offset = (page - 1) * limit;
 

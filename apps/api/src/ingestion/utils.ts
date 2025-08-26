@@ -3,23 +3,19 @@
  * Includes artifact filtering, stream processing, retry logic, and security utilities
  */
 
-import { createReadStream, createWriteStream } from 'fs';
-import { pipeline, Transform } from 'stream';
+import { Transform } from 'stream';
 import { URL } from 'url';
-import { promisify } from 'util';
 
 import type {
   ArtifactSource,
   ZipEntryInfo,
   FileFilter,
   RetryConfig,
-  StreamProcessingOptions,
   IngestionError,
   IngestionErrorType,
   JUnitFormat
 } from './types.js';
 
-const pipelineAsync = promisify(pipeline);
 
 // ============================================================================
 // Artifact Filtering Utilities
@@ -183,7 +179,7 @@ export const createChunkBuffer = (targetChunkSize: number = 64 * 1024): Transfor
   let buffer = Buffer.alloc(0);
 
   return new Transform({
-    transform(chunk: Buffer, encoding, callback) {
+    transform(chunk: Buffer, _encoding, callback) {
       buffer = Buffer.concat([buffer, chunk]);
 
       while (buffer.length >= targetChunkSize) {
@@ -209,7 +205,7 @@ export const createSizeLimiter = (maxSizeBytes: number): Transform => {
   let totalSize = 0;
 
   return new Transform({
-    transform(chunk: Buffer, encoding, callback) {
+    transform(chunk: Buffer, _encoding, callback) {
       totalSize += chunk.length;
       
       if (totalSize > maxSizeBytes) {
@@ -229,7 +225,7 @@ export const createTimeoutStream = (timeoutMs: number): Transform => {
   let hasData = false;
 
   const stream = new Transform({
-    transform(chunk: Buffer, encoding, callback) {
+    transform(chunk: Buffer, _encoding, callback) {
       if (!hasData) {
         hasData = true;
         clearTimeout(timeout);

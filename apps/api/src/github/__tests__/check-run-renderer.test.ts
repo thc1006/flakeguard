@@ -29,8 +29,6 @@ import {
   convertStabilityMetricsToTests,
   type TestWithLocation,
   type Repository,
-  type CheckRunOutput,
-  type SeverityLevel,
 } from '../check-run-renderer.js';
 
 describe('Check Run Renderer', () => {
@@ -622,7 +620,7 @@ describe('Check Run Renderer', () => {
         Array.from({ length: 100 }, () => sampleTests[0]), // Many identical tests
       ];
 
-      testScenarios.forEach((tests, index) => {
+      testScenarios.forEach((tests) => {
         const actions = selectTopActions(tests);
         expect(actions.length).toBeLessThanOrEqual(3);
         expect(actions.length).toBeGreaterThanOrEqual(0);

@@ -12,9 +12,9 @@
  */
 
 import { createReadStream } from 'fs';
-import { Readable, Transform } from 'stream';
+import { Readable } from 'stream';
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import {
   parseJUnitXML,
@@ -24,12 +24,7 @@ import {
   detectJUnitFormat
 } from '../parsers/junit-parser.js';
 import type {
-  TestCase,
-  TestSuite,
-  TestSuites,
-  TestFailure,
   JUnitFormat,
-  FormatDetectionResult,
   FormatSpecificConfig
 } from '../types.js';
 import { ParsingFailedException } from '../types.js';

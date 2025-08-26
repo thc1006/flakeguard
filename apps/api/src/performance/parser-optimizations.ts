@@ -1,10 +1,7 @@
 /**
  * JUnit Parser Performance Optimizations
  */
-import { Transform, pipeline, Readable } from "stream";
-import { promisify } from "util";
-
-const pipelineAsync = promisify(pipeline);
+import { Readable } from "stream";
 
 export interface OptimizedParserOptions {
   maxFileSize?: number;
@@ -24,14 +21,14 @@ export class OptimizedJUnitParser {
     };
   }
   
-  async parseStream(stream: Readable): Promise<any> {
+  async parseStream(stream: Readable): Promise<unknown> {
     // Simplified implementation for benchmarking
     return new Promise((resolve, reject) => {
       let data = '';
       
-      stream.on('data', (chunk) => {
-        data += chunk.toString();
-        if (data.length > (this.options.maxFileSize || 50 * 1024 * 1024)) {
+      stream.on('data', (chunk: unknown) => {
+        data += String(chunk);
+        if (data.length > (this.options.maxFileSize ?? 50 * 1024 * 1024)) {
           reject(new Error('File too large'));
           return;
         }

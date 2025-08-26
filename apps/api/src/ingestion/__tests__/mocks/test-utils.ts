@@ -70,7 +70,7 @@ export function createSizeLimitTransform(maxSize: number): Transform {
   let bytesProcessed = 0;
   
   return new Transform({
-    transform(chunk: Buffer, encoding, callback) {
+    transform(chunk: Buffer, _encoding, callback) {
       bytesProcessed += chunk.length;
       
       if (bytesProcessed > maxSize) {
@@ -92,7 +92,7 @@ export function createTimeoutTransform(timeoutMs: number): Transform {
   }, timeoutMs);
   
   const stream = new Transform({
-    transform(chunk, encoding, callback) {
+    transform(chunk, _encoding, callback) {
       callback(null, chunk);
     },
     flush(callback) {

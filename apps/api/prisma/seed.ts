@@ -31,7 +31,7 @@ function generateSignature(message: string): string {
 function generateStackDigest(stackTrace: string): string {
   const normalized = stackTrace
     .replace(/:\d+:\d+/g, ':XX:XX')
-    .replace(/\/[^\/\s]+\//g, '/PATH/');
+    .replace(/\/[^/\s]+\//g, '/PATH/');
   return createHash('md5').update(normalized).digest('hex');
 }
 
@@ -140,8 +140,8 @@ async function seedData() {
 
     // Create test cases (batch insert per repo)
     logProgress("🧪 Creating test cases...");
-    const allTestCases: any[] = [];
-    const testCaseData: any[] = [];
+    const allTestCases: TestCaseWithFlakiness[] = [];
+    const testCaseData: Omit<TestCaseWithFlakiness, 'id' | 'createdAt' | 'updatedAt'>[] = [];
     
     for (const repo of repos) {
       const repoTestCases = TEST_CASE_TEMPLATES.slice(0, SEED_CONFIG.NUM_TEST_CASES_PER_REPO).map(template => ({
@@ -156,7 +156,7 @@ async function seedData() {
       testCaseData.push(...repoTestCases);
       
       // Store flakiness for later use
-      TEST_CASE_TEMPLATES.slice(0, SEED_CONFIG.NUM_TEST_CASES_PER_REPO).forEach((template, _idx) => {
+      TEST_CASE_TEMPLATES.slice(0, SEED_CONFIG.NUM_TEST_CASES_PER_REPO).forEach((template) => {
         allTestCases.push({
           repoId: repo.id,
           suite: template.suite,
@@ -172,24 +172,38 @@ async function seedData() {
     });
 
     // Map test cases with flakiness
-    const testCasesWithFlakiness = createdTestCases.map((testCase, idx) => ({
+    interface TestCaseWithFlakiness {
+      id: string;
+      orgId: string;
+      repoId: string;
+      suite: string;
+      className: string | null;
+      name: string;
+      file: string | null;
+      ownerTeam: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      flakiness: number;
+    }
+
+    const testCasesWithFlakiness: TestCaseWithFlakiness[] = createdTestCases.map((testCase, idx) => ({
       ...testCase,
-      flakiness: allTestCases[idx]?.flakiness ?? 0,
+      flakiness: (allTestCases[idx] as TestCaseWithFlakiness)?.flakiness ?? 0,
     }));
 
     // Create workflow runs, jobs, and occurrences (batched)
     logProgress("🔄 Creating workflow runs and test data...");
     
-    let totalWorkflowRuns = 0;
-    let totalJobs = 0;
-    let totalOccurrences = 0;
+    const _totalWorkflowRuns = 0;
+    const _totalJobs = 0;
+    // let totalOccurrences = 0; // Currently unused
 
     for (const repo of repos) {
       logProgress(`  Processing repo: ${repo.owner}/${repo.name}`);
       
       // Generate workflow runs for this repo
-      const workflowRunData: any[] = [];
-      const occurrenceData: any[] = [];
+      const workflowRunData: Parameters<typeof prisma.fGWorkflowRun.createMany>[0]['data'] = [];
+      const occurrenceData: Parameters<typeof prisma.fGOccurrence.createMany>[0]['data'] = [];
       
       const repoTestCases = testCasesWithFlakiness.filter(tc => tc.repoId === repo.id);
       
@@ -203,7 +217,7 @@ async function seedData() {
         const status = statuses[Math.floor(Math.random() * statuses.length)];
         const conclusion = status === "completed" ? conclusions[Math.floor(Math.random() * conclusions.length)] : null;
 
-        workflowRunData.push({
+        (workflowRunData as Array<any>).push({
           orgId: defaultOrg.id,
           repoId: repo.id,
           runId,
@@ -241,7 +255,7 @@ async function seedData() {
             failureStackDigest = generateStackDigest(pattern.stack);
           }
 
-          occurrenceData.push({
+          (occurrenceData as Array<any>).push({
             orgId: defaultOrg.id,
             testId: testCase.id,
             runId: "", // Will be filled after run creation
@@ -260,7 +274,7 @@ async function seedData() {
       // Insert in transaction with proper foreign key relations
       await prisma.$transaction(async (tx) => {
         // Create workflow runs
-        const createdRuns = await tx.fGWorkflowRun.createManyAndReturn({ data: workflowRunData });
+        const createdRuns = await tx.fGWorkflowRun.createManyAndReturn({ data: workflowRunData as any });
         
         // Create jobs (simplified - just test jobs)
         const jobData = createdRuns.map(run => ({
@@ -284,9 +298,9 @@ async function seedData() {
         let occIndex = 0;
         for (const run of createdRuns) {
           for (let testIdx = 0; testIdx < repoTestCases.length; testIdx++) {
-            if (occIndex < occurrenceData.length) {
+            if (occIndex < (occurrenceData as any[]).length) {
               occurrencesWithRunIds.push({
-                ...occurrenceData[occIndex],
+                ...(occurrenceData as any[])[occIndex],
                 runId: run.id,
               });
               occIndex++;
@@ -300,7 +314,7 @@ async function seedData() {
         
         totalWorkflowRuns += createdRuns.length;
         totalJobs += jobData.length;
-        totalOccurrences += occurrencesWithRunIds.length;
+        // totalOccurrences += occurrencesWithRunIds.length; // Currently unused
       });
       
       logProgress(`    ✓ Created ${SEED_CONFIG.NUM_RUNS_PER_REPO} runs, ${SEED_CONFIG.NUM_RUNS_PER_REPO} jobs, ${repoTestCases.length * SEED_CONFIG.NUM_RUNS_PER_REPO} occurrences`);
@@ -485,7 +499,7 @@ async function seedData() {
     logProgress(`\n⚡ Performance: Completed in ${duration.toFixed(2)}s (${Math.round(stats.occurrenceCount / duration)} occurrences/sec)`, true);
 
   } catch (error) {
-    logProgress(`❌ Seed failed: ${error}`, true);
+    logProgress(`❌ Seed failed: ${String(error)}`, true);
     throw error;
   }
 }
@@ -494,7 +508,7 @@ async function main() {
   try {
     await seedData();
   } catch (error) {
-    console.error("❌ Seed failed:", error);
+    console.error("❌ Seed failed:", String(error));
     process.exit(1);
   } finally {
     await prisma.$disconnect();
@@ -505,12 +519,11 @@ async function main() {
 // Only run main if this module is executed directly
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], "file://").href) {
   main().catch((error) => {
-    console.error("❌ Seed failed:", error);
+    console.error("❌ Seed failed:", String(error));
     process.exit(1);
-  }).finally(async () => {
-    if (process.env.DATABASE_URL) {
-      await prisma.$disconnect();
-    }
+  }).finally(() => {
+    // Prisma disconnect is handled in main() function
+    void prisma.$disconnect();
   });
 }
 

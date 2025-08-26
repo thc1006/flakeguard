@@ -10,7 +10,6 @@ import { GitHubAuthManager } from '../github/auth.js';
 import { GitHubHelpers } from '../github/helpers.js';
 
 import { 
-  JUnitIngestionService,
   createIngestionService,
   ingestJUnitArtifacts,
   ingestFromGitHubWorkflowRun
@@ -253,7 +252,7 @@ export async function exampleBatchIngestion(
     
     console.log(`📦 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(workflowRuns.length / batchSize)}`);
     
-    const batchPromises = batch.map(async (run, index) => {
+    const batchPromises = batch.map(async (run) => {
       try {
         console.log(`   🔄 Processing ${run.owner}/${run.repo}#${run.runId}`);
         
@@ -441,12 +440,12 @@ export async function exampleFormatSpecificIngestion(
 // ============================================================================
 
 export async function runAllExamples(
-  prisma: PrismaClient,
+  _prisma: PrismaClient,
   authManager: GitHubAuthManager
 ): Promise<void> {
   console.log('🎯 Running all JUnit Ingestion Service examples\n');
 
-  const githubHelpers = new GitHubHelpers(authManager);
+  // const githubHelpers = new GitHubHelpers(authManager); // Unused in examples
 
   try {
     // Note: These examples use placeholder data

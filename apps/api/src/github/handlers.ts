@@ -47,6 +47,9 @@ import type {
 type GitHubRepository = NonNullable<CheckRunEvent['repository']>;
 type GitHubCheckRun = CheckRunEvent['check_run'];
 type GitHubWorkflowRun = WorkflowRunEvent['workflow_run'];
+
+// Prisma type aliases for better readability
+
 import {
   BaseWebhookProcessor,
 } from './webhook-router.js';
@@ -75,11 +78,19 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
 
 
   constructor(options: HandlerOptions) {
-    super({ logger, metrics: undefined });
+    super();
     this.prisma = options.prisma;
     this.authManager = options.authManager;
     this.helpers = options.helpers;
     this.flakeDetector = options.flakeDetector || createFlakeDetector({ prisma: options.prisma });
+  }
+
+  validate(payload: unknown): CheckRunEvent {
+    // Basic validation - in production, use proper schema validation
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('Invalid payload: expected object');
+    }
+    return payload as CheckRunEvent;
   }
 
   async process(payload: CheckRunEvent): Promise<void> {
@@ -739,12 +750,12 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
         octokit,
         repository.owner.login,
         repository.name,
-        flakeDetections.map((d: any) => d.testName)
+        flakeDetections.map((d) => d.testName)
       );
 
       // Filter out tests that already have issues
       const newDetections = flakeDetections.filter(
-        (detection: any) => !existingIssues.some(issue => 
+        (detection) => !existingIssues.some(issue => 
           issue.title.includes(detection.testName) || 
           issue.body?.includes(detection.testName)
         )
@@ -789,7 +800,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
             check_run,
             {
               workflowRun: workflowRun as unknown as GitHubWorkflowRun,
-              pullRequest: associatedPR,
+              pullRequest: associatedPR || undefined,
               repository: repoRecord as unknown as GitHubRepository,
             }
           );
@@ -1353,7 +1364,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     workflowUrl: string
   ): Promise<void> {
     const jobsList = failedJobs.length > 0 
-      ? failedJobs.map(job => `- ${job.name} (${job.conclusion})`).join('\n')
+      ? failedJobs.map(job => `- ${job.name} (${(job as any).conclusion || 'no conclusion'})`).join('\n')
       : 'No specific jobs identified';
 
     const body = `## 🔄 Workflow Rerun Initiated by FlakeGuard
@@ -1456,7 +1467,7 @@ _testNames: string[]
         per_page: 100,
       });
 
-      return data.items.map((issue: { number: number; title: string; html_url: string }) => ({
+      return data.items.map((issue: { number: number; title: string; html_url: string; body?: string }) => ({
         number: issue.number,
         title: issue.title,
         body: issue.body || undefined,
@@ -1488,8 +1499,8 @@ _testNames: string[]
     }
   ): Promise<{ number: number; title: string; html_url: string }> {
     const title = `[FlakeGuard] Flaky test detected: ${detection.testName}`;
-    const confidencePercentage = (detection.confidence * 100).toFixed(1);
-    const failureRatePercentage = detection.failureRate 
+    const confidencePercentage = ((detection.confidence as number) * 100).toFixed(1);
+    const failureRatePercentage = typeof detection.failureRate === 'number'
       ? (detection.failureRate * 100).toFixed(1) 
       : 'Unknown';
     
@@ -1501,8 +1512,8 @@ _testNames: string[]
 - **Confidence:** ${confidencePercentage}%
 - **Failure Rate:** ${failureRatePercentage}%
 - **Status:** ${detection.status}
-- **First Detected:** ${detection.firstDetectedAt ? new Date(detection.firstDetectedAt).toLocaleDateString() : 'Unknown'}
-- **Last Updated:** ${detection.lastUpdatedAt ? new Date(detection.lastUpdatedAt).toLocaleDateString() : 'Unknown'}
+- **First Detected:** ${detection.createdAt instanceof Date ? detection.createdAt.toLocaleDateString() : detection.createdAt ? new Date(detection.createdAt as string).toLocaleDateString() : 'Unknown'}
+- **Last Updated:** ${detection.updatedAt instanceof Date ? detection.updatedAt.toLocaleDateString() : detection.updatedAt ? new Date(detection.updatedAt as string).toLocaleDateString() : 'Unknown'}
 `;
 
     if (detection.testFilePath) {
@@ -1522,7 +1533,7 @@ _testNames: string[]
 `;
     
     if (context.workflowRun) {
-      body += `- **Workflow Run:** [${context.workflowRun.name} #${context.workflowRun.githubId}](https://github.com/${owner}/${repo}/actions/runs/${context.workflowRun.githubId})
+      body += `- **Workflow Run:** [${context.workflowRun.name || 'Unnamed Workflow'} #${(context.workflowRun as any).githubId || (context.workflowRun as any).id}](https://github.com/${owner}/${repo}/actions/runs/${(context.workflowRun as any).githubId || (context.workflowRun as any).id})
 `;
     }
     
@@ -1585,7 +1596,7 @@ A flaky test produces both passing and failing results without changes to the co
         'bug', 
         'testing', 
         'auto-generated',
-        `confidence-${Math.floor(detection.confidence * 100)}`,
+        `confidence-${Math.floor(((detection.confidence as number) || 0) * 100)}`,
       ],
     });
 
@@ -1678,7 +1689,7 @@ Tests with higher confidence scores should be addressed first as they have stron
     }
   }
 
-  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date }> {
+  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<{ id: string; githubId: number; name: string; owner: string; orgId: string; createdAt: Date; updatedAt: Date }> {
     return this.prisma.repository.upsert({
       where: { githubId: repository.id },
       update: {
@@ -1703,13 +1714,13 @@ Tests with higher confidence scores should be addressed first as they have stron
     });
   }
 
-  private async getRepositoryRecord(repository: GitHubRepository): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date } | null> {
+  private async getRepositoryRecord(repository: GitHubRepository): Promise<{ id: string; githubId: number; name: string; owner: string; orgId: string; createdAt: Date; updatedAt: Date } | null> {
     return this.prisma.repository.findUnique({
       where: { githubId: repository.id },
     });
   }
 
-  private async findAssociatedWorkflowRun(headSha: string, repository: GitHubRepository): Promise<{ id: string; githubId: number; name: string; headSha: string; status: string; conclusion: string | null; createdAt: Date; updatedAt: Date } | null> {
+  private async findAssociatedWorkflowRun(headSha: string, repository: GitHubRepository): Promise<{ id: string; githubId: number; name: string | null; headSha: string; status: string; conclusion: string | null; createdAt: Date; updatedAt: Date } | null> {
     return this.prisma.workflowRun.findFirst({
       where: {
         headSha,
@@ -1738,7 +1749,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
   private readonly artifactsIntegration?: GitHubArtifactsIntegration;
 
   constructor(options: HandlerOptions) {
-    super({ logger, metrics: undefined });
+    super();
     this.prisma = options.prisma;
     this.authManager = options.authManager;
     this.helpers = options.helpers;
@@ -1755,6 +1766,14 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
         this.prisma
       );
     }
+  }
+
+  validate(payload: unknown): WorkflowRunWebhookPayload {
+    // Basic validation - in production, use proper schema validation
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('Invalid payload: expected object');
+    }
+    return payload as WorkflowRunWebhookPayload;
   }
 
   async process(payload: WorkflowRunWebhookPayload): Promise<void> {
@@ -1886,7 +1905,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
             repository,
             installation?.id || 0,
             payload.workflow_run.head_sha,
-            result.analysis,
+            result.analysis as unknown as { [key: string]: unknown },
             result.suggestedActions
           );
         }
@@ -1917,8 +1936,8 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     const contexts: TestExecutionContext[] = [];
     
     // Example: extract from job steps if they contain test information
-    if (job.steps) {
-      for (const step of job.steps) {
+    if (job.steps && Array.isArray(job.steps)) {
+      for (const step of job.steps as any[]) {
         if (step.conclusion === 'failure' && step.name.toLowerCase().includes('test')) {
           contexts.push({
             testName: step.name,
@@ -2040,12 +2059,12 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     await this.ensureRepository(
       { 
         id: 0, // Will be ignored in upsert
-        owner: { login: config.repository.owner },
+        owner: { login: config.repository.owner } as any,
         name: config.repository.repo,
         full_name: `${config.repository.owner}/${config.repository.repo}`,
         private: false, // Will be updated from actual repo data
         default_branch: 'main' // Will be updated from actual repo data
-      },
+      } as GitHubRepository,
       config.installationId.toString()
     );
 
@@ -2135,10 +2154,10 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
       headSha,
       installationId,
       {
-        testName: analysis.testName || 'Unknown Test',
-        isFlaky: analysis.isFlaky,
-        confidence: analysis.confidence,
-        failurePattern: analysis.failurePattern,
+        testName: (analysis.testName as string) || 'Unknown Test',
+        isFlaky: analysis.isFlaky as boolean,
+        confidence: analysis.confidence as number,
+        failurePattern: (analysis.failurePattern as string) || null,
         suggestedActions,
       }
     );
@@ -2184,7 +2203,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     }
   }
 
-  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date }> {
+  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<{ id: string; githubId: number; name: string; owner: string; orgId: string; createdAt: Date; updatedAt: Date }> {
     return this.prisma.repository.upsert({
       where: { githubId: repository.id },
       update: {
@@ -2209,7 +2228,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     });
   }
 
-  private async getRepositoryRecord(repository: GitHubRepository): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date } | null> {
+  private async getRepositoryRecord(repository: GitHubRepository): Promise<{ id: string; githubId: number; name: string; owner: string; orgId: string; createdAt: Date; updatedAt: Date } | null> {
     return this.prisma.repository.findUnique({
       where: { githubId: repository.id },
     });
@@ -2229,7 +2248,7 @@ export class WorkflowJobHandler extends BaseWebhookProcessor<'workflow_job'> {
   private readonly artifactsIntegration?: GitHubArtifactsIntegration;
 
   constructor(options: HandlerOptions) {
-    super({ logger, metrics: undefined });
+    super();
     this.prisma = options.prisma;
     this.authManager = options.authManager;
     this.helpers = options.helpers;
@@ -2245,6 +2264,14 @@ export class WorkflowJobHandler extends BaseWebhookProcessor<'workflow_job'> {
         this.prisma
       );
     }
+  }
+
+  validate(payload: unknown): WorkflowJobWebhookPayload {
+    // Basic validation - in production, use proper schema validation
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('Invalid payload: expected object');
+    }
+    return payload as WorkflowJobWebhookPayload;
   }
 
   async process(payload: WorkflowJobWebhookPayload): Promise<void> {
@@ -2290,7 +2317,7 @@ export class WorkflowJobHandler extends BaseWebhookProcessor<'workflow_job'> {
 
     // For failed test jobs, we might want to trigger immediate ingestion
     // This provides faster feedback than waiting for the entire workflow to complete
-    if (workflow_job.conclusion === 'failure' && this.isTestJob(workflow_job)) {
+    if (workflow_job.conclusion === 'failure' && this.isTestJob(workflow_job as any)) {
       await this.triggerJobLevelIngestion(payload);
     }
   }
@@ -2417,12 +2444,12 @@ export class WorkflowJobHandler extends BaseWebhookProcessor<'workflow_job'> {
     await this.ensureRepository(
       { 
         id: 0,
-        owner: { login: config.repository.owner },
+        owner: { login: config.repository.owner } as any,
         name: config.repository.repo,
         full_name: `${config.repository.owner}/${config.repository.repo}`,
         private: false,
         default_branch: 'main'
-      },
+      } as GitHubRepository,
       config.installationId.toString()
     );
 
@@ -2501,7 +2528,7 @@ export class WorkflowJobHandler extends BaseWebhookProcessor<'workflow_job'> {
     }
   }
 
-  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<{ id: string; githubId: number; name: string; owner: string; createdAt: Date; updatedAt: Date }> {
+  private async ensureRepository(repository: GitHubRepository, installationId: string): Promise<{ id: string; githubId: number; name: string; owner: string; orgId: string; createdAt: Date; updatedAt: Date }> {
     return this.prisma.repository.upsert({
       where: { githubId: repository.id },
       update: {
@@ -2536,8 +2563,16 @@ export class InstallationHandler extends BaseWebhookProcessor<'installation'> {
   private readonly prisma: PrismaClient;
 
   constructor(options: HandlerOptions) {
-    super({ logger, metrics: undefined });
+    super();
     this.prisma = options.prisma;
+  }
+
+  validate(payload: unknown): InstallationWebhookPayload {
+    // Basic validation - in production, use proper schema validation
+    if (!payload || typeof payload !== 'object') {
+      throw new Error('Invalid payload: expected object');
+    }
+    return payload as InstallationWebhookPayload;
   }
 
   async process(payload: InstallationWebhookPayload): Promise<void> {
