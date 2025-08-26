@@ -54,7 +54,8 @@ RUN pnpm install --frozen-lockfile
 FROM deps AS shared-builder
 
 # Copy shared package source and root tsconfig
-COPY --chown=builder:builder packages/shared ./packages/shared
+COPY --chown=builder:builder packages/shared/src ./packages/shared/src
+COPY --chown=builder:builder packages/shared/tsconfig.json ./packages/shared/
 COPY --chown=builder:builder tsconfig.json ./
 
 # Build shared package
@@ -68,6 +69,7 @@ FROM deps AS builder
 # Copy built shared package
 COPY --from=shared-builder --chown=builder:builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=shared-builder --chown=builder:builder /app/packages/shared/package.json ./packages/shared/
+COPY --from=shared-builder --chown=builder:builder /app/packages/shared/tsconfig.json ./packages/shared/
 
 # Copy worker source code
 COPY --chown=builder:builder apps/worker ./apps/worker
