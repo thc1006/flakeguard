@@ -61,7 +61,6 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@flakeguard/cli",
       "@flakeguard/shared",
       "@prisma/client",
       "@prisma/engines",
