@@ -21,8 +21,13 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata
 
-# Install pnpm globally
-RUN npm install -g pnpm@${PNPM_VERSION}
+# Install pnpm with retry logic and explicit registry
+ARG PNPM_VERSION
+RUN npm config set registry https://registry.npmjs.org/ && \
+    for i in 1 2 3; do \
+        npm install -g pnpm@${PNPM_VERSION} && break || \
+        echo "Retry $i: Failed to install pnpm, waiting 5 seconds..." && sleep 5; \
+    done
 
 # =============================================================================
 # DEPENDENCIES STAGE
@@ -200,8 +205,12 @@ RUN apk add --no-cache \
         vim \
     && rm -rf /var/cache/apk/*
 
-# Install pnpm for development
-RUN npm install -g pnpm@${PNPM_VERSION}
+# Install pnpm for development with retry logic
+RUN npm config set registry https://registry.npmjs.org/ && \
+    for i in 1 2 3; do \
+        npm install -g pnpm@${PNPM_VERSION} && break || \
+        echo "Retry $i: Failed to install pnpm, waiting 5 seconds..." && sleep 5; \
+    done
 
 # Switch back to app user
 USER flakeguard
