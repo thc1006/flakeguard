@@ -15,19 +15,28 @@ ARG VERSION=latest
 # =============================================================================
 FROM --platform=$BUILDPLATFORM node:${NODE_VERSION}-alpine${ALPINE_VERSION} AS base
 
+# Re-declare build args for this stage
+ARG PNPM_VERSION=10.0.0
+ARG NPM_TOKEN
+
 # Install system dependencies
 RUN apk add --no-cache \
     libc6-compat \
     ca-certificates \
     tzdata
 
-# Install pnpm with retry logic and explicit registry
-ARG PNPM_VERSION
+# Configure npm registry and authentication
 RUN npm config set registry https://registry.npmjs.org/ && \
-    for i in 1 2 3; do \
+    if [ -n "${NPM_TOKEN}" ]; then \
+        echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc; \
+    fi
+
+# Install pnpm with specific version and retry logic
+RUN for i in 1 2 3; do \
         npm install -g pnpm@${PNPM_VERSION} && break || \
-        echo "Retry $i: Failed to install pnpm, waiting 5 seconds..." && sleep 5; \
-    done
+        echo "Retry $i: Failed to install pnpm@${PNPM_VERSION}, waiting 5 seconds..." && sleep 5; \
+    done && \
+    pnpm --version
 
 # =============================================================================
 # DEPENDENCIES STAGE

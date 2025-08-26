@@ -79,6 +79,7 @@ jobs:
           build-args: |
             NODE_VERSION=20
             PNPM_VERSION=10.0.0
+            NPM_TOKEN=${{ secrets.NPM_TOKEN }}
 
   security-scan:
     runs-on: ubuntu-latest
