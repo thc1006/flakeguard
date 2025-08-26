@@ -9,14 +9,46 @@
  * Usage: pnpm tsx scripts/test-slack-integration.ts [--verbose]
  */
 
-import { createHash } from 'crypto';
-
-import { PrismaClient } from '@prisma/client';
+// Removed unused imports: createHash, PrismaClient
 
 // Mock dependencies for testing
+interface MockQuery {
+  where?: Record<string, unknown>;
+  take?: number;
+}
+
+interface MockRepository {
+  id: string;
+  fullName: string;
+  name?: string;
+  owner?: string;
+  installationId?: string;
+}
+
+interface MockTestResult {
+  testFullName: string;
+  name: string;
+  status: string;
+  message: string | null;
+  time: number;
+  attempt: number;
+  runId: string;
+  createdAt: Date;
+  repositoryId?: string;
+}
+
+interface MockFlakeDetection {
+  testName: string;
+  repositoryId?: string;
+  confidence: number;
+  failureRate: number;
+  lastUpdatedAt?: Date;
+  repository?: { fullName: string };
+}
+
 const mockPrisma = {
   repository: {
-    findFirst: async (query: any) => {
+    findFirst: async (query: MockQuery): Promise<MockRepository | null> => {
       if (query.where.fullName === 'facebook/react') {
         return {
           id: 'repo-123',
@@ -28,7 +60,7 @@ const mockPrisma = {
       }
       return null;
     },
-    findUnique: async (query: any) => {
+    findUnique: async (_query: MockQuery): Promise<MockRepository | null> => {
       return {
         id: 'repo-123',
         fullName: 'facebook/react'
@@ -36,7 +68,7 @@ const mockPrisma = {
     }
   },
   testResult: {
-    findMany: async (query: any) => {
+    findMany: async (_query: MockQuery): Promise<MockTestResult[]> => {
       return [
         {
           testFullName: 'ReactDOM.test.js::should render without crashing',
@@ -72,7 +104,7 @@ const mockPrisma = {
     }
   },
   flakeDetection: {
-    findFirst: async (query: any) => {
+    findFirst: async (_query: MockQuery): Promise<MockFlakeDetection | null> => {
       return {
         testName: 'should render without crashing',
         repositoryId: 'repo-123',
@@ -80,7 +112,7 @@ const mockPrisma = {
         failureRate: 0.67
       };
     },
-    findMany: async (query: any) => {
+    findMany: async (_query: MockQuery): Promise<MockFlakeDetection[]> => {
       return [
         {
           testName: 'should render without crashing',
@@ -110,15 +142,21 @@ const mockGithubAuth = {
   })
 };
 
+interface MockPayload {
+  requested_action?: { identifier: string };
+  repository?: { full_name: string };
+  action?: string;
+}
+
 const mockCheckRunHandler = {
-  process: async (payload: any) => {
-    console.log(`  📋 GitHub Handler: Processing ${payload.requested_action.identifier} action`);
+  process: async (payload: MockPayload) => {
+    console.log(`  📋 GitHub Handler: Processing ${payload.requested_action?.identifier} action`);
     return { success: true };
   }
 };
 
 const mockFlakinessScorer = {
-  computeFlakeScore: (testRuns: any[]) => ({
+  computeFlakeScore: (testRuns: MockTestResult[]) => ({
     score: 0.75,
     confidence: 0.85,
     features: {
@@ -157,8 +195,8 @@ class SlackIntegrationTester {
 
     await this.testSlashCommands();
     await this.testButtonActions();
-    await this.testMessageFormatting();
-    await this.testRateLimiting();
+    this.testMessageFormatting();
+    this.testRateLimiting();
     await this.testErrorHandling();
 
     this.printResults();
@@ -168,12 +206,12 @@ class SlackIntegrationTester {
     console.log('⚡ Testing Slash Commands...');
 
     // Test help command
-    await this.testHelpCommand();
+    this.testHelpCommand();
     await this.testStatusCommand();
     await this.testTopFlakyCommand();
   }
 
-  private async testHelpCommand(): Promise<void> {
+  private testHelpCommand(): void {
     const start = Date.now();
     
     try {
@@ -187,7 +225,7 @@ class SlackIntegrationTester {
       };
 
       // Parse command
-      const [subcommand] = mockBody.text.split(/\s+/);
+      const [_subcommand] = mockBody.text.split(/\s+/);
       
       // Generate help response
       const helpBlocks = [
@@ -207,7 +245,7 @@ class SlackIntegrationTester {
       this.addResult('Help Command', 'PASS', Date.now() - start, 'Successfully generated help message');
 
     } catch (error) {
-      this.addResult('Help Command', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('Help Command', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
@@ -224,7 +262,7 @@ class SlackIntegrationTester {
         text: 'status facebook/react'
       };
 
-      const [subcommand, ...args] = mockBody.text.split(/\s+/);
+      const [_subcommand, ...args] = mockBody.text.split(/\s+/);
       const repoPath = args[0];
       const [owner, repo] = repoPath.split('/');
 
@@ -264,7 +302,7 @@ class SlackIntegrationTester {
         `Successfully analyzed ${repository.fullName} with ${healthScore}% health`);
 
     } catch (error) {
-      this.addResult('Status Command', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('Status Command', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
@@ -281,8 +319,8 @@ class SlackIntegrationTester {
         text: 'topflaky 10'
       };
 
-      const [subcommand, ...args] = mockBody.text.split(/\s+/);
-      const limit = args.length > 0 ? parseInt(args[0]) || 10 : 10;
+      const [_subcommand, ...args] = mockBody.text.split(/\s+/);
+      const limit = args.length > 0 ? parseInt(args[0]) ?? 10 : 10;
       const clampedLimit = Math.min(Math.max(limit, 1), 25);
 
       // Mock flake detections
@@ -310,7 +348,7 @@ class SlackIntegrationTester {
         `Successfully retrieved ${topFlaky.length} flaky tests`);
 
     } catch (error) {
-      this.addResult('Top Flaky Command', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('Top Flaky Command', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
@@ -338,7 +376,7 @@ class SlackIntegrationTester {
       };
 
       // Parse action payload
-      const { repositoryId, testName } = JSON.parse(mockAction.actions[0].value);
+      const { repositoryId, testName } = JSON.parse(mockAction.actions[0].value) as { repositoryId: string; testName: string };
 
       // Mock repository lookup
       const repository = await mockPrisma.repository.findUnique({
@@ -368,7 +406,7 @@ class SlackIntegrationTester {
         `Successfully quarantined test "${testName}"`);
 
     } catch (error) {
-      this.addResult('Quarantine Action', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('Quarantine Action', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
@@ -387,7 +425,7 @@ class SlackIntegrationTester {
         }]
       };
 
-      const { repositoryId, testName } = JSON.parse(mockAction.actions[0].value);
+      const { repositoryId, testName } = JSON.parse(mockAction.actions[0].value) as { repositoryId: string; testName: string };
 
       // Mock GitHub handler call
       const mockPayload = {
@@ -406,7 +444,7 @@ class SlackIntegrationTester {
         `Successfully created issue for "${testName}"`);
 
     } catch (error) {
-      this.addResult('Open Issue Action', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('Open Issue Action', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
@@ -446,11 +484,11 @@ class SlackIntegrationTester {
         `Successfully generated details for "${testName}"`);
 
     } catch (error) {
-      this.addResult('View Details Action', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('View Details Action', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
-  private async testMessageFormatting(): Promise<void> {
+  private testMessageFormatting(): void {
     console.log('💬 Testing Message Formatting...');
 
     const start = Date.now();
@@ -514,11 +552,11 @@ class SlackIntegrationTester {
         `Successfully generated Block Kit messages with ${healthScore}% health ${emoji}`);
 
     } catch (error) {
-      this.addResult('Message Formatting', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('Message Formatting', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
-  private async testRateLimiting(): Promise<void> {
+  private testRateLimiting(): void {
     console.log('🚦 Testing Rate Limiting...');
 
     const start = Date.now();
@@ -571,19 +609,19 @@ class SlackIntegrationTester {
       }
 
     } catch (error) {
-      this.addResult('Rate Limiting', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('Rate Limiting', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
   private async testErrorHandling(): Promise<void> {
     console.log('🚨 Testing Error Handling...');
 
-    await this.testDatabaseError();
-    await this.testGitHubAPIError();
-    await this.testInvalidInput();
+    this.testDatabaseError();
+    this.testGitHubAPIError();
+    this.testInvalidInput();
   }
 
-  private async testDatabaseError(): Promise<void> {
+  private testDatabaseError(): void {
     const start = Date.now();
     
     try {
@@ -605,11 +643,11 @@ class SlackIntegrationTester {
         'Successfully generated user-friendly error message');
 
     } catch (error) {
-      this.addResult('Database Error Handling', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('Database Error Handling', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
-  private async testGitHubAPIError(): Promise<void> {
+  private testGitHubAPIError(): void {
     const start = Date.now();
     
     try {
@@ -630,11 +668,11 @@ class SlackIntegrationTester {
         'Successfully handled GitHub API error');
 
     } catch (error) {
-      this.addResult('GitHub API Error Handling', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('GitHub API Error Handling', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 
-  private async testInvalidInput(): Promise<void> {
+  private testInvalidInput(): void {
     const start = Date.now();
     
     try {
@@ -658,7 +696,7 @@ class SlackIntegrationTester {
             }
           }
         } else if (command === 'topflaky') {
-          const limit = args.length > 0 ? parseInt(args[0]) || 10 : 10;
+          const limit = args.length > 0 ? parseInt(args[0]) ?? 10 : 10;
           const clampedLimit = Math.min(Math.max(limit, 1), 25);
           // Should clamp invalid limits
         }
@@ -672,7 +710,7 @@ class SlackIntegrationTester {
         'Successfully validated input handling');
 
     } catch (error) {
-      this.addResult('Invalid Input Handling', 'FAIL', Date.now() - start, `Error: ${error}`);
+      this.addResult('Invalid Input Handling', 'FAIL', Date.now() - start, `Error: ${String(error)}`);
     }
   }
 

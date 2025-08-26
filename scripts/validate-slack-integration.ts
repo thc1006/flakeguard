@@ -135,7 +135,7 @@ class SlackIntegrationValidator {
     
     try {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      this.slackClient = new WebClient(process.env.SLACK_BOT_TOKEN!);
+      this.slackClient = new WebClient(process.env.SLACK_BOT_TOKEN);
       
       if (!this.config.skipApiCalls) {
         // Test authentication
@@ -189,7 +189,7 @@ class SlackIntegrationValidator {
     
     try {
       // Initialize dependencies
-      this.prisma = new PrismaClient() as PrismaClient;
+      this.prisma = new PrismaClient();
       
       const githubAuth = new GitHubAuthManager({
         appId: process.env.GITHUB_APP_ID!,

@@ -10,20 +10,19 @@
  */
 
 import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
 
 interface ValidationCheck {
   category: string;
   name: string;
   status: 'PASS' | 'FAIL' | 'WARN' | 'INFO';
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 class SlackValidationReport {
   private checks: ValidationCheck[] = [];
 
-  async generateReport(): Promise<void> {
+  generateReport(): void {
     console.log('🛡️ FlakeGuard Slack Integration Validation Report');
     console.log('=================================================\n');
 
@@ -91,7 +90,7 @@ class SlackValidationReport {
       }
 
     } catch (error) {
-      this.addCheck('ENVIRONMENT', 'Config Check', 'FAIL', `Failed to read .env.example: ${error}`);
+      this.addCheck('ENVIRONMENT', 'Config Check', 'FAIL', `Failed to read .env.example: ${String(error)}`);
     }
   }
 
@@ -149,7 +148,7 @@ class SlackValidationReport {
       });
 
     } catch (error) {
-      this.addCheck('IMPLEMENTATION', 'Code Analysis', 'FAIL', `Failed to read app.ts: ${error}`);
+      this.addCheck('IMPLEMENTATION', 'Code Analysis', 'FAIL', `Failed to read app.ts: ${String(error)}`);
     }
   }
 
@@ -181,7 +180,7 @@ class SlackValidationReport {
       }
 
     } catch (error) {
-      this.addCheck('SLASH_COMMANDS', 'Handler Check', 'FAIL', `Failed to analyze handlers: ${error}`);
+      this.addCheck('SLASH_COMMANDS', 'Handler Check', 'FAIL', `Failed to analyze handlers: ${String(error)}`);
     }
   }
 
@@ -220,7 +219,7 @@ class SlackValidationReport {
       }
 
     } catch (error) {
-      this.addCheck('BUTTON_ACTIONS', 'Action Check', 'FAIL', `Failed to analyze actions: ${error}`);
+      this.addCheck('BUTTON_ACTIONS', 'Action Check', 'FAIL', `Failed to analyze actions: ${String(error)}`);
     }
   }
 
@@ -254,7 +253,7 @@ class SlackValidationReport {
       }
 
       // Check for emoji usage
-      const emojiPattern = /[🟢🟡🔴✅❌⚠️📊🎯💥📅]/;
+      const emojiPattern = /[🟢🟡🔴✅❌⚠️📊🎯💥📅]/u;
       if (emojiPattern.test(appCode)) {
         this.addCheck('MESSAGE_FORMAT', 'Emoji Usage', 'PASS', 'Emojis used for visual enhancement');
       } else {
@@ -262,7 +261,7 @@ class SlackValidationReport {
       }
 
     } catch (error) {
-      this.addCheck('MESSAGE_FORMAT', 'Format Check', 'FAIL', `Failed to analyze formatting: ${error}`);
+      this.addCheck('MESSAGE_FORMAT', 'Format Check', 'FAIL', `Failed to analyze formatting: ${String(error)}`);
     }
   }
 
@@ -281,7 +280,7 @@ class SlackValidationReport {
       ];
 
       errorHandlingPatterns.forEach(pattern => {
-        const matches = (appCode.match(new RegExp(pattern, 'g')) || []).length;
+        const matches = (appCode.match(new RegExp(pattern, 'g')) ?? []).length;
         if (matches > 0) {
           this.addCheck('ERROR_HANDLING', pattern, 'PASS', `Found ${matches} instances`);
         } else {
@@ -297,7 +296,7 @@ class SlackValidationReport {
       }
 
     } catch (error) {
-      this.addCheck('ERROR_HANDLING', 'Error Analysis', 'FAIL', `Failed to analyze error handling: ${error}`);
+      this.addCheck('ERROR_HANDLING', 'Error Analysis', 'FAIL', `Failed to analyze error handling: ${String(error)}`);
     }
   }
 
@@ -314,7 +313,7 @@ class SlackValidationReport {
       testFiles.forEach(testFile => {
         if (existsSync(testFile)) {
           const testCode = readFileSync(testFile, 'utf8');
-          const testCount = (testCode.match(/it\(/g) || []).length;
+          const testCount = (testCode.match(/it\(/g) ?? []).length;
           this.addCheck('TEST_COVERAGE', testFile, 'PASS', `${testCount} tests found`);
         } else {
           this.addCheck('TEST_COVERAGE', testFile, 'FAIL', 'Test file missing');
@@ -332,7 +331,7 @@ class SlackValidationReport {
       }
 
     } catch (error) {
-      this.addCheck('TEST_COVERAGE', 'Test Analysis', 'FAIL', `Failed to analyze tests: ${error}`);
+      this.addCheck('TEST_COVERAGE', 'Test Analysis', 'FAIL', `Failed to analyze tests: ${String(error)}`);
     }
   }
 
@@ -355,7 +354,7 @@ class SlackValidationReport {
     // Check for inline documentation
     try {
       const appCode = readFileSync('apps/api/src/slack/app.ts', 'utf8');
-      const commentLines = (appCode.match(/^\s*\*/gm) || []).length;
+      const commentLines = (appCode.match(/^\s*\*/gm) ?? []).length;
       
       if (commentLines > 50) {
         this.addCheck('DOCUMENTATION', 'Inline Comments', 'PASS', `${commentLines} comment lines found`);
@@ -365,11 +364,11 @@ class SlackValidationReport {
         this.addCheck('DOCUMENTATION', 'Inline Comments', 'FAIL', `Only ${commentLines} comment lines found`);
       }
     } catch (error) {
-      this.addCheck('DOCUMENTATION', 'Inline Documentation', 'FAIL', `Failed to analyze documentation: ${error}`);
+      this.addCheck('DOCUMENTATION', 'Inline Documentation', 'FAIL', `Failed to analyze documentation: ${String(error)}`);
     }
   }
 
-  private addCheck(category: string, name: string, status: ValidationCheck['status'], message: string, details?: any): void {
+  private addCheck(category: string, name: string, status: ValidationCheck['status'], message: string, details?: unknown): void {
     this.checks.push({ category, name, status, message, details });
     
     const icon = {
@@ -387,7 +386,7 @@ class SlackValidationReport {
     console.log('====================\n');
 
     const summary = this.checks.reduce((acc, check) => {
-      acc[check.status] = (acc[check.status] || 0) + 1;
+      acc[check.status] = (acc[check.status] ?? 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
@@ -440,7 +439,7 @@ class SlackValidationReport {
     }
 
     // Overall assessment
-    const passRate = Math.round((summary.PASS || 0) / this.checks.length * 100);
+    const passRate = Math.round((summary.PASS ?? 0) / this.checks.length * 100);
     console.log(`\n🎯 Overall Health: ${passRate}%`);
     
     if (passRate >= 90) {
