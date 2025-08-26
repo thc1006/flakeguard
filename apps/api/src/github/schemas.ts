@@ -72,6 +72,12 @@ const repositorySchema = z.object({
   updated_at: z.string(),
 });
 
+const senderSchema = z.object({
+  login: z.string(),
+  id: z.number().int(),
+  type: z.enum(['User', 'Bot', 'Organization']),
+});
+
 const installationSchema = z.object({
   id: z.number().int(),
   account: z.object({
@@ -108,6 +114,7 @@ export const checkRunWebhookSchema = z.object({
   }).optional(),
   repository: repositorySchema,
   installation: installationSchema,
+  sender: senderSchema,
 });
 
 // Check Suite Webhook Schema
@@ -165,6 +172,7 @@ export const workflowRunWebhookSchema = z.object({
   }),
   repository: repositorySchema,
   installation: installationSchema,
+  sender: senderSchema,
 });
 
 // Workflow Job Webhook Schema
@@ -306,6 +314,7 @@ export const installationWebhookSchema = z.object({
     name: z.string(),
     full_name: z.string(),
   })).optional(),
+  sender: senderSchema,
 });
 
 // =============================================================================

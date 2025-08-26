@@ -779,6 +779,7 @@ jobs:
           build-args: |
             BUILDKIT_INLINE_CACHE=1
             NODE_ENV=production
+            PNPM_VERSION=10.0.0
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master

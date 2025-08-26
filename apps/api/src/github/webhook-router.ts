@@ -404,7 +404,9 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
   readonly eventType = 'check_run' as const;
 
   validate(payload: unknown): CheckRunEvent {
-    return validateWebhookPayload('check_run', payload) as CheckRunEvent;
+    const validated = validateWebhookPayload('check_run', payload);
+    // The validated payload from Zod should be compatible with CheckRunEvent
+    return validated as CheckRunEvent;
   }
 
   async process(payload: CheckRunEvent): Promise<void> {
@@ -434,7 +436,9 @@ export class WorkflowRunProcessor extends BaseWebhookProcessor<'workflow_run'> {
   readonly eventType = 'workflow_run' as const;
 
   validate(payload: unknown): WorkflowRunEvent {
-    return validateWebhookPayload('workflow_run', payload) as WorkflowRunEvent;
+    const validated = validateWebhookPayload('workflow_run', payload);
+    // The validated payload from Zod should be compatible with WorkflowRunEvent
+    return validated as WorkflowRunEvent;
   }
 
   async process(payload: WorkflowRunEvent): Promise<void> {
