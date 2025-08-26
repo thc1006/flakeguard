@@ -140,15 +140,19 @@ ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 ENV VERSION=${VERSION}
 
-# Copy public assets
-COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/public ./public
+# Copy pnpm workspace files for production install (must come first)
+COPY --from=builder --chown=flakeguard:flakeguard /app/pnpm-lock.yaml ./
+COPY --from=builder --chown=flakeguard:flakeguard /app/pnpm-workspace.yaml ./
+COPY --from=builder --chown=flakeguard:flakeguard /app/package.json ./
+COPY --from=builder --chown=flakeguard:flakeguard /app/.npmrc ./
 
-# Create .next directory with proper permissions
-RUN mkdir -p .next && chown -R flakeguard:flakeguard .next
+# Create workspace structure for packages
+RUN mkdir -p apps/web packages/shared
 
-# Copy built application (non-standalone mode)
-COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/.next ./.next
-COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/package.json ./package.json
+# Copy built application (non-standalone mode) 
+COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/.next ./apps/web/.next
+COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/package.json ./apps/web/
+COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/public ./apps/web/public
 
 # Copy shared package for runtime
 COPY --from=shared-builder --chown=flakeguard:flakeguard /app/packages/shared/dist ./packages/shared/dist
@@ -201,7 +205,8 @@ EXPOSE 3001
 # Use tini as PID 1 for proper signal handling
 ENTRYPOINT ["/sbin/tini", "--"]
 
-# Start the application  
+# Start the application from the web app directory
+WORKDIR /app/apps/web
 CMD ["pnpm", "start"]
 
 # =============================================================================
