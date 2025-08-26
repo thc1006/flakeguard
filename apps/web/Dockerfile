@@ -50,7 +50,7 @@ RUN addgroup -g 1001 -S builder && \
 WORKDIR /app
 
 # Copy package files for better caching
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
 

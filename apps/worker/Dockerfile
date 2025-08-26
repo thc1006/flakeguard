@@ -47,7 +47,7 @@ RUN for i in 1 2 3; do \
     pnpm --version
 
 # Copy package files for better caching
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/worker/package.json ./apps/worker/
 
