@@ -25,24 +25,11 @@ import type {
 import {
   ErrorCode,
 } from './api-spec.js';
-// import type {
-//   WebhookDispatcher,
-// } from './types.js';
 import {
   SUPPORTED_WEBHOOK_EVENTS,
   // ERROR_MESSAGES, // Now using inline error messages
   // TIMEOUTS, // Unused for now
 } from './constants.js';
-// import type {
-//   CheckRunWebhookPayload,
-//   WorkflowRunWebhookPayload,
-//   InstallationWebhookPayload,
-// } from './schemas.js';
-import type {
-  CheckRunEvent,
-  WorkflowRunEvent,
-  InstallationEvent
-} from '@octokit/webhooks-types';
 import { validateWebhookPayload, webhookHeadersSchema } from './schemas.js';
 
 
@@ -403,13 +390,11 @@ export abstract class BaseWebhookProcessor<T extends keyof WebhookEventMap>
 export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
   readonly eventType = 'check_run' as const;
 
-  validate(payload: unknown): CheckRunEvent {
-    const validated = validateWebhookPayload('check_run', payload);
-    // The validated payload from Zod should be compatible with CheckRunEvent
-    return validated as CheckRunEvent;
+  validate(payload: unknown): WebhookEventMap['check_run'] {
+    return validateWebhookPayload('check_run', payload);
   }
 
-  async process(payload: CheckRunEvent): Promise<void> {
+  async process(payload: WebhookEventMap['check_run']): Promise<void> {
     const { action, repository, installation } = this.extractCommonFields(payload);
     
     console.log(`Processing check_run.${action} for ${repository?.owner.login}/${repository?.name}`, {
@@ -435,13 +420,11 @@ export class CheckRunProcessor extends BaseWebhookProcessor<'check_run'> {
 export class WorkflowRunProcessor extends BaseWebhookProcessor<'workflow_run'> {
   readonly eventType = 'workflow_run' as const;
 
-  validate(payload: unknown): WorkflowRunEvent {
-    const validated = validateWebhookPayload('workflow_run', payload);
-    // The validated payload from Zod should be compatible with WorkflowRunEvent
-    return validated as WorkflowRunEvent;
+  validate(payload: unknown): WebhookEventMap['workflow_run'] {
+    return validateWebhookPayload('workflow_run', payload);
   }
 
-  async process(payload: WorkflowRunEvent): Promise<void> {
+  async process(payload: WebhookEventMap['workflow_run']): Promise<void> {
     const { action, repository, installation } = this.extractCommonFields(payload);
     
     console.log(`Processing workflow_run.${action} for ${repository?.owner.login}/${repository?.name}`, {
@@ -468,11 +451,11 @@ export class WorkflowRunProcessor extends BaseWebhookProcessor<'workflow_run'> {
 export class InstallationProcessor extends BaseWebhookProcessor<'installation'> {
   readonly eventType = 'installation' as const;
 
-  validate(payload: unknown): InstallationEvent {
-    return validateWebhookPayload('installation', payload) as InstallationEvent;
+  validate(payload: unknown): WebhookEventMap['installation'] {
+    return validateWebhookPayload('installation', payload);
   }
 
-  async process(payload: InstallationEvent): Promise<void> {
+  async process(payload: WebhookEventMap['installation']): Promise<void> {
     const { action, installation } = this.extractCommonFields(payload);
     
     console.log(`Processing installation.${action}`, {
@@ -537,7 +520,7 @@ export function extractRepositoryInfo(payload: any): { owner: string; name: stri
 /**
  * Check if webhook payload represents a completed workflow run
  */
-export function isCompletedWorkflowRun(payload: WorkflowRunEvent): boolean {
+export function isCompletedWorkflowRun(payload: WebhookEventMap['workflow_run']): boolean {
   return payload.action === 'completed' && 
          payload.workflow_run.status === 'completed';
 }
@@ -545,7 +528,7 @@ export function isCompletedWorkflowRun(payload: WorkflowRunEvent): boolean {
 /**
  * Check if webhook payload represents a requested action on a check run
  */
-export function isCheckRunRequestedAction(payload: CheckRunEvent): boolean {
+export function isCheckRunRequestedAction(payload: WebhookEventMap['check_run']): boolean {
   return payload.action === 'requested_action';
 }
 
@@ -556,7 +539,7 @@ export function isCheckRunRequestedAction(payload: CheckRunEvent): boolean {
 /**
  * Type guard for check run events
  */
-export function isCheckRunEvent(payload: any, eventType: string): payload is CheckRunEvent {
+export function isCheckRunEvent(payload: any, eventType: string): payload is WebhookEventMap['check_run'] {
   return eventType === 'check_run' && 
          payload?.check_run?.id !== undefined;
 }
@@ -564,7 +547,7 @@ export function isCheckRunEvent(payload: any, eventType: string): payload is Che
 /**
  * Type guard for workflow run events
  */
-export function isWorkflowRunEvent(payload: any, eventType: string): payload is WorkflowRunEvent {
+export function isWorkflowRunEvent(payload: any, eventType: string): payload is WebhookEventMap['workflow_run'] {
   return eventType === 'workflow_run' && 
          payload?.workflow_run?.id !== undefined;
 }
@@ -572,7 +555,7 @@ export function isWorkflowRunEvent(payload: any, eventType: string): payload is 
 /**
  * Type guard for installation events
  */
-export function isInstallationEvent(payload: any, eventType: string): payload is InstallationEvent {
+export function isInstallationEvent(payload: any, eventType: string): payload is WebhookEventMap['installation'] {
   return eventType === 'installation' && 
          payload?.installation?.id !== undefined;
 }

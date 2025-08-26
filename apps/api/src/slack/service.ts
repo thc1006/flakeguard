@@ -5,7 +5,7 @@
 import { 
   WebClient, 
   LogLevel, 
-  ChatPostMessageResponse,
+  ChatPostMessageResponse as _ChatPostMessageResponse,
   ErrorCode,
   Block,
   KnownBlock
@@ -231,7 +231,7 @@ export class SlackService {
         blocks: template.blocks as (Block | KnownBlock)[],
         text: template.text,
         thread_ts: notification.threading?.parentTs,
-      }) as ChatPostMessageResponse;
+      });
 
       if (result.ok && result.ts) {
         this.messageStates.set(result.ts, {

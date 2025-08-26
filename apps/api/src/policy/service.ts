@@ -16,7 +16,7 @@ import type {
 import { GitHubAuthManager } from '../github/auth.js';
 import { logger } from '../utils/logger.js';
 
-import { getPolicyEngine, type PolicyConfig, type PolicyDecision } from './engine.js';
+import { getPolicyEngine, type PolicyConfig, type PolicyDecision as _PolicyDecision } from './engine.js';
 
 export interface EvaluatePolicyRequest {
   owner: string;

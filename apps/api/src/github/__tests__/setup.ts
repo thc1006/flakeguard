@@ -125,7 +125,7 @@ beforeEach(() => {
   vi.resetModules();
   
   // Reset environment variables to test defaults
-  process.env.NODE_ENV = 'test';
+  (process.env as any).NODE_ENV = 'test';
   process.env.LOG_LEVEL = 'error';
 });
 

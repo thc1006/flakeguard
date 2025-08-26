@@ -284,7 +284,7 @@ function createTenantPrismaWrapper(
       
       return originalMethod;
     },
-  }) as PrismaClient;
+  });
 }
 
 /**

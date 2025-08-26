@@ -4,7 +4,7 @@
 import type { TestRun, FlakeScore } from "@flakeguard/shared";
 
 import { FlakinessScorer } from "../analytics/flakiness.js";
-import { FlakeScoreCache } from "../performance/cache-layer.js";
+import { FlakeScoreCache as _FlakeScoreCache } from "../performance/cache-layer.js";
 
 export class OptimizedFlakinessScorer extends FlakinessScorer {
   // private cache = new FlakeScoreCache(); // Unused for now

@@ -224,7 +224,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
       await tenantService.updateOrganizationSettings(
         orgId,
         settings,
-        request.tenant!.userId
+        request.tenant?.userId || ''
       );
 
       logger.info('Organization settings updated', {
@@ -346,7 +346,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
       const result = await tenantService.inviteUser(
         orgId,
         invitation,
-        request.tenant!.userId
+        request.tenant?.userId || ''
       );
 
       if (result.success) {
@@ -516,7 +516,7 @@ export async function organizationRoutes(fastify: FastifyInstance) {
         });
       }
 
-      await tenantService.removeUser(orgId, userId, request.tenant!.userId);
+      await tenantService.removeUser(orgId, userId, request.tenant?.userId || '');
 
       logger.info('Member removed from organization', {
         orgId,

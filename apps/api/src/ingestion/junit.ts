@@ -183,7 +183,9 @@ export class JUnitIngestionService extends EventEmitter {
 
       // Calculate final statistics
       this.calculateFinalStats(results, stats);
-      stats.processingTimeMs = Date.now() - startTime;
+      Object.assign(stats, {
+        processingTimeMs: Date.now() - startTime
+      });
 
       this.emit('progress', {
         phase: 'complete',
@@ -232,7 +234,7 @@ export class JUnitIngestionService extends EventEmitter {
     expectedFormat?: JUnitFormat;
     config?: Partial<IngestionConfig>;
   }): Promise<IngestionResult> {
-    const { owner, repo, runId, installationId, repositoryId, expectedFormat, config = {} } = params;
+    const { owner, repo, runId, installationId, repositoryId: _repositoryId, expectedFormat, config = {} } = params;
     const correlationId = generateCorrelationId();
 
     logger.info(`Starting GitHub artifact ingestion [${correlationId}]`, {
@@ -351,7 +353,7 @@ export class JUnitIngestionService extends EventEmitter {
         processingTimeMs: 0,
         downloadTimeMs: 0
       }, [{
-        type: 'GITHUB_API_ERROR',
+        type: 'NETWORK_ERROR',
         message: `GitHub ingestion failed: ${error.message}`,
         timestamp: new Date()
       }], correlationId);
@@ -551,7 +553,7 @@ export class JUnitIngestionService extends EventEmitter {
         );
 
         await pipelineAsync(
-          responseStream,
+          responseStream as unknown as NodeJS.ReadableStream,
           sizeLimiter,
           timeoutStream,
           fileStream
@@ -607,7 +609,7 @@ export class JUnitIngestionService extends EventEmitter {
           size: entry.size,
           isFile: !entry.isDirectory,
           isDirectory: entry.isDirectory,
-          lastModified: entry.time
+          lastModified: new Date(entry.time)
         };
 
         if (xmlFilter(entryInfo)) {
@@ -641,7 +643,7 @@ export class JUnitIngestionService extends EventEmitter {
    */
   private async parseXMLFile(
     filePath: string,
-    artifactName: string,
+    _artifactName: string,
     config: IngestionConfig
   ): Promise<FileProcessingResult> {
     const startTime = Date.now();
@@ -817,16 +819,20 @@ export class JUnitIngestionService extends EventEmitter {
     results: FileProcessingResult[],
     stats: IngestionStats
   ): void {
-    stats.totalFiles = results.length;
-    stats.processedFiles = results.length;
-    stats.failedFiles = 0; // Errors are tracked separately
+    Object.assign(stats, {
+      totalFiles: results.length,
+      processedFiles: results.length,
+      failedFiles: 0 // Errors are tracked separately
+    });
 
     for (const result of results) {
       const { testSuites } = result;
-      stats.totalTests += testSuites.tests;
-      stats.totalFailures += testSuites.failures;
-      stats.totalErrors += testSuites.errors;
-      stats.totalSkipped += testSuites.skipped;
+      Object.assign(stats, {
+        totalTests: stats.totalTests + testSuites.tests,
+        totalFailures: stats.totalFailures + testSuites.failures,
+        totalErrors: stats.totalErrors + testSuites.errors,
+        totalSkipped: stats.totalSkipped + testSuites.skipped
+      });
     }
   }
 

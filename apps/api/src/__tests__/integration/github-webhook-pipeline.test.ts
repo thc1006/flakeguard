@@ -234,7 +234,7 @@ describe('GitHub Webhook Processing Pipeline Integration', () => {
   beforeAll(async () => {
     // Set test environment variables
     process.env.GITHUB_WEBHOOK_SECRET = TEST_CONFIG.webhookSecret;
-    process.env.NODE_ENV = 'test';
+    (process.env as any).NODE_ENV = 'test';
     process.env.DATABASE_URL = TEST_CONFIG.databaseUrl;
     process.env.REDIS_URL = TEST_CONFIG.redisUrl;
     process.env.GITHUB_APP_ID = 'test-app-id';
@@ -284,7 +284,7 @@ describe('GitHub Webhook Processing Pipeline Integration', () => {
   afterAll(() => {
     // Clean up environment variables
     delete process.env.GITHUB_WEBHOOK_SECRET;
-    delete process.env.NODE_ENV;
+    delete (process.env as any).NODE_ENV;
     delete process.env.DATABASE_URL;
     delete process.env.REDIS_URL;
     delete process.env.GITHUB_APP_ID;

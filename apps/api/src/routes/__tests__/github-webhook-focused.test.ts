@@ -22,7 +22,7 @@ describe('GitHub Webhook Core Functionality', () => {
   beforeEach(async () => {
     // Set up minimal test environment
     process.env.GITHUB_WEBHOOK_SECRET = webhookSecret;
-    process.env.NODE_ENV = 'test';
+    (process.env as any).NODE_ENV = 'test';
 
     // Create Fastify app
     app = Fastify({ logger: false });

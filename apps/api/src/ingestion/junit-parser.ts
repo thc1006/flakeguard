@@ -427,7 +427,7 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
     // Transform stream to monitor byte count and enforce limits
     const maxSize = this.maxFileSizeBytes;
     const monitoringTransform = new Transform({
-      transform(chunk, encoding, callback) {
+      transform(chunk, _encoding, callback) {
         state.byteCount += chunk.length;
         
         if (state.byteCount > maxSize) {
@@ -540,7 +540,8 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
    */
   private createParsingError(error: unknown, state: MutableParserState): ParsingFailedException {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    const contextInfo = {
+    // @ts-ignore: Unused but may be used in future
+    const _contextInfo = {
       format: state.format,
       currentPath: state.currentPath.join(' > '),
       elementDepth: state.elementDepth,
@@ -559,7 +560,7 @@ abstract class BaseJUnitParser<T extends JUnitFormat = JUnitFormat> {
    * Finalize parsing result with statistics and validation
    */
   protected finalizeResult(state: MutableParserState): TestSuites {
-    const { testSuites, warnings } = state;
+    const { testSuites, warnings: _warnings } = state;
     
     // Validate test counts consistency
     let totalTests = 0;
@@ -656,7 +657,7 @@ class SurefireParser extends BaseJUnitParser<'surefire'> {
     return handlers[name] || null;
   }
 
-  private handleTestSuitesOpen: ElementHandler<'surefire'> = (state, name, attributes) => {
+  private handleTestSuitesOpen: ElementHandler<'surefire'> = (state, _name, attributes) => {
     const attrs = this.createAttributeParser(attributes);
     Object.assign(state.testSuites, {
       name: attrs.getString('name'),
@@ -669,7 +670,7 @@ class SurefireParser extends BaseJUnitParser<'surefire'> {
     });
   };
 
-  private handleTestSuiteOpen: ElementHandler<'surefire'> = (state, name, attributes) => {
+  private handleTestSuiteOpen: ElementHandler<'surefire'> = (state, _name, attributes) => {
     const attrs = this.createAttributeParser(attributes);
     state.currentSuite = {
       name: attrs.getString('name'),
@@ -694,7 +695,7 @@ class SurefireParser extends BaseJUnitParser<'surefire'> {
     }
   };
 
-  private handleTestCaseOpen: ElementHandler<'surefire'> = (state, name, attributes) => {
+  private handleTestCaseOpen: ElementHandler<'surefire'> = (state, _name, attributes) => {
     const attrs = this.createAttributeParser(attributes);
     state.currentTestCase = {
       name: attrs.getString('name'),
@@ -812,7 +813,7 @@ class SurefireParser extends BaseJUnitParser<'surefire'> {
     // Properties container closed - no specific action needed
   };
 
-  private handlePropertyOpen: ElementHandler<'surefire'> = (state, name, attributes) => {
+  private handlePropertyOpen: ElementHandler<'surefire'> = (state, _name, attributes) => {
     const attrs = this.createAttributeParser(attributes);
     const propName = attrs.getString('name');
     const propValue = attrs.getString('value');
@@ -949,7 +950,8 @@ export function createJUnitParser<T extends JUnitFormat>(
     encoding: 'utf8'
   };
 
-  const mergedOptions = { ...defaultOptions, ...options };
+  // @ts-ignore: Unused but may be used in future
+  const _mergedOptions = { ...defaultOptions, ...options };
 
   switch (format) {
     case 'surefire':

@@ -2,6 +2,7 @@
  * Optimized Database Operations for FlakeGuard
  */
 import { PrismaClient } from "@prisma/client";
+
 import { FlakeScoreCache, TestHistoryCache } from "./cache-layer.js";
 
 /**
@@ -13,7 +14,8 @@ export class OptimizedDatabaseService {
   private flakeScoreCache = new FlakeScoreCache();
   private testHistoryCache = new TestHistoryCache();
 
-  constructor(private prisma: PrismaClient) {}
+  // @ts-ignore: Unused but may be used in future
+  constructor(private _prisma: PrismaClient) {}
 
   // Cached test history retrieval
   async getCachedTestHistory(repositoryId: string, testName: string, limit: number = 50): Promise<unknown> {

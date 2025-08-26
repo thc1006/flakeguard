@@ -137,7 +137,8 @@ const GITHUB_API_LIMITS = {
 
 export class GitHubArtifactsIntegration {
   private readonly authManager: GitHubAuthManager;
-  private readonly helpers: GitHubHelpers;
+  // @ts-ignore: Unused but may be used in future
+  private readonly _helpers: GitHubHelpers;
   private readonly ingestionService: JUnitIngestionService;
   private readonly prisma: PrismaClient;
 
@@ -148,7 +149,7 @@ export class GitHubArtifactsIntegration {
     prisma: PrismaClient
   ) {
     this.authManager = authManager;
-    this.helpers = helpers;
+    this._helpers = helpers;
     this.ingestionService = ingestionService;
     this.prisma = prisma;
   }
@@ -320,8 +321,8 @@ export class GitHubArtifactsIntegration {
               name: artifact.name,
               downloadUrl: artifact.archive_download_url,
               sizeInBytes: artifact.size_in_bytes,
-              expiresAt: new Date(artifact.expires_at),
-              createdAt: new Date(artifact.created_at)
+              expiresAt: new Date(artifact.expires_at || Date.now() + 60 * 60 * 1000), // Default to 1 hour if null
+              createdAt: new Date(artifact.created_at || Date.now()) // Default to now if null
             } as ArtifactDownloadInfo;
           } catch (error: any) {
             logger.error('Failed to get artifact download URL', {
@@ -454,7 +455,7 @@ export class GitHubArtifactsIntegration {
         config: {
           repository: config.repository,
           artifacts: artifactSources,
-          maxFileSizeBytes: DEFAULT_ARTIFACT_FILTER.maxFileSizeBytes,
+          maxFileSizeBytes: DEFAULT_ARTIFACT_FILTER.maxSizeBytes,
           timeoutMs: GITHUB_API_LIMITS.downloadTimeoutMs,
           concurrency: GITHUB_API_LIMITS.maxConcurrentDownloads
         }
@@ -546,7 +547,7 @@ export class GitHubArtifactsIntegration {
         downloadTimeMs: 0 // Not tracked separately
       },
       errors: result.errors.map(message => ({
-        type: 'PROCESSING_FAILED' as const,
+        type: 'PARSING_FAILED' as const,
         message,
         timestamp: new Date()
       })),
@@ -599,7 +600,7 @@ export class GitHubArtifactsIntegration {
             filter: config.filter,
             priority: config.priority,
             errors: result.errors.map(e => e.message)
-          },
+          } as any,
           createdAt: new Date(),
           completedAt: new Date()
         }

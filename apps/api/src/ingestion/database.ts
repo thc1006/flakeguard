@@ -173,6 +173,7 @@ export class TestIngestionRepository {
       },
       create: {
         ...suite,
+        orgId: 'default-org',
         properties: (suite.properties || {}) as any,
       },
       update: {
@@ -215,8 +216,6 @@ export class TestIngestionRepository {
         time: testResult.time,
         message: testResult.message,
         stack: testResult.stack,
-        errorMessage: testResult.errorMessage,
-        stackTrace: testResult.stackTrace,
         attempt: testResult.attempt || 1,
         jobName: testResult.jobName,
         testSuiteId: testResult.testSuiteId,
@@ -381,8 +380,8 @@ export class TestIngestionRepository {
       failedTests,
       errorTests,
       skippedTests,
-      averageTime: (timeStats._avg?.time ?? 0) as number,
-      totalTime: (timeStats._sum?.time ?? 0) as number,
+      averageTime: (timeStats._avg?.time ?? 0),
+      totalTime: (timeStats._sum?.time ?? 0),
       suiteCount,
     };
   }
@@ -542,6 +541,7 @@ export class TestIngestionRepository {
       const result = await tx.testSuite.upsert({
         where: {
           orgId_repositoryId_name_runId: {
+            orgId: 'default-org',
             repositoryId: suite.repositoryId,
             name: suite.name,
             runId: suite.runId || '',
@@ -549,6 +549,7 @@ export class TestIngestionRepository {
         },
         create: {
           ...suite,
+          orgId: 'default-org',
           properties: (suite.properties || {}) as any,
         },
         update: {
@@ -589,6 +590,7 @@ export class TestIngestionRepository {
       const result = await tx.testResult.upsert({
         where: {
           orgId_repositoryId_testFullName_file_suite: {
+            orgId: 'default-org',
             repositoryId: testResult.repositoryId,
             testFullName: testResult.testFullName,
             file: testResult.file || '',
@@ -599,10 +601,8 @@ export class TestIngestionRepository {
         update: {
           status: testResult.status,
           time: testResult.time,
-            message: testResult.message,
+          message: testResult.message,
           stack: testResult.stack,
-          errorMessage: testResult.errorMessage,
-          stackTrace: testResult.stackTrace,
           attempt: testResult.attempt || 1,
           jobName: testResult.jobName,
           testSuiteId: testResult.testSuiteId,

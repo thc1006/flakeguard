@@ -4,8 +4,9 @@
  * Configures environment for performance testing and benchmarks
  */
 
-import { beforeAll, afterAll, beforeEach } from 'vitest';
 import { performance } from 'perf_hooks';
+
+import { beforeAll, afterAll, beforeEach } from 'vitest';
 
 // Performance monitoring utilities
 const performanceMarks: Map<string, number> = new Map();

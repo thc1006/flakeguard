@@ -661,10 +661,17 @@ export function createMockGitHubApiClient(authToken = 'mock-token'): MockGitHubA
 }
 
 export function createMockArtifact(overrides: Partial<MockArtifact> = {}): MockArtifact {
-  return {
-    ...MOCK_ARTIFACTS[0],
-    ...overrides
-  };
+  const base = MOCK_ARTIFACTS[0];
+  const result = { ...base } as MockArtifact;
+  
+  // Apply overrides only if they have defined values
+  Object.entries(overrides).forEach(([key, value]) => {
+    if (value !== undefined) {
+      (result as any)[key] = value;
+    }
+  });
+  
+  return result;
 }
 
 export function createMockWorkflowRun(overrides: Partial<MockWorkflowRun> = {}): MockWorkflowRun {

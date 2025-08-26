@@ -11,7 +11,7 @@
  */
 
 // Set up test environment variables BEFORE any imports to avoid config validation errors
-process.env.NODE_ENV = 'test';
+(process.env as any).NODE_ENV = 'test';
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
 process.env.REDIS_URL = 'redis://localhost:6379';
 process.env.GITHUB_APP_ID = '123456';

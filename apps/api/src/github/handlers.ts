@@ -11,13 +11,10 @@
  */
 
 import { JobPriorities } from '@flakeguard/shared';
+import type { Octokit } from '@octokit/rest';
 import type { PrismaClient } from '@prisma/client';
 import type { Queue } from 'bullmq';
-import type { Octokit } from '@octokit/rest';
-import type {
-  CheckRunEvent,
-  WorkflowRunEvent
-} from '@octokit/webhooks-types';
+
 
 import { 
   createGitHubArtifactsIntegration,
@@ -35,6 +32,7 @@ import {
 } from './constants.js';
 import { createFlakeDetector, type FlakeDetector, type TestExecutionContext } from './flake-detector.js';
 import { GitHubHelpers } from './helpers.js';
+import { validateWebhookPayload } from './schemas.js';
 import type {
   CheckRunAction,
   CheckRunWebhookPayload,
@@ -44,9 +42,9 @@ import type {
 } from './types.js';
 
 // Type aliases for better readability
-type GitHubRepository = NonNullable<CheckRunEvent['repository']>;
-type GitHubCheckRun = CheckRunEvent['check_run'];
-type GitHubWorkflowRun = WorkflowRunEvent['workflow_run'];
+type GitHubRepository = CheckRunWebhookPayload['repository'];
+type GitHubCheckRun = CheckRunWebhookPayload['check_run'];
+type GitHubWorkflowRun = WorkflowRunWebhookPayload['workflow_run'];
 
 // Prisma type aliases for better readability
 
@@ -85,15 +83,11 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     this.flakeDetector = options.flakeDetector || createFlakeDetector({ prisma: options.prisma });
   }
 
-  validate(payload: unknown): CheckRunEvent {
-    // Basic validation - in production, use proper schema validation
-    if (!payload || typeof payload !== 'object') {
-      throw new Error('Invalid payload: expected object');
-    }
-    return payload as CheckRunEvent;
+  validate(payload: unknown): CheckRunWebhookPayload {
+    return validateWebhookPayload('check_run', payload);
   }
 
-  async process(payload: CheckRunEvent): Promise<void> {
+  async process(payload: CheckRunWebhookPayload): Promise<void> {
     const { action, check_run, repository, installation } = payload;
     
     if (!repository) {
@@ -110,7 +104,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     });
 
     // Store check run in database
-    await this.storeCheckRun(payload as CheckRunWebhookPayload);
+    await this.storeCheckRun(payload);
 
     switch (action) {
       case 'created':
@@ -129,7 +123,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
         if ('requested_action' in payload && payload.requested_action?.identifier) {
           const actionId = payload.requested_action.identifier as CheckRunAction;
           if (['quarantine', 'rerun_failed', 'open_issue', 'dismiss_flake', 'mark_stable'].includes(actionId)) {
-            await this.handleCheckRunAction(payload as CheckRunWebhookPayload, actionId);
+            await this.handleCheckRunAction(payload, actionId);
           }
         }
         break;
@@ -139,7 +133,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     }
   }
 
-  private async handleCheckRunCreated(payload: CheckRunEvent): Promise<void> {
+  private async handleCheckRunCreated(payload: CheckRunWebhookPayload): Promise<void> {
     const { check_run, repository, installation } = payload;
     
     if (!repository) {
@@ -164,7 +158,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     }
   }
 
-  private async handleCheckRunCompleted(payload: CheckRunEvent): Promise<void> {
+  private async handleCheckRunCompleted(payload: CheckRunWebhookPayload): Promise<void> {
     const { check_run, repository, installation } = payload;
     
     if (!repository) {
@@ -180,7 +174,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
 
     // Only analyze failed check runs for flake detection
     if (check_run.conclusion === 'failure') {
-      await this.analyzeFailedCheckRun(payload as CheckRunWebhookPayload);
+      await this.analyzeFailedCheckRun(payload);
     }
 
     // Update repository's check run record
@@ -204,7 +198,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
     }
   }
 
-  private async handleCheckRunRerequested(payload: CheckRunEvent): Promise<void> {
+  private async handleCheckRunRerequested(payload: CheckRunWebhookPayload): Promise<void> {
     const { check_run } = payload;
     
     logger.debug('Check run rerequested', {
@@ -636,7 +630,7 @@ export class CheckRunHandler extends BaseWebhookProcessor<'check_run'> {
           octokit,
           repository.owner.login,
           repository.name,
-          workflowRun as unknown as GitHubWorkflowRun,
+          currentRun as GitHubWorkflowRun,
           check_run,
           failedJobs
         );
@@ -1769,11 +1763,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
   }
 
   validate(payload: unknown): WorkflowRunWebhookPayload {
-    // Basic validation - in production, use proper schema validation
-    if (!payload || typeof payload !== 'object') {
-      throw new Error('Invalid payload: expected object');
-    }
-    return payload as WorkflowRunWebhookPayload;
+    return validateWebhookPayload('workflow_run', payload);
   }
 
   async process(payload: WorkflowRunWebhookPayload): Promise<void> {
@@ -1937,7 +1927,7 @@ export class WorkflowRunHandler extends BaseWebhookProcessor<'workflow_run'> {
     
     // Example: extract from job steps if they contain test information
     if (job.steps && Array.isArray(job.steps)) {
-      for (const step of job.steps as any[]) {
+      for (const step of job.steps) {
         if (step.conclusion === 'failure' && step.name.toLowerCase().includes('test')) {
           contexts.push({
             testName: step.name,
@@ -2267,11 +2257,7 @@ export class WorkflowJobHandler extends BaseWebhookProcessor<'workflow_job'> {
   }
 
   validate(payload: unknown): WorkflowJobWebhookPayload {
-    // Basic validation - in production, use proper schema validation
-    if (!payload || typeof payload !== 'object') {
-      throw new Error('Invalid payload: expected object');
-    }
-    return payload as WorkflowJobWebhookPayload;
+    return validateWebhookPayload('workflow_job', payload);
   }
 
   async process(payload: WorkflowJobWebhookPayload): Promise<void> {
@@ -2568,11 +2554,7 @@ export class InstallationHandler extends BaseWebhookProcessor<'installation'> {
   }
 
   validate(payload: unknown): InstallationWebhookPayload {
-    // Basic validation - in production, use proper schema validation
-    if (!payload || typeof payload !== 'object') {
-      throw new Error('Invalid payload: expected object');
-    }
-    return payload as InstallationWebhookPayload;
+    return validateWebhookPayload('installation', payload);
   }
 
   async process(payload: InstallationWebhookPayload): Promise<void> {

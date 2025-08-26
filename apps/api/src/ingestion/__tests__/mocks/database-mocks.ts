@@ -624,13 +624,14 @@ export class MockDatabaseState {
       updatedAt: new Date(),
       ...repo
     };
-    this.repositories.push(newRepo);
+    this.repositories.push(newRepo as Repository);
     return newRepo;
   }
 
   addTestSuite(suite: Partial<TestSuite>) {
     const newSuite: TestSuite = {
       id: `suite-${Date.now()}`,
+      orgId: this.repositories[0]?.orgId ?? 'default-org-id',
       name: 'TestSuite',
       package: null,
       hostname: null,
@@ -642,7 +643,7 @@ export class MockDatabaseState {
       timestamp: null,
       runId: null,
       jobName: null,
-      repositoryId: this.repositories[0].id,
+      repositoryId: this.repositories[0]?.id ?? 'default-repo-id',
       checkRunId: null,
       workflowJobId: null,
       systemOut: null,
@@ -665,15 +666,15 @@ export class MockDatabaseState {
       testFullName: 'TestClass.testMethod',
       file: null,
       status: 'passed',
-      time: null,
-      duration: null,
+      time: 0,
       message: null,
       stack: null,
           attempt: 1,
-      runId: null,
-      jobName: null,
-      repositoryId: this.repositories[0].id,
-      testSuiteId: this.testSuites[0].id,
+      runId: 'default-run-id',
+      jobName: 'default-job',
+      repositoryId: this.repositories[0]?.id ?? 'default-repo-id',
+      orgId: this.repositories[0]?.orgId ?? 'default-org-id',
+      testSuiteId: this.testSuites[0]?.id ?? 'default-suite-id',
       checkRunId: null,
       workflowJobId: null,
       createdAt: new Date(),

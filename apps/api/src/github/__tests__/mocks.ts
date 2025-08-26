@@ -70,6 +70,15 @@ export function createMockInstallation(overrides: Partial<any> = {}) {
   };
 }
 
+export function createMockSender(overrides: Partial<any> = {}) {
+  return {
+    login: 'test-user',
+    id: 54321,
+    type: 'User' as const,
+    ...overrides,
+  };
+}
+
 export function createMockCheckRunPayload(
   action: 'created' | 'completed' | 'rerequested' | 'requested_action',
   checkRunOverrides: Partial<any> = {},
@@ -96,6 +105,7 @@ export function createMockCheckRunPayload(
     check_run: baseCheckRun,
     repository: createMockRepository(),
     installation: createMockInstallation(),
+    sender: createMockSender(),
     ...payloadOverrides,
   } as CheckRunWebhookPayload;
 }
@@ -131,6 +141,7 @@ export function createMockWorkflowRunPayload(
     workflow: baseWorkflow,
     repository: createMockRepository(),
     installation: createMockInstallation(),
+    sender: createMockSender(),
     ...payloadOverrides,
   } as WorkflowRunWebhookPayload;
 }
@@ -162,6 +173,7 @@ export function createMockInstallationPayload(
   return {
     action,
     installation: baseInstallation,
+    sender: createMockSender(),
     ...payloadOverrides,
   } as InstallationWebhookPayload;
 }

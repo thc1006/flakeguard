@@ -45,15 +45,15 @@ import {
   // checkRunListParamsSchema,
   workflowRunParamsSchema,
 } from './schemas.js';
+import type {
+  CreateCheckRunParams,
+  UpdateCheckRunParams,
+} from './types.js';
 import { 
   WebhookRouter,
   createLoggingMiddleware,
   registerWebhookRoutes,
 } from './webhook-router.js';
-import type {
-  CreateCheckRunParams,
-  UpdateCheckRunParams,
-} from './types.js';
 
 // Add type declarations for Fastify decorators
 declare module 'fastify' {

@@ -302,14 +302,15 @@ export class MockQueue {
 
 export class MockWorker {
   private eventHandlers: Map<string, Function[]> = new Map();
-  // private isRunning = false; // Unused for now
+  // @ts-ignore: Unused but may be used in future
+  private _isRunning = true;
   
   constructor(
     _queueName: string,
     _processor: Function,
     _opts?: any
   ) {
-    // this.isRunning = true; // Unused for now
+    // Worker is initialized as running
   }
 
   on(event: string, handler: Function): this {
@@ -339,7 +340,7 @@ export class MockWorker {
   }
 
   async close(): Promise<void> {
-    this.isRunning = false;
+    this._isRunning = false;
     this.eventHandlers.clear();
   }
 
@@ -405,7 +406,7 @@ export function setupQueueMocks() {
 export const JOB_SCENARIOS = {
   SUCCESSFUL_PROCESSING: {
     job: MOCK_JOBS[0],
-    expectedResult: MOCK_JOBS[0].returnvalue,
+    _expectedResult: MOCK_JOBS[0]?.returnvalue ?? null,
     expectedDuration: 15000
   },
   

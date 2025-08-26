@@ -209,9 +209,9 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
     
     try {
       // Extract headers (already validated by Fastify schema)
-      const eventType = request.headers['x-github-event'] as string;
-      const deliveryId = request.headers['x-github-delivery'] as string;
-      const signature = request.headers['x-hub-signature-256'] as string;
+      const eventType = request.headers['x-github-event'];
+      const deliveryId = request.headers['x-github-delivery'];
+      const signature = request.headers['x-hub-signature-256'];
       // const _userAgent = request.headers['user-agent'] as string;
 
       logger.info('GitHub webhook received');
@@ -278,7 +278,7 @@ export async function githubWebhookRoutes(fastify: FastifyInstance) {
       }
 
       // Payload is already validated by Fastify schema
-      const payload = request.body as Record<string, unknown>;
+      const payload = request.body;
 
       // P1 Requirement: Create minimal job payload for BullMQ
       const jobPayload = createJobPayload(

@@ -17,12 +17,14 @@ import bolt, {
   type SlashCommand,
   type RespondFn,
 } from '@slack/bolt';
-import type { SlackMessageBlock } from './types.js';
+
 
 import { FlakinessScorer } from '../analytics/flakiness.js';
 import { GitHubAuthManager } from '../github/auth.js';
 import { CheckRunHandler } from '../github/handlers.js';
 import { logger } from '../utils/logger.js';
+
+import type { SlackMessageBlock } from './types.js';
 
 const { App } = bolt;
 

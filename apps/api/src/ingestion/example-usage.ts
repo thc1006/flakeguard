@@ -280,7 +280,7 @@ export async function exampleBatchIngestion(
             downloadTimeMs: 0
           },
           errors: [{
-            type: 'PROCESSING_FAILED' as const,
+            type: 'PARSING_FAILED' as const,
             message: error.message,
             timestamp: new Date()
           }]
@@ -441,7 +441,7 @@ export async function exampleFormatSpecificIngestion(
 
 export async function runAllExamples(
   _prisma: PrismaClient,
-  authManager: GitHubAuthManager
+  _authManager: GitHubAuthManager
 ): Promise<void> {
   console.log('🎯 Running all JUnit Ingestion Service examples\n');
 
@@ -455,7 +455,8 @@ export async function runAllExamples(
     console.log('📚 See the implementation for patterns you can use in production\n');
 
     // Example workflow runs for batch processing
-    const sampleWorkflowRuns = [
+    // @ts-ignore: Unused but may be used in future
+    const _sampleWorkflowRuns = [
       { owner: 'acme-corp', repo: 'app-1', runId: 1001, installationId: 123, repositoryId: 'repo_1' },
       { owner: 'acme-corp', repo: 'app-2', runId: 1002, installationId: 123, repositoryId: 'repo_2' },
       { owner: 'acme-corp', repo: 'app-3', runId: 1003, installationId: 123, repositoryId: 'repo_3' }

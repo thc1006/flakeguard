@@ -10,7 +10,7 @@ import fs from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi as _vi } from 'vitest';
 
 // Import just the SecretsManager class to avoid config dependency issues
 // We'll need to extract this into a separate file if it's not already
@@ -68,7 +68,7 @@ class SecretsManager {
     }
   }
 
-  private loadFromFile(filePath: string, secretKey: string): string | undefined {
+  private loadFromFile(filePath: string, _secretKey: string): string | undefined {
     try {
       const content = fs.readFileSync(filePath, 'utf8').trim();
       return content;

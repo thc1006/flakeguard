@@ -3,7 +3,19 @@
  * Provides strict typing for webhook events, check runs, and artifact management
  */
 
+// Import our Zod-validated types instead of raw Octokit types
 import type {
+  CheckRunWebhookPayload,
+  CheckSuiteWebhookPayload,
+  WorkflowRunWebhookPayload,
+  WorkflowJobWebhookPayload,
+  PullRequestWebhookPayload,
+  PushWebhookPayload,
+  InstallationWebhookPayload,
+} from './schemas.js';
+
+// Re-export Octokit types for external use when needed
+export type {
   CheckRunEvent,
   CheckSuiteEvent,
   WorkflowRunEvent,
@@ -38,34 +50,31 @@ export interface GitHubAppCredentials {
 // =============================================================================
 
 export type SupportedWebhookEvent =
-  | CheckRunEvent
-  | CheckSuiteEvent
-  | WorkflowRunEvent
-  | WorkflowJobEvent
-  | PullRequestEvent
-  | PushEvent
-  | IssuesEvent
-  | InstallationEvent;
+  | CheckRunWebhookPayload
+  | CheckSuiteWebhookPayload
+  | WorkflowRunWebhookPayload
+  | WorkflowJobWebhookPayload
+  | PullRequestWebhookPayload
+  | PushWebhookPayload
+  | InstallationWebhookPayload;
 
 /**
  * Conditional type for webhook payload discrimination
  */
 export type WebhookPayload<T extends string> = T extends 'check_run'
-  ? CheckRunEvent
+  ? CheckRunWebhookPayload
   : T extends 'check_suite'
-  ? CheckSuiteEvent
+  ? CheckSuiteWebhookPayload
   : T extends 'workflow_run'
-  ? WorkflowRunEvent
+  ? WorkflowRunWebhookPayload
   : T extends 'workflow_job'
-  ? WorkflowJobEvent
+  ? WorkflowJobWebhookPayload
   : T extends 'pull_request'
-  ? PullRequestEvent
+  ? PullRequestWebhookPayload
   : T extends 'push'
-  ? PushEvent
-  : T extends 'issues'
-  ? IssuesEvent
+  ? PushWebhookPayload
   : T extends 'installation'
-  ? InstallationEvent
+  ? InstallationWebhookPayload
   : never;
 
 // =============================================================================
@@ -256,14 +265,13 @@ export interface WebhookHandler<T extends keyof WebhookEventMap> {
  * Mapped type for webhook event handlers
  */
 export type WebhookEventMap = {
-  'check_run': CheckRunEvent;
-  'check_suite': CheckSuiteEvent;
-  'workflow_run': WorkflowRunEvent;
-  'workflow_job': WorkflowJobEvent;
-  'pull_request': PullRequestEvent;
-  'push': PushEvent;
-  'issues': IssuesEvent;
-  'installation': InstallationEvent;
+  'check_run': CheckRunWebhookPayload;
+  'check_suite': CheckSuiteWebhookPayload;
+  'workflow_run': WorkflowRunWebhookPayload;
+  'workflow_job': WorkflowJobWebhookPayload;
+  'pull_request': PullRequestWebhookPayload;
+  'push': PushWebhookPayload;
+  'installation': InstallationWebhookPayload;
 };
 
 /**
@@ -468,28 +476,15 @@ export function isWebhookEvent<T extends keyof WebhookEventMap>(
 // WEBHOOK PAYLOAD TYPE ALIASES
 // =============================================================================
 
-/**
- * Webhook payload type aliases for easier usage
- */
-export type CheckRunWebhookPayload = CheckRunEvent;
-export type CheckSuiteWebhookPayload = CheckSuiteEvent;
-export type WorkflowRunWebhookPayload = WorkflowRunEvent;
-export type WorkflowJobWebhookPayload = WorkflowJobEvent;
-export type PullRequestWebhookPayload = PullRequestEvent;
-export type PushWebhookPayload = PushEvent;
-export type InstallationWebhookPayload = InstallationEvent;
-
-// =============================================================================
-// EXPORTS
-// =============================================================================
-
+// Re-export our Zod-validated webhook payload types for easier usage
 export type {
-  CheckRunEvent,
-  CheckSuiteEvent,
-  WorkflowRunEvent,
-  WorkflowJobEvent,
-  PullRequestEvent,
-  PushEvent,
-  IssuesEvent,
-  InstallationEvent,
-} from '@octokit/webhooks-types';
+  CheckRunWebhookPayload,
+  CheckSuiteWebhookPayload, 
+  WorkflowRunWebhookPayload,
+  WorkflowJobWebhookPayload,
+  PullRequestWebhookPayload,
+  PushWebhookPayload,
+  InstallationWebhookPayload,
+} from './schemas.js';
+
+// NOTE: Octokit types are already re-exported above

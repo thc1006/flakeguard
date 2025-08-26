@@ -1,7 +1,7 @@
 /**
  * BullMQ Worker Performance Optimizations
  */
-import { Worker, Queue, WorkerOptions } from "bullmq";
+import { Worker, Queue as _Queue, WorkerOptions } from "bullmq";
 
 interface OptimizedWorkerConfig {
   concurrency: number;

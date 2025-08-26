@@ -15,7 +15,7 @@ describe('Webhook Debug', () => {
 
   beforeEach(async () => {
     process.env.GITHUB_WEBHOOK_SECRET = webhookSecret;
-    process.env.NODE_ENV = 'test';
+    (process.env as any).NODE_ENV = 'test';
 
     app = Fastify({ logger: true }); // Enable logging to see what's happening
     

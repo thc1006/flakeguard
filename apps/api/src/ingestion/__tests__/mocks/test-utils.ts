@@ -130,12 +130,13 @@ export function createTestCase(options: {
     withSystemOutput = false
   } = options;
 
-  const testCase: TestCase = {
+  // Create a mutable object first using type assertion
+  const testCase = {
     name,
     className,
     status,
     time
-  };
+  } as any;
 
   if (withFailure && status === 'failed') {
     testCase.failure = {
@@ -164,7 +165,7 @@ export function createTestCase(options: {
     testCase.systemErr = `System error for ${name}`;
   }
 
-  return testCase;
+  return testCase as TestCase;
 }
 
 /**
@@ -226,7 +227,8 @@ export function createTestSuite(options: {
     }));
   }
 
-  const suite: TestSuite = {
+  // Create a mutable object first using type assertion
+  const suite = {
     name,
     tests: testCount,
     failures: failureCount,
@@ -234,7 +236,7 @@ export function createTestSuite(options: {
     skipped: skippedCount,
     time: testCases.reduce((sum, tc) => sum + (tc.time || 0), 0),
     testCases
-  };
+  } as any;
 
   if (withProperties) {
     suite.properties = {
@@ -249,7 +251,7 @@ export function createTestSuite(options: {
     suite.systemErr = `System error for ${name}`;
   }
 
-  return suite;
+  return suite as TestSuite;
 }
 
 /**
@@ -463,12 +465,12 @@ export class PerformanceBenchmark {
     let totalMemory = 0;
 
     for (let i = 0; i < iterations; i++) {
-      const { timeMs, memoryUsedMB } = await measureTime(async () => {
+      const { result, timeMs } = await measureTime(async () => {
         return measureMemory(fn);
       });
       
       times.push(timeMs);
-      totalMemory += memoryUsedMB;
+      totalMemory += result.memoryUsedMB;
     }
 
     const avgTime = times.reduce((sum, time) => sum + time, 0) / times.length;

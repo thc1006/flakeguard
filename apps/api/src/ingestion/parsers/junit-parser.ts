@@ -47,14 +47,29 @@ import { detectFormatFromPath } from '../utils.js';
 // }
 
 /**
+ * Mutable versions of readonly interfaces for parser state
+ */
+type MutableTestCase = {
+  -readonly [K in keyof TestCase]?: TestCase[K] extends readonly any[] ? any[] : TestCase[K];
+};
+
+type MutableTestSuite = {
+  -readonly [K in keyof TestSuite]?: TestSuite[K] extends readonly any[] ? any[] : TestSuite[K];
+};
+
+type MutableTestSuites = {
+  -readonly [K in keyof TestSuites]?: TestSuites[K] extends readonly any[] ? any[] : TestSuites[K];
+};
+
+/**
  * Mutable parser state for internal use
  */
 interface MutableParserState {
   format: JUnitFormat;
   currentPath: string[];
-  testSuites: Partial<TestSuites>;
-  currentSuite?: Partial<TestSuite>;
-  currentTestCase?: Partial<TestCase>;
+  testSuites: MutableTestSuites;
+  currentSuite?: MutableTestSuite;
+  currentTestCase?: MutableTestCase;
   currentElement?: {
     name: string;
     attributes: Record<string, string>;
@@ -111,7 +126,7 @@ abstract class BaseJUnitParser {
           failures: 0,
           errors: 0,
           skipped: 0,
-          suites: []
+          suites: [] as any[]
         },
         warnings: []
       };
@@ -240,7 +255,7 @@ abstract class BaseJUnitParser {
    * Finalize parsing result
    */
   protected finalizeResult(state: MutableParserState): TestSuites {
-    const { testSuites, warnings } = state;
+    const { testSuites, warnings: _warnings } = state;
     
     return {
       name: testSuites.name,
@@ -327,22 +342,26 @@ class SurefireParser extends BaseJUnitParser {
 
   private handleTestSuitesOpen = (
     state: MutableParserState,
-    name: string,
+    _name: string,
     attributes: Record<string, string>
   ): void => {
     const attrs = this.parseAttributes(attributes);
-    state.testSuites.name = attrs.getString('name');
-    state.testSuites.tests = attrs.getInt('tests');
-    state.testSuites.failures = attrs.getInt('failures');
-    state.testSuites.errors = attrs.getInt('errors');
-    state.testSuites.skipped = attrs.getInt('skipped');
-    state.testSuites.time = attrs.getFloat('time');
-    state.testSuites.timestamp = attrs.getString('timestamp');
+    // Create a new mutable object rather than assigning to readonly properties
+    state.testSuites = {
+      ...state.testSuites,
+      name: attrs.getString('name'),
+      tests: attrs.getInt('tests'),
+      failures: attrs.getInt('failures'),
+      errors: attrs.getInt('errors'),
+      skipped: attrs.getInt('skipped'),
+      time: attrs.getFloat('time'),
+      timestamp: attrs.getString('timestamp')
+    };
   };
 
   private handleTestSuiteOpen = (
     state: MutableParserState,
-    name: string,
+    _name: string,
     attributes: Record<string, string>
   ): void => {
     const attrs = this.parseAttributes(attributes);
@@ -357,13 +376,14 @@ class SurefireParser extends BaseJUnitParser {
       skipped: attrs.getInt('skipped'),
       time: attrs.getFloat('time'),
       timestamp: attrs.getString('timestamp'),
-      testCases: [],
+      testCases: [] as any[],
       properties: {}
     };
   };
 
   private handleTestSuiteClose = (state: MutableParserState): void => {
     if (state.currentSuite && state.testSuites.suites) {
+      // Push directly to mutable array
       state.testSuites.suites.push(state.currentSuite as TestSuite);
       state.currentSuite = undefined;
     }
@@ -371,7 +391,7 @@ class SurefireParser extends BaseJUnitParser {
 
   private handleTestCaseOpen = (
     state: MutableParserState,
-    name: string,
+    _name: string,
     attributes: Record<string, string>
   ): void => {
     const attrs = this.parseAttributes(attributes);
@@ -386,6 +406,7 @@ class SurefireParser extends BaseJUnitParser {
 
   private handleTestCaseClose = (state: MutableParserState): void => {
     if (state.currentTestCase && state.currentSuite?.testCases) {
+      // Push directly to mutable array
       state.currentSuite.testCases.push(state.currentTestCase as TestCase);
       state.currentTestCase = undefined;
     }
@@ -410,14 +431,23 @@ class SurefireParser extends BaseJUnitParser {
       };
 
       if (name === 'failure') {
-        state.currentTestCase.failure = failure;
-        state.currentTestCase.status = 'failed';
+        state.currentTestCase = {
+          ...state.currentTestCase,
+          failure,
+          status: 'failed'
+        };
       } else if (name === 'error') {
-        state.currentTestCase.error = failure;
-        state.currentTestCase.status = 'error';
+        state.currentTestCase = {
+          ...state.currentTestCase,
+          error: failure,
+          status: 'error'
+        };
       } else if (name === 'skipped') {
-        state.currentTestCase.skipped = { message: attrs.getString('message') };
-        state.currentTestCase.status = 'skipped';
+        state.currentTestCase = {
+          ...state.currentTestCase,
+          skipped: { message: attrs.getString('message') },
+          status: 'skipped'
+        };
       }
     }
   };
@@ -427,9 +457,21 @@ class SurefireParser extends BaseJUnitParser {
       const stackTrace = state.currentElement.text;
       
       if (name === 'failure' && state.currentTestCase.failure) {
-        state.currentTestCase.failure.stackTrace = stackTrace;
+        state.currentTestCase = {
+          ...state.currentTestCase,
+          failure: {
+            ...state.currentTestCase.failure,
+            stackTrace
+          }
+        };
       } else if (name === 'error' && state.currentTestCase.error) {
-        state.currentTestCase.error.stackTrace = stackTrace;
+        state.currentTestCase = {
+          ...state.currentTestCase,
+          error: {
+            ...state.currentTestCase.error,
+            stackTrace
+          }
+        };
       }
     }
   };
@@ -448,15 +490,27 @@ class SurefireParser extends BaseJUnitParser {
       
       if (state.currentTestCase) {
         if (name === 'system-out') {
-          state.currentTestCase.systemOut = content;
+          state.currentTestCase = {
+            ...state.currentTestCase,
+            systemOut: content
+          };
         } else if (name === 'system-err') {
-          state.currentTestCase.systemErr = content;
+          state.currentTestCase = {
+            ...state.currentTestCase,
+            systemErr: content
+          };
         }
       } else if (state.currentSuite) {
         if (name === 'system-out') {
-          state.currentSuite.systemOut = content;
+          state.currentSuite = {
+            ...state.currentSuite,
+            systemOut: content
+          };
         } else if (name === 'system-err') {
-          state.currentSuite.systemErr = content;
+          state.currentSuite = {
+            ...state.currentSuite,
+            systemErr: content
+          };
         }
       }
     }

@@ -108,15 +108,10 @@ describe('FlakeDetectionEngine', () => {
       
       // Create test with high duration variance
       const runs = [
-        createTestRun('passed', new Date(baseDate.getTime())),
-        createTestRun('passed', new Date(baseDate.getTime() + 1000)),
-        createTestRun('passed', new Date(baseDate.getTime() + 2000)),
+        { ...createTestRun('passed', new Date(baseDate.getTime())), duration: 100 },   // Fast
+        { ...createTestRun('passed', new Date(baseDate.getTime() + 1000)), duration: 1000 },  // Normal
+        { ...createTestRun('passed', new Date(baseDate.getTime() + 2000)), duration: 5000 },  // Slow
       ];
-
-      // Modify durations to create variance
-      runs[0]!.duration = 100;   // Fast
-      runs[1]!.duration = 1000;  // Normal
-      runs[2]!.duration = 5000;  // Slow
 
       const result = engine.analyzeTest(runs);
 
