@@ -13,7 +13,7 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (status === 'loading') {
