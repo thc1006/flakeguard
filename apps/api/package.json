@@ -9,7 +9,7 @@
     "build": "pnpm generate && tsc --project tsconfig.json",
     "start": "node dist/server.js",
     "prebuild": "pnpm generate",
-    "postinstall": "prisma generate",
+    "postinstall": "pnpm exec prisma generate",
     "test": "vitest",
     "test:run": "vitest run",
     "test:unit": "vitest run --config vitest.unit.config.ts",
