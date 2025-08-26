@@ -22,7 +22,7 @@ export function UserButton() {
   if (!session) {
     return (
       <Button asChild variant="default" size="sm">
-        <Link href="/auth/signin">{t('signIn')}</Link>
+        <Link href={"/auth/signin" as any}>{t('signIn')}</Link>
       </Button>
     );
   }
