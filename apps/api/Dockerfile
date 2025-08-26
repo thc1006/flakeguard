@@ -76,7 +76,7 @@ COPY --chown=builder:builder tsconfig.json ./
 # Generate Prisma client and build application
 RUN cd apps/api && \
     echo "Generating Prisma client..." && \
-    pnpm exec prisma generate && \
+    cd prisma && pnpm exec prisma generate && cd .. && \
     echo "Prisma client generated successfully" && \
     ls -la node_modules/.prisma/client/ || echo "Warning: Prisma client not found" && \
     echo "Building application..." && \

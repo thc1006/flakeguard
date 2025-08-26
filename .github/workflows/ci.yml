@@ -147,6 +147,13 @@ jobs:
           export NODE_OPTIONS="--max-old-space-size=4096"
           pnpm install --no-frozen-lockfile --prefer-offline
 
+      - name: Build shared packages
+        run: |
+          echo "[BUILD] Building shared packages for linting..."
+          pnpm --filter=@flakeguard/shared build
+          pnpm --filter=@flakeguard/cli build
+          echo "[BUILD] Shared packages built"
+
       - name: Run ESLint
         run: pnpm lint
 
@@ -170,12 +177,12 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
-          PGUSER: ${{ env.POSTGRES_USER }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flakeguard_test
+          PGUSER: postgres
         options: >-
-          --health-cmd "pg_isready -U $POSTGRES_USER"
+          --health-cmd "pg_isready -U postgres -d flakeguard_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -222,21 +229,30 @@ jobs:
           export NODE_OPTIONS="--max-old-space-size=4096"
           pnpm install --no-frozen-lockfile --prefer-offline
 
+      - name: Build shared packages first
+        run: |
+          echo "[BUILD] Building shared packages before Prisma generation..."
+          pnpm --filter=@flakeguard/shared build
+          pnpm --filter=@flakeguard/cli build
+          echo "[BUILD] Shared packages built"
+
       - name: Generate Prisma client (initial)
         run: |
           echo "[PRISMA] Generating Prisma client before migrations..."
-          pnpm --filter=@flakeguard/api generate
+          cd apps/api
+          pnpm generate
           echo "[PRISMA] Initial Prisma client generated"
 
       - name: Check database connection
         run: |
           echo "[DB] Testing database connection..."
-          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U $POSTGRES_USER; do sleep 1; done'
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres -d flakeguard_test; do sleep 1; done'
           echo "[DB] Database is ready"
         env:
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-          PGUSER: ${{ env.POSTGRES_USER }}
+          POSTGRES_USER: postgres
+          PGPASSWORD: postgres
+          PGUSER: postgres
+          PGDATABASE: flakeguard_test
 
       - name: Show pending migrations
         run: |
@@ -247,7 +263,7 @@ jobs:
           cat apps/api/prisma/migrations/migration_lock.toml || echo "No lock file found"
           # Note: Skip migrate status check initially as _prisma_migrations table may not exist yet
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
           POSTGRES_USER: ${{ env.POSTGRES_USER }}
           PGUSER: ${{ env.POSTGRES_USER }}
 
@@ -268,19 +284,21 @@ jobs:
           ORDER BY table_name;
           EOF
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          PGUSER: ${{ env.POSTGRES_USER }}
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
+          POSTGRES_USER: postgres
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: flakeguard_test
 
       - name: Regenerate Prisma client (post-migration)
         run: |
           echo "[PRISMA] Regenerating Prisma client after migrations..."
           rm -rf apps/api/node_modules/.prisma || true
-          pnpm --filter=@flakeguard/api generate
+          cd apps/api
+          pnpm generate
           echo "[PRISMA] Prisma client regenerated"
           echo "[PRISMA] Verifying client location..."
-          ls -la apps/api/node_modules/.prisma/client/ || echo "Client not found in expected location"
+          ls -la node_modules/.prisma/client/ || echo "Client not found in expected location"
 
       - name: Validate schema integrity
         run: |
@@ -288,7 +306,7 @@ jobs:
           echo "[VALIDATE] Skipping db pull on fresh database - schema is from migrations"
           echo "[VALIDATE] Schema validation completed"
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
 
       - name: Pre-seed database validation
         run: |
@@ -303,9 +321,9 @@ jobs:
               FOREACH table_name IN ARRAY required_tables
               LOOP
                   SELECT EXISTS (
-                      SELECT FROM information_schema.tables 
-                      WHERE table_schema = 'public' 
-                      AND table_name = table_name
+                      SELECT FROM information_schema.tables t
+                      WHERE t.table_schema = 'public' 
+                      AND t.table_name = table_name
                   ) INTO table_exists;
                   
                   IF NOT table_exists THEN
@@ -320,7 +338,7 @@ jobs:
           EOF
           echo "[VALIDATE] Database schema validation completed"
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
 
       - name: Seed database
         run: |
@@ -339,7 +357,7 @@ jobs:
           fi
           echo "[SEED] Database seeded successfully"
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
 
       - name: Verify database setup
         run: |
@@ -373,7 +391,7 @@ jobs:
           EOF
           echo "[VERIFY] Database verification completed"
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
 
       - name: Run unit tests
         run: |
@@ -411,12 +429,12 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
-          PGUSER: ${{ env.POSTGRES_USER }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: flakeguard_test
+          PGUSER: postgres
         options: >-
-          --health-cmd "pg_isready -U $POSTGRES_USER"
+          --health-cmd "pg_isready -U postgres -d flakeguard_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -463,21 +481,33 @@ jobs:
           export NODE_OPTIONS="--max-old-space-size=4096"
           pnpm install --no-frozen-lockfile --prefer-offline
 
+      - name: Build shared packages first
+        run: |
+          echo "[BUILD] Building shared packages before Prisma generation..."
+          pnpm --filter=@flakeguard/shared build
+          pnpm --filter=@flakeguard/cli build
+          echo "[BUILD] Shared packages built"
+
       - name: Install Playwright browsers
         run: pnpm --filter=@flakeguard/api exec playwright install --with-deps
 
       - name: Generate Prisma client (initial)
-        run: pnpm --filter=@flakeguard/api generate
+        run: |
+          echo "[PRISMA] Generating Prisma client before migrations..."
+          cd apps/api
+          pnpm generate
+          echo "[PRISMA] Initial Prisma client generated"
 
       - name: Check database connection
         run: |
           echo "[DB] Testing database connection..."
-          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U $POSTGRES_USER; do sleep 1; done'
+          timeout 30 bash -c 'until pg_isready -h localhost -p 5432 -U postgres -d flakeguard_test; do sleep 1; done'
           echo "[DB] Database is ready"
         env:
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-          PGUSER: ${{ env.POSTGRES_USER }}
+          POSTGRES_USER: postgres
+          PGPASSWORD: postgres
+          PGUSER: postgres
+          PGDATABASE: flakeguard_test
 
       - name: Show pending migrations
         run: |
@@ -488,7 +518,7 @@ jobs:
           cat apps/api/prisma/migrations/migration_lock.toml || echo "No lock file found"
           # Note: Skip migrate status check initially as _prisma_migrations table may not exist yet
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
           POSTGRES_USER: ${{ env.POSTGRES_USER }}
           PGUSER: ${{ env.POSTGRES_USER }}
 
@@ -509,19 +539,21 @@ jobs:
           ORDER BY table_name;
           EOF
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
-          POSTGRES_USER: ${{ env.POSTGRES_USER }}
-          PGUSER: ${{ env.POSTGRES_USER }}
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
+          POSTGRES_USER: postgres
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: flakeguard_test
 
       - name: Regenerate Prisma client (post-migration)
         run: |
           echo "[PRISMA] Regenerating Prisma client after migrations..."
           rm -rf apps/api/node_modules/.prisma || true
-          pnpm --filter=@flakeguard/api generate
+          cd apps/api
+          pnpm generate
           echo "[PRISMA] Prisma client regenerated"
           echo "[PRISMA] Verifying client location..."
-          ls -la apps/api/node_modules/.prisma/client/ || echo "Client not found in expected location"
+          ls -la node_modules/.prisma/client/ || echo "Client not found in expected location"
 
       - name: Validate schema integrity
         run: |
@@ -529,7 +561,7 @@ jobs:
           echo "[VALIDATE] Skipping db pull on fresh database - schema is from migrations"
           echo "[VALIDATE] Schema validation completed"
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
 
       - name: Pre-seed database validation
         run: |
@@ -544,9 +576,9 @@ jobs:
               FOREACH table_name IN ARRAY required_tables
               LOOP
                   SELECT EXISTS (
-                      SELECT FROM information_schema.tables 
-                      WHERE table_schema = 'public' 
-                      AND table_name = table_name
+                      SELECT FROM information_schema.tables t
+                      WHERE t.table_schema = 'public' 
+                      AND t.table_name = table_name
                   ) INTO table_exists;
                   
                   IF NOT table_exists THEN
@@ -561,7 +593,7 @@ jobs:
           EOF
           echo "[VALIDATE] Database schema validation completed"
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
 
       - name: Seed database
         run: |
@@ -580,7 +612,7 @@ jobs:
           fi
           echo "[SEED] Database seeded successfully"
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
 
       - name: Verify database setup
         run: |
@@ -614,7 +646,7 @@ jobs:
           EOF
           echo "[VERIFY] Database verification completed"
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
 
       - name: Build applications
         run: pnpm build
@@ -691,17 +723,25 @@ jobs:
           export NODE_OPTIONS="--max-old-space-size=4096"
           pnpm install --no-frozen-lockfile --prefer-offline
 
+      - name: Build shared packages first
+        run: |
+          echo "[BUILD] Building shared packages..."
+          pnpm --filter=@flakeguard/shared build
+          echo "[BUILD] Shared packages built"
+
       - name: Generate Prisma client for build
         if: matrix.app == 'api'
         run: |
           echo "[PRISMA] Generating Prisma client for API build..."
-          pnpm --filter=@flakeguard/api generate
+          cd apps/api
+          pnpm generate
           echo "[PRISMA] Prisma client ready for build"
           
       - name: Build ${{ matrix.app }}
         run: |
-          pnpm --filter=@flakeguard/shared build
+          echo "[BUILD] Building ${{ matrix.app }}..."
           pnpm --filter=@flakeguard/${{ matrix.app }} build
+          echo "[BUILD] ${{ matrix.app }} built successfully"
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
