@@ -50,6 +50,7 @@ RUN for i in 1 2 3; do \
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml .npmrc ./
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
+COPY apps/api/prisma ./apps/api/prisma
 
 # Change ownership and install dependencies
 RUN chown -R builder:builder /app
