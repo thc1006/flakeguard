@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { api, Repository } from '@/lib/api';
+import { api } from '@/lib/api';
 
 export function useRepositories(params?: {
   limit?: number;
