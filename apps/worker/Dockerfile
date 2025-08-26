@@ -94,7 +94,8 @@ COPY --chown=builder:builder tsconfig.json ./
 RUN pnpm --filter @flakeguard/worker build
 
 # Prune to production dependencies only
-RUN pnpm --filter @flakeguard/worker --prod deploy pruned/worker
+# Note: Using --ignore-scripts to prevent build scripts from running during deploy
+RUN pnpm --filter @flakeguard/worker --prod --ignore-scripts deploy pruned/worker
 
 # =============================================================================
 # RUNTIME STAGE - Minimal production image
