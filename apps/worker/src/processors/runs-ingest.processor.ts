@@ -388,7 +388,7 @@ async function downloadArtifact(
 function filterTestArtifacts(artifacts: GitHubArtifact[]): GitHubArtifact[] {
   const filter = ARTIFACT_FILTERS.TEST_RESULTS;
   
-  return artifacts.filter(artifact => {
+  return artifacts.filter((artifact: GitHubArtifact) => {
     // Skip expired artifacts
     if (artifact.expired) {
       return false;
@@ -400,7 +400,7 @@ function filterTestArtifacts(artifacts: GitHubArtifact[]): GitHubArtifact[] {
     }
     
     // Check name patterns
-    const nameMatches = filter.namePatterns.some(pattern => 
+    const nameMatches = filter.namePatterns.some((pattern: string) => 
       artifact.name.toLowerCase().includes(pattern.toLowerCase())
     );
     
@@ -455,7 +455,7 @@ async function extractAndParseTestResults(zipPath: string, extractDir: string): 
     const entries = await zip.entries();
     
     // Find XML files
-    const xmlFiles = Object.values(entries).filter(entry => {
+    const xmlFiles = Object.values(entries).filter((entry: any) => {
       return !entry.isDirectory && 
              entry.name.toLowerCase().endsWith('.xml') &&
              !entry.name.includes('__MACOSX'); // Skip macOS metadata
@@ -497,11 +497,11 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
       normalize: true
     });
     
-    parser.on('error', (error) => {
+    parser.on('error', (error: any) => {
       reject(new Error(`XML parsing error: ${error.message}`));
     });
     
-    parser.on('opentag', (node) => {
+    parser.on('opentag', (node: any) => {
       const { name, attributes } = node;
       
       switch (name.toLowerCase()) {
@@ -559,11 +559,11 @@ async function parseJUnitXML(filePath: string): Promise<TestSuite[]> {
       textContent = '';
     });
     
-    parser.on('text', (text) => {
+    parser.on('text', (text: string) => {
       textContent += text;
     });
     
-    parser.on('closetag', (tagName) => {
+    parser.on('closetag', (tagName: string) => {
       switch (tagName.toLowerCase()) {
         case 'testsuite':
           if (currentSuite?.testCases) {
@@ -619,9 +619,9 @@ async function storeTestResults(
 ): Promise<void> {
   try {
     // Use database transaction for consistency
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prisma.$transaction(async (_tx: Prisma.TransactionClient) => {
       // Create or update workflow run record
-      await tx.fGWorkflowRun.upsert({
+      await _tx.fGWorkflowRun.upsert({
         where: {
           id: String(data.workflowRunId)
         },
@@ -646,7 +646,7 @@ async function storeTestResults(
       for (const suite of testSuites) {
         // Store test cases
         for (const testCase of suite.testCases) {
-          const fgTestCase = await tx.fGTestCase.upsert({
+          const fgTestCase = await _tx.fGTestCase.upsert({
             where: {
               orgId_repoId_suite_className_name: {
                 orgId: data.repository.owner,
@@ -673,7 +673,7 @@ async function storeTestResults(
           });
           
           // Create occurrence record
-          await tx.fGOccurrence.create({
+          await _tx.fGOccurrence.create({
             data: {
               orgId: data.repository.owner,
               testId: fgTestCase.id,

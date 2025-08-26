@@ -3,9 +3,16 @@
  */
 import { QueueNames } from '@flakeguard/shared';
 import { PrismaClient } from '@prisma/client';
+import type { Job, Worker } from 'bullmq';
 
 // Removed: import { OptimizedWorkerManager } from '../../api/src/performance/worker-optimizations.js';
 // TODO: Move OptimizedWorkerManager to shared package or implement locally
+
+// Extended Job interface for better type safety
+interface ExtendedJob extends Job {
+  failedReason?: string;
+  attemptsMade?: number;
+}
 
 import { config } from './config/index.js';
 import { emailProcessor } from './processors/email.processor.js';
@@ -99,12 +106,13 @@ async function start() {
       });
 
       worker.on('failed', (job, err) => {
+        const extendedJob = job as ExtendedJob;
         logger.error('Job failed', {
-          jobId: job?.id,
+          jobId: extendedJob?.id,
           queue: queueName,
           error: err.message,
-          failedReason: job?.failedReason,
-          attemptsMade: job?.attemptsMade,
+          failedReason: extendedJob?.failedReason || 'Unknown',
+          attemptsMade: extendedJob?.attemptsMade || 0,
         });
       });
 
