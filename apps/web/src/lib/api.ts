@@ -1,4 +1,4 @@
-import { ApiResponse, PaginatedResponse } from '@flakeguard/shared';
+import { PaginatedResponse } from '@flakeguard/shared';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_FLAKEGUARD_API_URL || process.env.FLAKEGUARD_API_URL || 'http://localhost:3000';
 

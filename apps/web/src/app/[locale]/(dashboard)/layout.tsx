@@ -1,8 +1,9 @@
 'use client';
 
+import React, { useState } from 'react';
+
 import { redirect } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
 
 import { Header } from '@/components/layout/header';
 import { Sidebar } from '@/components/layout/sidebar';

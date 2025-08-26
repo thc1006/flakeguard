@@ -1,8 +1,9 @@
 'use client';
 
+import React, { useState } from 'react';
+
 import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
 
 import { RepositoryHealthCard } from '@/components/dashboard/repository-health-card';
 import { Button } from '@/components/ui/button';

@@ -1,10 +1,11 @@
 'use client';
 
+import React, { useState } from 'react';
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { SessionProvider } from 'next-auth/react';
 import { ThemeProvider } from 'next-themes';
-import { useState } from 'react';
 
 interface ProvidersProps {
   children: React.ReactNode;

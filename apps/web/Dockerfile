@@ -146,9 +146,9 @@ COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/public ./public
 # Create .next directory with proper permissions
 RUN mkdir -p .next && chown -R flakeguard:flakeguard .next
 
-# Copy built application
-COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/.next/static ./.next/static
+# Copy built application (non-standalone mode)
+COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/.next ./.next
+COPY --from=builder --chown=flakeguard:flakeguard /app/apps/web/package.json ./package.json
 
 # Copy shared package for runtime
 COPY --from=shared-builder --chown=flakeguard:flakeguard /app/packages/shared/dist ./packages/shared/dist
@@ -180,10 +180,13 @@ req.setTimeout(3000); \
 req.end();' > healthcheck.js && \
 chown flakeguard:flakeguard healthcheck.js
 
+# Install production dependencies in runtime
+RUN pnpm install --prod --frozen-lockfile
+
 # Set secure permissions
 RUN find /app -type f -exec chmod 644 {} \; && \
     find /app -type d -exec chmod 755 {} \; && \
-    chmod +x /app/server.js /app/healthcheck.js
+    chmod +x /app/healthcheck.js
 
 # Switch to non-root user
 USER flakeguard
@@ -198,8 +201,8 @@ EXPOSE 3001
 # Use tini as PID 1 for proper signal handling
 ENTRYPOINT ["/sbin/tini", "--"]
 
-# Start the application
-CMD ["node", "server.js"]
+# Start the application  
+CMD ["pnpm", "start"]
 
 # =============================================================================
 # DEVELOPMENT STAGE (Optional)

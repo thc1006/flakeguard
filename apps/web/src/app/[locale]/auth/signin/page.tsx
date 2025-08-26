@@ -14,7 +14,7 @@ export default function SignInPage() {
 
   useEffect(() => {
     // Check if user is already signed in
-    getSession().then((session) => {
+    void getSession().then((session) => {
       if (session) {
         router.push('/dashboard');
       }
@@ -22,7 +22,7 @@ export default function SignInPage() {
   }, [router]);
 
   const handleSignIn = () => {
-    signIn('github', { callbackUrl: '/dashboard' });
+    void signIn('github', { callbackUrl: '/dashboard' });
   };
 
   return (
