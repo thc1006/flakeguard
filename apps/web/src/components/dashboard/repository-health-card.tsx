@@ -1,6 +1,7 @@
 import { clsx } from 'clsx';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import type { Route } from 'next';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -55,7 +56,7 @@ export function RepositoryHealthCard({ repository }: RepositoryHealthCardProps) 
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold truncate">
             <Link 
-              href={`/repositories/${repository.id}`}
+              href={`/repositories/${repository.id}` as Route}
               className="hover:underline"
             >
               {repository.name}

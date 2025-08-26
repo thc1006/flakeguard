@@ -1,5 +1,6 @@
 import { ArrowTopRightOnSquareIcon as ExternalLinkIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import type { Route } from 'next';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -116,7 +117,7 @@ export function FlakyTestsTable({ tests, repositoryId, isLoading }: FlakyTestsTa
                         variant="ghost"
                         size="sm"
                       >
-                        <Link href={`/repositories/${repositoryId}/tests/${encodeURIComponent(test.testFullName)}`}>
+                        <Link href={`/repositories/${repositoryId}/tests/${encodeURIComponent(test.testFullName)}` as Route}>
                           {t('test.actions.viewHistory')}
                         </Link>
                       </Button>
@@ -140,7 +141,7 @@ export function FlakyTestsTable({ tests, repositoryId, isLoading }: FlakyTestsTa
         {tests.length > 10 && (
           <div className="p-4 border-t">
             <Button asChild variant="outline" className="w-full">
-              <Link href={`/repositories/${repositoryId}/tests`}>
+              <Link href={`/repositories/${repositoryId}/tests` as Route}>
                 View All Tests ({tests.length})
               </Link>
             </Button>

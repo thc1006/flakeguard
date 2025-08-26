@@ -2,6 +2,7 @@
 
 import { UserCircleIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import type { Route } from 'next';
 import { useSession, signOut } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 
@@ -22,7 +23,7 @@ export function UserButton() {
   if (!session) {
     return (
       <Button asChild variant="default" size="sm">
-        <Link href={"/auth/signin" as any}>{t('signIn')}</Link>
+        <Link href={"/auth/signin" as Route}>{t('signIn')}</Link>
       </Button>
     );
   }

@@ -2,6 +2,7 @@
 
 import { LanguageIcon } from '@heroicons/react/24/outline';
 import { useRouter, usePathname } from 'next/navigation';
+import type { Route } from 'next';
 import { useLocale } from 'next-intl';
 
 import { Button } from './button';
@@ -30,7 +31,7 @@ export function LanguageSwitcher() {
       ? pathnameWithoutLocale || '/'
       : `/${newLocale}${pathnameWithoutLocale}`;
     
-    router.push(newPath);
+    router.push(newPath as Route);
   };
 
   const currentLocale = locales.find(l => l.code === locale);
