@@ -9,7 +9,6 @@ import { RecentActions } from '@/components/dashboard/recent-actions';
 import { RepositoryHealthCard } from '@/components/dashboard/repository-health-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useQuarantinePlan } from '@/hooks/use-quarantine';
 import { useRepositories } from '@/hooks/use-repositories';
 import { useRecentActions } from '@/hooks/use-tasks';
