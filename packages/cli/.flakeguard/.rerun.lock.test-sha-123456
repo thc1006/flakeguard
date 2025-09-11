@@ -1,0 +1,8 @@
+{
+  "sha": "test-sha-123456",
+  "timestamp": "2025-09-11T00:28:54.991Z",
+  "runId": "99887766",
+  "attempt": 1,
+  "reason": "Flaky-dominant failures detected (80.0% flaky, threshold: 70%)",
+  "triggeredBy": "flakeguard-auto-rerun"
+}

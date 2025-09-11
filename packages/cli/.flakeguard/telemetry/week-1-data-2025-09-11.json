@@ -1,0 +1,235 @@
+{
+  "timestamp": "2025-09-11",
+  "metrics": {
+    "totalRuns": 3,
+    "falseRedRate": 1,
+    "autoRerunSuccessRate": 0.6666666666666666,
+    "quarantineOnlyFailures": 2,
+    "topOwners": [
+      {
+        "owner": "@backend-team",
+        "mentionCount": 1,
+        "avgTTLDays": 5.5,
+        "quarantineCount": 2,
+        "resolvedCount": 1
+      },
+      {
+        "owner": "@security-team",
+        "mentionCount": 1,
+        "avgTTLDays": 14,
+        "quarantineCount": 1,
+        "resolvedCount": 0
+      },
+      {
+        "owner": "@payments-team",
+        "mentionCount": 1,
+        "avgTTLDays": 14,
+        "quarantineCount": 1,
+        "resolvedCount": 0
+      },
+      {
+        "owner": "@frontend-team",
+        "mentionCount": 0,
+        "avgTTLDays": 7,
+        "quarantineCount": 1,
+        "resolvedCount": 1
+      }
+    ],
+    "avgTTLBurnDown": 0.8571428571428572,
+    "problemMatcherNoiseLevel": 0.15
+  },
+  "recommendations": {
+    "quarantineTTL": {
+      "current": 7,
+      "recommended": 5,
+      "reasoning": "Teams are using >80% of quarantine time - shorten TTL for urgency"
+    },
+    "riskThresholds": {
+      "softGate": 0.6,
+      "hardFail": 0.85,
+      "reasoning": "High false red rate - lower thresholds for softer gating"
+    },
+    "problemMatcherAdjustments": []
+  },
+  "rawData": {
+    "runs": [
+      {
+        "runId": "12345001",
+        "sha": "abc123def456",
+        "attempt": 1,
+        "status": "failure",
+        "conclusion": "failure",
+        "createdAt": "2025-09-11T10:00:00Z",
+        "completedAt": "2025-09-11T10:15:00Z",
+        "jobs": [
+          {
+            "id": "job1",
+            "name": "CI Tests",
+            "status": "completed",
+            "conclusion": "failure",
+            "steps": [
+              {
+                "name": "Run tests",
+                "status": "completed",
+                "conclusion": "failure",
+                "output": "FlakeGuard: 80% quarantine-only failures"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "runId": "12345002",
+        "sha": "abc123def456",
+        "attempt": 2,
+        "status": "success",
+        "conclusion": "success",
+        "createdAt": "2025-09-11T10:20:00Z",
+        "completedAt": "2025-09-11T10:35:00Z",
+        "jobs": [
+          {
+            "id": "job1",
+            "name": "CI Tests",
+            "status": "completed",
+            "conclusion": "success",
+            "steps": [
+              {
+                "name": "Run tests",
+                "status": "completed",
+                "conclusion": "success",
+                "output": "All tests passed after rerun"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "runId": "12345003",
+        "sha": "def456ghi789",
+        "attempt": 1,
+        "status": "failure",
+        "conclusion": "failure",
+        "createdAt": "2025-09-10T14:30:00Z",
+        "completedAt": "2025-09-10T14:45:00Z",
+        "jobs": [
+          {
+            "id": "job1",
+            "name": "CI Tests",
+            "status": "completed",
+            "conclusion": "failure",
+            "steps": [
+              {
+                "name": "Run tests",
+                "status": "completed",
+                "conclusion": "failure",
+                "output": "FlakeGuard: 30% quarantine-only failures, real bugs detected"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "quarantineHistory": [
+      {
+        "testKey": "auth::login::timeout",
+        "owner": "@security-team",
+        "reason": "Random timeout behavior",
+        "until": "2025-09-18T12:00:00.000Z",
+        "quarantinedAt": "2025-09-04T12:00:00.000Z",
+        "ttlDays": 14
+      },
+      {
+        "testKey": "ui::modal::flicker",
+        "owner": "@frontend-team",
+        "reason": "Modal animation timing",
+        "until": "2025-09-15T08:00:00.000Z",
+        "quarantinedAt": "2025-09-08T10:30:00.000Z",
+        "resolvedAt": "2025-09-12T16:00:00.000Z",
+        "ttlDays": 7
+      },
+      {
+        "testKey": "payment::timeout::network",
+        "owner": "@payments-team",
+        "reason": "Payment gateway timeout",
+        "until": "2025-09-20T16:00:00.000Z",
+        "quarantinedAt": "2025-09-06T14:15:00.000Z",
+        "ttlDays": 14
+      },
+      {
+        "testKey": "cache::race::condition",
+        "owner": "@backend-team",
+        "reason": "Cache invalidation race",
+        "until": "2025-09-13T10:00:00.000Z",
+        "quarantinedAt": "2025-09-09T09:00:00.000Z",
+        "ttlDays": 4
+      },
+      {
+        "testKey": "db::connection::pool",
+        "owner": "@backend-team",
+        "reason": "Connection pool exhausted",
+        "until": "2025-09-12T10:00:00.000Z",
+        "quarantinedAt": "2025-09-05T09:00:00.000Z",
+        "resolvedAt": "2025-09-11T15:30:00.000Z",
+        "ttlDays": 7
+      }
+    ],
+    "rerunHistory": [
+      {
+        "sha": "abc123def456",
+        "originalRunId": "12345001",
+        "rerunRunId": "12345002",
+        "triggerReason": "Flaky-dominant failures detected (80.0% flaky, threshold: 70%)",
+        "success": true,
+        "flakyCoverage": 0.8
+      },
+      {
+        "sha": "ghi789jkl012",
+        "originalRunId": "12345004",
+        "rerunRunId": "12345005",
+        "triggerReason": "Flaky-dominant failures detected (75.0% flaky, threshold: 70%)",
+        "success": true,
+        "flakyCoverage": 0.75
+      },
+      {
+        "sha": "mno345pqr678",
+        "originalRunId": "12345006",
+        "rerunRunId": "12345007",
+        "triggerReason": "Flaky-dominant failures detected (72.0% flaky, threshold: 70%)",
+        "success": false,
+        "flakyCoverage": 0.72
+      }
+    ],
+    "ownerInteractions": [
+      {
+        "owner": "@backend-team",
+        "timestamp": "2025-09-11T15:30:00Z",
+        "action": "resolved",
+        "context": "Fixed db::connection::pool issue"
+      },
+      {
+        "owner": "@frontend-team",
+        "timestamp": "2025-09-12T16:00:00Z",
+        "action": "resolved",
+        "context": "Fixed ui::modal::flicker with React update"
+      },
+      {
+        "owner": "@security-team",
+        "timestamp": "2025-09-10T09:00:00Z",
+        "action": "mentioned",
+        "context": "auth::login::timeout investigation needed"
+      },
+      {
+        "owner": "@payments-team",
+        "timestamp": "2025-09-09T11:30:00Z",
+        "action": "mentioned",
+        "context": "payment::timeout::network retry strategy"
+      },
+      {
+        "owner": "@backend-team",
+        "timestamp": "2025-09-08T14:15:00Z",
+        "action": "mentioned",
+        "context": "cache::race::condition database optimization"
+      }
+    ]
+  }
+}
