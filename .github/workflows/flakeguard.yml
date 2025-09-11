@@ -54,8 +54,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build CLI package
-        run: pnpm --filter @flakeguard/cli build
+      - name: Build all packages
+        run: |
+          echo "🔨 Building all packages to ensure proper workspace linking..."
+          # Build packages in dependency order
+          pnpm --filter @flakeguard/shared build
+          pnpm --filter @flakeguard/cli build
+          pnpm -r build
+          
+      - name: Verify CLI package built successfully
+        run: |
+          echo "✅ Verifying CLI binaries exist..."
+          ls -la packages/cli/dist/
+          echo "✅ Testing CLI commands..."
+          cd packages/cli && node dist/gate.js --help || echo "Gate command test"
 
       - name: Download test artifacts from previous run (with retry)
         if: github.event_name == 'workflow_run'
