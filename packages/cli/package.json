@@ -24,15 +24,16 @@
     "flakeguard-telemetry": "dist/telemetry-analyzer.js"
   },
   "scripts": {
-    "prepare": "tsc",
-    "postinstall": "tsc",
-    "build": "tsc",
-    "postbuild": "chmod +x dist/bin/cli.js",
+    "prepare": "npm run build",
+    "postinstall": "npm run build",
+    "build": "tsc && npm run postbuild",
+    "postbuild": "chmod +x dist/bin/cli.js || echo 'chmod skipped on Windows'",
     "dev": "tsc --watch",
     "start": "node dist/bin/cli.js",
     "test": "jest --passWithNoTests",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.7",

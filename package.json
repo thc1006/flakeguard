@@ -8,7 +8,8 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "postinstall": "pnpm --filter=@flakeguard/shared build && pnpm --filter=@flakeguard/cli build",
+    "postinstall": "echo 'Installing dependencies complete. Run build script to compile packages.'",
+    "build:packages": "pnpm --filter=@flakeguard/shared build && pnpm --filter=@flakeguard/cli build",
     "flakeguard:init": "pnpm --filter=@flakeguard/cli build && node packages/cli/dist/bin/cli.js",
     "dev": "pnpm --parallel --filter='./apps/*' dev",
     "docs:dev": "pnpm --filter=@flakeguard/docs dev",

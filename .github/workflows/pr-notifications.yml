@@ -33,15 +33,25 @@ jobs:
         with:
           version: 10.0.0
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Install dependencies (without postinstall)
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
 
-      - name: Build shared and CLI packages
+      - name: Build packages in correct order
         run: |
-          echo "Building shared package first..."
-          pnpm --filter @flakeguard/shared build
-          echo "Building CLI package..."
-          pnpm --filter @flakeguard/cli build
+          echo "Building packages using root script..."
+          pnpm run build:packages
+          echo "✅ All packages built successfully"
+          
+          echo "Verifying CLI build output..."
+          ls -la packages/cli/dist/
+          ls -la packages/cli/dist/bin/
+          
+          echo "Testing CLI commands..."
+          cd packages/cli
+          node dist/bin/cli.js --version
+          node dist/pr-notifier.js --help
+          node dist/quarantine.js --help
+          echo "✅ All CLI commands are working"
 
       - name: Get base branch quarantine config
         id: get-base-config
@@ -287,15 +297,25 @@ jobs:
         with:
           version: 10.0.0
 
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+      - name: Install dependencies (without postinstall)
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
 
-      - name: Build shared and CLI packages
+      - name: Build packages in correct order
         run: |
-          echo "Building shared package first..."
-          pnpm --filter @flakeguard/shared build
-          echo "Building CLI package..."
-          pnpm --filter @flakeguard/cli build
+          echo "Building packages using root script..."
+          pnpm run build:packages
+          echo "✅ All packages built successfully"
+          
+          echo "Verifying CLI build output..."
+          ls -la packages/cli/dist/
+          ls -la packages/cli/dist/bin/
+          
+          echo "Testing CLI commands..."
+          cd packages/cli
+          node dist/bin/cli.js --version
+          node dist/pr-notifier.js --help
+          node dist/quarantine.js --help
+          echo "✅ All CLI commands are working"
 
       - name: Post merge summary comment
         env:
