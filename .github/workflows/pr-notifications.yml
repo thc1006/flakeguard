@@ -36,8 +36,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build CLI package
-        run: pnpm --filter @flakeguard/cli build
+      - name: Build shared and CLI packages
+        run: |
+          echo "Building shared package first..."
+          pnpm --filter @flakeguard/shared build
+          echo "Building CLI package..."
+          pnpm --filter @flakeguard/cli build
 
       - name: Get base branch quarantine config
         id: get-base-config
@@ -89,6 +93,12 @@ jobs:
           
           echo "🔍 Validating updated quarantine configuration..."
           
+          # Check if quarantine config exists
+          if [[ ! -f "../../.flakeguard/quarantine.yml" ]]; then
+            echo "⚠️  No quarantine configuration found, skipping validation"
+            exit 0
+          fi
+          
           # Validate the new configuration
           if node dist/quarantine.js validate ../../.flakeguard/quarantine.yml --verbose; then
             echo "✅ Quarantine configuration is valid"
@@ -103,6 +113,12 @@ jobs:
           
           echo "⏰ Checking for expiring quarantines in PR..."
           
+          # Check if quarantine config exists
+          if [[ ! -f "../../.flakeguard/quarantine.yml" ]]; then
+            echo "⚠️  No quarantine configuration found, skipping expiration check"
+            exit 0
+          fi
+          
           # Check for expiring quarantines (warning only, don't fail)
           node dist/quarantine.js check-expiration \
             --config ../../.flakeguard/quarantine.yml \
@@ -115,10 +131,25 @@ jobs:
           
           echo "📊 Generating quarantine summary..."
           
-          # Generate JSON summary for potential PR description update
-          SUMMARY_JSON=$(node dist/quarantine.js list \
-            --config ../../.flakeguard/quarantine.yml \
-            --format json)
+          # Check if quarantine config exists first
+          if [[ ! -f "../../.flakeguard/quarantine.yml" ]]; then
+            echo "⚠️  No quarantine configuration found, using empty summary"
+            SUMMARY_JSON='{"summary":{"totalQuarantined":0,"activeTests":0,"expiringSoon":0,"expired":0}}'
+          else
+            # Generate JSON summary for potential PR description update
+            if ! SUMMARY_JSON=$(node dist/quarantine.js list \
+              --config ../../.flakeguard/quarantine.yml \
+              --format json 2>/dev/null); then
+              echo "⚠️  Failed to generate quarantine summary, using defaults"
+              SUMMARY_JSON='{"summary":{"totalQuarantined":0,"activeTests":0,"expiringSoon":0,"expired":0}}'
+            fi
+          fi
+          
+          # Validate JSON before parsing
+          if ! echo "$SUMMARY_JSON" | jq empty 2>/dev/null; then
+            echo "⚠️  Invalid JSON output, using defaults"
+            SUMMARY_JSON='{"summary":{"totalQuarantined":0,"activeTests":0,"expiringSoon":0,"expired":0}}'
+          fi
           
           # Extract key metrics
           TOTAL_QUARANTINED=$(echo "$SUMMARY_JSON" | jq -r '.summary.totalQuarantined // 0')
@@ -262,8 +293,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build CLI package
-        run: pnpm --filter @flakeguard/cli build
+      - name: Build shared and CLI packages
+        run: |
+          echo "Building shared package first..."
+          pnpm --filter @flakeguard/shared build
+          echo "Building CLI package..."
+          pnpm --filter @flakeguard/cli build
 
       - name: Post merge summary comment
         env:
@@ -271,13 +306,25 @@ jobs:
         run: |
           cd packages/cli
           
-          # Generate post-merge summary
-          SUMMARY=$(node dist/quarantine.js list \
+          # Generate post-merge summary with error handling
+          if SUMMARY_JSON=$(node dist/quarantine.js list \
             --config ../../.flakeguard/quarantine.yml \
-            --format json | jq -r '.summary')
-          
-          TOTAL=$(echo "$SUMMARY" | jq -r '.totalQuarantined')
-          ACTIVE=$(echo "$SUMMARY" | jq -r '.activeTests')
+            --format json 2>/dev/null); then
+            
+            # Validate JSON
+            if echo "$SUMMARY_JSON" | jq empty 2>/dev/null; then
+              TOTAL=$(echo "$SUMMARY_JSON" | jq -r '.summary.totalQuarantined // 0')
+              ACTIVE=$(echo "$SUMMARY_JSON" | jq -r '.summary.activeTests // 0')
+            else
+              echo "⚠️  Invalid JSON output, using defaults"
+              TOTAL=0
+              ACTIVE=0
+            fi
+          else
+            echo "⚠️  Failed to generate summary, using defaults"
+            TOTAL=0
+            ACTIVE=0
+          fi
           
           # Post final status comment
           gh pr comment ${{ github.event.pull_request.number }} \
