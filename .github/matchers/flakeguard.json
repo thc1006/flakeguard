@@ -5,7 +5,7 @@
       "severity": "warning",
       "pattern": [
         {
-          "regexp": "^\[FLAKY\]\s+(.*)\s+in\s+(.*):(\d+)\s+-\s+(.*)$",
+          "regexp": "^\\[FLAKY\\]\\s+(.*)\\ +in\\s+(.*):(\\ +)\\s+-\\s+(.*)$",
           "message": 1,
           "file": 2,
           "line": 3,
@@ -18,7 +18,7 @@
       "severity": "error",
       "pattern": [
         {
-          "regexp": "^\[FAILED\]\s+(.*)\s+in\s+(.*):(\d+)\s+-\s+(.*)$",
+          "regexp": "^\\[FAILED\\]\\s+(.*)\\ +in\\s+(.*):(\\ +)\\s+-\\s+(.*)$",
           "message": 1,
           "file": 2,
           "line": 3,
@@ -31,7 +31,7 @@
       "severity": "notice",
       "pattern": [
         {
-          "regexp": "^\[QUARANTINED\]\s+(.*)\s+in\s+(.*):(\d+)\s+-\s+(.*)$",
+          "regexp": "^\\[QUARANTINED\\]\\s+(.*)\\ +in\\s+(.*):(\\ +)\\s+-\\s+(.*)$",
           "message": 1,
           "file": 2,
           "line": 3,
