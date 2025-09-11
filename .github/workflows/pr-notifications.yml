@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  statuses: write
 
 jobs:
   notify-quarantine-changes:
@@ -212,15 +213,21 @@ jobs:
               description = 'All quarantines are active';
             }
             
-            await github.rest.repos.createCommitStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              sha: context.payload.pull_request.head.sha,
-              state: state,
-              target_url: `https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}#issuecomment`,
-              description: description,
-              context: 'FlakeGuard / Quarantine Status'
-            });
+            try {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: context.payload.pull_request.head.sha,
+                state: state,
+                target_url: `https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}#issuecomment`,
+                description: description,
+                context: 'FlakeGuard / Quarantine Status'
+              });
+              console.log('✅ Commit status created successfully');
+            } catch (error) {
+              console.log('⚠️ Failed to create commit status:', error.message);
+              console.log('This is likely due to insufficient permissions. Status: ' + state + ', Description: ' + description);
+            }
 
   # Optional: Auto-approve PRs that only add/remove quarantines (for trusted team members)
   auto-approve-quarantine-only:
