@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="sample-tests" tests="3" failures="2" errors="0" time="12.345" timestamp="2024-01-01T10:00:00">
+  <testcase classname="UserService" name="should create user successfully" file="user.test.ts" line="15" time="0.045">
+    <!-- This test passed -->
+  </testcase>
+  
+  <testcase classname="UserService" name="should handle concurrent requests" file="user.test.ts" line="32" time="2.150">
+    <failure message="Timeout: Test exceeded 5000ms" type="timeout">
+Error: Timeout: Test exceeded 5000ms
+    at timeout (user.test.ts:35:12)
+    at processTicksAndRejections (node:internal/process/task_queues.js:95:5)
+    </failure>
+  </testcase>
+  
+  <testcase classname="DatabaseService" name="should rollback failed transaction" file="db.test.ts" line="88" time="1.500">
+    <failure message="Connection lost during transaction" type="network">
+Error: Connection lost during transaction
+    at Connection.close (db.test.ts:92:8)
+    at DatabaseService.rollback (db.test.ts:105:15)
+    </failure>
+  </testcase>
+</testsuite>

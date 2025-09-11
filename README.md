@@ -340,6 +340,52 @@ docker build -f apps/worker/Dockerfile -t flakeguard-worker .
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
+## Required Checks Policy
+
+FlakeGuard maintains strict quality gates through automated CI checks. Our branch protection policy ensures only stable, well-tested code reaches the main branch.
+
+### Required Status Checks
+
+The following checks **MUST** pass before any PR can be merged:
+
+- ✅ **Core Quality Gates**: Linting, type checking, formatting verification
+- ✅ **Essential Tests**: Unit tests, integration tests, E2E tests covering critical paths  
+- ✅ **Security Scans**: Dependency audits, secret scanning, vulnerability checks
+- ✅ **Build Verification**: Successful compilation and Docker image creation
+- ✅ **FlakeGuard Analysis**: Test quality analysis and flake detection
+
+### Check Classification
+
+- **🔒 Required Checks**: Essential quality gates that block merges if they fail
+- **📝 Optional Checks**: Provide valuable feedback but don't block merges (e.g., performance tests)
+- **⚠️ Conditional Checks**: Run only under specific conditions (e.g., deployment workflows)
+- **🧪 Experimental Checks**: New or unstable checks in development
+
+### Automated Auditing
+
+Our branch protection auditor automatically analyzes all workflows and provides recommendations:
+
+```bash
+# Analyze current workflow configuration
+pnpm --filter @flakeguard/cli exec tsx src/branch-protection-auditor.ts analyze
+
+# Generate branch protection configuration
+pnpm --filter @flakeguard/cli exec tsx src/branch-protection-auditor.ts config
+```
+
+For complete policy details, see:
+- 📋 [Required Checks Policy](REQUIRED_CHECKS_POLICY.md) - Lifecycle management and promotion criteria
+- 🔒 [Branch Protection Configuration](BRANCH_PROTECTION.md) - Exact check names and setup guide
+
+### Promotion Process
+
+Checks become required when they meet strict criteria:
+1. **Stability**: < 2% failure rate due to infrastructure issues over 30 days
+2. **Relevance**: Directly impacts code quality, security, or functionality  
+3. **Coverage**: Runs on all relevant PRs without path conditions
+4. **Team Agreement**: Engineering consensus on requirement necessity
+5. **Documentation**: Clear failure resolution guidelines
+
 ## For Maintainers
 
 ### Dependency Management

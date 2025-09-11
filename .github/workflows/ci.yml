@@ -53,6 +53,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Explicit least-privilege permissions for security compliance
+permissions:
+  contents: read        # Required: repository checkout and file access
+  actions: read        # Required: artifact downloads in test jobs (lines 66, 77)
+  packages: write      # Required: Docker registry login (line 771)
+  security-events: write # Required: SARIF upload for Trivy scans (line 811)
+
 jobs:
   # Security and dependency scanning
   security-scan:
@@ -122,6 +129,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Register problem matchers
+        run: echo "::add-matcher::.github/matchers/junit.json"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -208,6 +218,9 @@ jobs:
           - 6379:6379
 
     steps:
+      - name: Register problem matchers
+        run: echo "::add-matcher::.github/matchers/junit.json"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -400,6 +413,29 @@ jobs:
           echo "[VERIFY] Database verification completed"
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/flakeguard_test
+
+      - name: Demonstrate problem matcher annotations
+        continue-on-error: true
+        run: |
+          echo "🧪 Demonstrating problem matcher capabilities..."
+          echo ""
+          echo "The following lines will generate PR annotations using our problem matchers:"
+          echo ""
+          # Demonstrate different test failure patterns
+          echo "  ✖ Authentication flow › should handle JWT token validation"
+          echo "    at src/auth/auth.test.ts:14:23"
+          echo ""
+          echo "  FAIL src/payment/payment.test.ts > Payment Processing › should handle payment timeout"
+          echo "    src/payment/payment.test.ts:25:15"
+          echo ""
+          echo "  ● API Integration › POST /api/test › should return 200"
+          echo "    at Object.<anonymous> (src/api/test.spec.ts:42:10)"
+          echo ""
+          echo "[FLAKY] Auth token validation in src/auth/auth.test.ts:14 - Random timeout behavior detected"
+          echo "[FAILED] Payment timeout handling in src/payment/payment.test.ts:25 - Network timeout error"
+          echo "[QUARANTINED] Modal flicker test in src/ui/modal.test.ts:18 - Known flaky test quarantined for 7 days"
+          echo ""
+          echo "✅ Problem matcher demonstration complete"
 
       - name: Run unit tests
         run: |

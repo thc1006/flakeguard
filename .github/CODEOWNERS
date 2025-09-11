@@ -1,0 +1,56 @@
+# FlakeGuard CODEOWNERS
+# 
+# This file defines code ownership for automatic reviewer assignment
+# and FlakeGuard PR notifications. Last matching pattern wins.
+
+# Default owners for everything
+* @flakeguard-maintainers
+
+# Core FlakeGuard components
+/.flakeguard/ @flakeguard-core @engineering-leads
+packages/cli/ @flakeguard-core @cli-team
+apps/api/ @flakeguard-core @api-team
+.github/workflows/ @flakeguard-core @devops-team
+
+# Application-specific test files (example patterns)
+src/auth/ @auth-team @security-team
+src/payment/ @payments-team @finance-team
+src/api/ @api-team @backend-team
+src/ui/ @frontend-team @design-team
+src/db/ @database-team @platform-team
+
+# Test files by framework
+**/*.test.ts @qa-team
+**/*.spec.ts @qa-team
+**/e2e/ @qa-team @e2e-team
+**/integration/ @integration-team @qa-team
+
+# Specific critical files
+src/auth/auth.test.ts @auth-team @security-team @senior-engineers
+src/payment/payment.test.ts @payments-team @compliance-team
+src/db/migrations/ @database-team @platform-team @senior-engineers
+
+# Documentation and configuration
+README.md @documentation-team @product-team
+*.md @documentation-team
+package.json @platform-team
+tsconfig.json @platform-team @frontend-team
+docker/ @devops-team @platform-team
+
+# CI/CD and infrastructure
+.github/ @devops-team @platform-team
+scripts/ @devops-team @platform-team
+Dockerfile @devops-team @platform-team
+
+# Example team mappings for demo purposes:
+# - @flakeguard-core: Core FlakeGuard maintainers
+# - @auth-team: Authentication and security features
+# - @payments-team: Payment processing and billing
+# - @api-team: Backend API development
+# - @frontend-team: UI and frontend components
+# - @database-team: Database and data layer
+# - @qa-team: Quality assurance and testing
+# - @devops-team: CI/CD and infrastructure
+# - @platform-team: Platform and core infrastructure
+# - @security-team: Security reviews and compliance
+# - @senior-engineers: Senior technical reviewers
