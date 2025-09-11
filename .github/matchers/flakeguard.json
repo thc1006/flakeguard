@@ -8,8 +8,7 @@
           "regexp": "^\\[FLAKY\\]\\s+(.*)\\ +in\\s+(.*):(\\ +)\\s+-\\s+(.*)$",
           "message": 1,
           "file": 2,
-          "line": 3,
-          "code": "FLAKY_TEST"
+          "line": 3
         }
       ]
     },
@@ -21,8 +20,7 @@
           "regexp": "^\\[FAILED\\]\\s+(.*)\\ +in\\s+(.*):(\\ +)\\s+-\\s+(.*)$",
           "message": 1,
           "file": 2,
-          "line": 3,
-          "code": "TEST_FAILURE"
+          "line": 3
         }
       ]
     },
@@ -34,8 +32,7 @@
           "regexp": "^\\[QUARANTINED\\]\\s+(.*)\\ +in\\s+(.*):(\\ +)\\s+-\\s+(.*)$",
           "message": 1,
           "file": 2,
-          "line": 3,
-          "code": "QUARANTINED_TEST"
+          "line": 3
         }
       ]
     }

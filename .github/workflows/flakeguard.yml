@@ -64,7 +64,7 @@ jobs:
         run: |
           # First, try to list artifacts using FlakeGuard's robust artifact retriever
           echo "📦 Listing artifacts from workflow run ${{ github.event.workflow_run.id }}..."
-          pnpm --filter @flakeguard/cli exec tsx src/fetch-artifact.ts list \
+          pnpm --filter @flakeguard/cli exec node dist/fetch-artifact.js list \
             ${{ github.repository_owner }} ${{ github.event.repository.name }} || echo "Failed to list artifacts"
           
           # Try gh CLI download first (faster for bulk downloads)
@@ -89,7 +89,7 @@ jobs:
         run: |
           # List available artifacts first
           echo "📦 Listing artifacts from current run ${{ github.run_id }}..."
-          pnpm --filter @flakeguard/cli exec tsx src/fetch-artifact.ts list \
+          pnpm --filter @flakeguard/cli exec node dist/fetch-artifact.js list \
             ${{ github.repository_owner }} ${{ github.event.repository.name }} || echo "Failed to list artifacts"
           
           # Try to download artifacts from current run context
@@ -113,7 +113,7 @@ jobs:
           GITHUB_REF: ${{ github.ref }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
-          pnpm --filter @flakeguard/cli exec tsx src/ingest.ts \
+          pnpm --filter @flakeguard/cli exec node dist/ingest.js \
             --artifacts-dir .flakeguard/artifacts \
             --output .flakeguard/out/report.json \
             --state-file .flakeguard/state.json \
@@ -142,7 +142,7 @@ jobs:
         id: flakeguard-gate
         run: |
           # Run the FlakeGuard gate to determine if pipeline should pass
-          pnpm --filter @flakeguard/cli exec tsx src/gate.ts \
+          pnpm --filter @flakeguard/cli exec node dist/gate.js \
             --quarantine-config .flakeguard/quarantine.yml \
             --test-report .flakeguard/out/report.json \
             --verbose \
@@ -155,11 +155,11 @@ jobs:
         run: |
           # Validate quarantine configuration schema and clean up expired entries
           echo "🛡️ Validating quarantine governance..."
-          pnpm --filter @flakeguard/cli exec tsx src/quarantine-governor.ts validate .flakeguard/quarantine.yml
+          pnpm --filter @flakeguard/cli exec node dist/quarantine-governor.js validate .flakeguard/quarantine.yml
           
           # Clean up expired quarantine entries
           echo "🧹 Cleaning up expired quarantine entries..."
-          pnpm --filter @flakeguard/cli exec tsx src/quarantine-governor.ts cleanup .flakeguard/quarantine.yml
+          pnpm --filter @flakeguard/cli exec node dist/quarantine-governor.js cleanup .flakeguard/quarantine.yml
 
       - name: Generate PR Governance Comment
         if: always() && github.event_name == 'pull_request'
@@ -171,7 +171,7 @@ jobs:
           echo "👥 Generating governance report for PR comment..."
           
           # Create governance comment content
-          COMMENT_BODY=$(pnpm --filter @flakeguard/cli exec tsx src/quarantine-governor.ts report .flakeguard/out/report.json .flakeguard/quarantine.yml)
+          COMMENT_BODY=$(pnpm --filter @flakeguard/cli exec node dist/quarantine-governor.js report .flakeguard/out/report.json .flakeguard/quarantine.yml)
           
           # Post consolidated PR comment with quarantine governance
           gh pr comment ${{ github.event.number }} --body "$COMMENT_BODY" \
@@ -184,7 +184,7 @@ jobs:
         run: |
           # Analyze test failures and trigger rerun if flaky-dominant (exactly once per SHA)
           # Uses robust lock mechanism to prevent infinite rerun loops
-          pnpm --filter @flakeguard/cli exec tsx src/auto-rerun.ts analyze \
+          pnpm --filter @flakeguard/cli exec node dist/auto-rerun.js analyze \
             --report .flakeguard/out/report.json \
             --quarantine .flakeguard/quarantine.yml \
             --sha "${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}" \
@@ -200,7 +200,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Generate comprehensive FlakeGuard summary using the dedicated summary generator
-          pnpm --filter @flakeguard/cli exec tsx src/summary.ts generate \
+          pnpm --filter @flakeguard/cli exec node dist/summary.js generate \
             --report .flakeguard/out/report.json \
             --quarantine .flakeguard/quarantine.yml \
             --sha "${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}" \
