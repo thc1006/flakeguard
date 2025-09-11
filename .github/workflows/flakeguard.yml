@@ -62,12 +62,21 @@ jobs:
           pnpm --filter @flakeguard/cli build
           pnpm -r build
           
+      - name: Reinstall dependencies to link built packages
+        run: |
+          echo "🔗 Re-linking workspace packages after build..."
+          pnpm install --no-frozen-lockfile
+          
       - name: Verify CLI package built successfully
         run: |
-          echo "✅ Verifying CLI binaries exist..."
+          echo "✅ Verifying CLI binaries exist in workspace..."
           ls -la packages/cli/dist/
-          echo "✅ Testing CLI commands..."
-          cd packages/cli && node dist/gate.js --help || echo "Gate command test"
+          echo "✅ Verifying CLI binaries exist in node_modules..."
+          ls -la node_modules/@flakeguard/cli/dist/ || echo "⚠️ CLI not in node_modules yet"
+          echo "✅ Testing CLI commands directly..."
+          cd packages/cli && node dist/gate.js --help || echo "Direct command failed"
+          echo "✅ Testing CLI commands via pnpm exec..."
+          pnpm --filter @flakeguard/cli exec node dist/gate.js --help || echo "Pnpm exec failed"
 
       - name: Download test artifacts from previous run (with retry)
         if: github.event_name == 'workflow_run'
@@ -229,10 +238,18 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             
             if [ -f ".flakeguard/out/report.json" ]; then
-              # Extract key metrics from report
-              total_tests=$(jq -r '.summary.totalTests // 0' .flakeguard/out/report.json)
-              failed_tests=$(jq -r '.summary.failedTests // 0' .flakeguard/out/report.json)
-              flaky_candidates=$(jq -r '.summary.flakyCandidates // 0' .flakeguard/out/report.json)
+              # Validate JSON before processing
+              if jq empty .flakeguard/out/report.json 2>/dev/null; then
+                # Extract key metrics from report
+                total_tests=$(jq -r '.summary.totalTests // 0' .flakeguard/out/report.json)
+                failed_tests=$(jq -r '.summary.failedTests // 0' .flakeguard/out/report.json)
+                flaky_candidates=$(jq -r '.summary.flakyCandidates // 0' .flakeguard/out/report.json)
+              else
+                echo "⚠️ Report JSON is invalid, using default values"
+                total_tests=0
+                failed_tests=0
+                flaky_candidates=0
+              fi
               
               echo "### 📊 Test Metrics" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
@@ -244,10 +261,10 @@ jobs:
               echo "" >> $GITHUB_STEP_SUMMARY
               
               # Show top failure signatures if any
-              if [ "$failed_tests" -gt "0" ]; then
+              if [ "$failed_tests" -gt "0" ] && jq -e '.failures' .flakeguard/out/report.json >/dev/null 2>&1; then
                 echo "### ❌ Recent Test Failures" >> $GITHUB_STEP_SUMMARY
                 echo "" >> $GITHUB_STEP_SUMMARY
-                jq -r '.failures[] | "- **\(.name)** in `\(.file // "unknown"):\(.line // "?")` - \(.message)"' .flakeguard/out/report.json | head -5 >> $GITHUB_STEP_SUMMARY
+                jq -r '.failures[]? | "- **\(.name)** in `\(.file // "unknown"):\(.line // "?")` - \(.message)"' .flakeguard/out/report.json 2>/dev/null | head -5 >> $GITHUB_STEP_SUMMARY || echo "- No detailed failure information available" >> $GITHUB_STEP_SUMMARY
                 echo "" >> $GITHUB_STEP_SUMMARY
               fi
             else
