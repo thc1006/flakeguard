@@ -24,6 +24,7 @@
     "flakeguard-telemetry": "dist/telemetry-analyzer.js"
   },
   "scripts": {
+    "prepare": "tsc",
     "build": "tsc",
     "postbuild": "chmod +x dist/bin/cli.js",
     "dev": "tsc --watch",
