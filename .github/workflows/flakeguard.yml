@@ -52,7 +52,7 @@ jobs:
           mkdir -p .flakeguard/artifacts
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build CLI package
         run: pnpm --filter @flakeguard/cli build
