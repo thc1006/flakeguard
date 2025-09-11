@@ -25,6 +25,7 @@
   },
   "scripts": {
     "prepare": "tsc",
+    "postinstall": "tsc",
     "build": "tsc",
     "postbuild": "chmod +x dist/bin/cli.js",
     "dev": "tsc --watch",
