@@ -1,0 +1,56 @@
+version: '1.0'
+quarantined_tests:
+  - test_key: 'auth::login::timeout'
+    reason: 'Random timeout behavior - investigating auth service latency'
+    quarantined_by: 'security-team@example.com'
+    quarantined_at: '2025-09-11T12:00:00.000Z'
+    expires_at: '2025-09-18T12:00:00.000Z'
+    priority: 'high'
+    owner_team: 'security-team'
+    jira_ticket: 'SECURITY-123'
+    notes: 'Investigating auth service latency issues'
+  
+  - test_key: 'ui::modal::flicker'
+    reason: 'Modal animation timing issue - waiting for React 19 migration'
+    quarantined_by: 'frontend-team@example.com'
+    quarantined_at: '2025-09-08T10:30:00.000Z'
+    expires_at: '2025-09-15T08:00:00.000Z'
+    priority: 'medium'
+    owner_team: 'frontend-team'
+    jira_ticket: 'UI-124'
+    notes: 'React 19 migration dependency'
+  
+  - test_key: 'payment::checkout::network'
+    reason: 'Payment gateway timeout - evaluating retry strategies'
+    quarantined_by: 'payments-team@example.com'
+    quarantined_at: '2025-09-10T14:15:00.000Z'
+    expires_at: '2025-09-20T16:00:00.000Z'
+    priority: 'critical'
+    owner_team: 'payments-team'
+    jira_ticket: 'PAY-456'
+    notes: 'Evaluating payment retry strategies'
+  
+  - test_key: 'db::connection::race'
+    reason: 'Database connection pool exhausted - optimizing connection management'
+    quarantined_by: 'backend-team@example.com'
+    quarantined_at: '2025-09-05T09:00:00.000Z'
+    expires_at: '2025-09-12T10:00:00.000Z'
+    priority: 'high'
+    owner_team: 'backend-team'
+    jira_ticket: 'DB-125'
+    notes: 'Optimizing database connection pool management'
+
+settings:
+  default_ttl_days: 14
+  max_ttl_days: 30
+  auto_extend_ttl: false
+  require_jira_ticket: true
+  notifications:
+    ttl_warning_days: 3
+    notify_teams: ['security-team', 'frontend-team', 'payments-team', 'backend-team']
+
+metadata:
+  created_at: '2025-09-05T09:00:00.000Z'
+  last_updated: '2025-09-11T12:00:00.000Z'
+  updated_by: 'flakeguard-system'
+  schema_version: '1.0'

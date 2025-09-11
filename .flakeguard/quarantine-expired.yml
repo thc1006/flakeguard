@@ -1,0 +1,23 @@
+# Test quarantine config with expired TTL
+version: "1.0"
+
+quarantined_tests:
+  # This test has an expired quarantine
+  - test_key: "auth::Authentication Service › should validate JWT token::src/auth/auth.test.ts"
+    reason: "Expired quarantine - should block pipeline"
+    quarantined_by: "developer@example.com" 
+    quarantined_at: "2025-09-01T16:00:00Z"
+    expires_at: "2025-09-05T16:00:00Z"  # Expired
+    priority: "high"
+    jira_ticket: "FLAKE-123"
+    owner_team: "auth-team"
+
+  # This test is still valid
+  - test_key: "sample-tests::should handle concurrent requests::user.test.ts"
+    reason: "Valid quarantine"
+    quarantined_by: "dev-team@example.com"
+    quarantined_at: "2025-09-10T17:00:00Z"
+    expires_at: "2025-09-17T17:00:00Z"  # Still valid
+    priority: "medium"
+    jira_ticket: "INFRA-789"
+    owner_team: "infrastructure-team"

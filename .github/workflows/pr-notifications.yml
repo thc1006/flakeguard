@@ -1,0 +1,370 @@
+name: FlakeGuard PR Notifications
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '.flakeguard/quarantine.yml'
+      - '.flakeguard/**/*.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+jobs:
+  notify-quarantine-changes:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history to compare with base branch
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+
+      - name: Install dependencies (without postinstall)
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
+
+      - name: Build packages in correct order
+        run: |
+          echo "Building packages using root script..."
+          pnpm run build:packages
+          echo "✅ All packages built successfully"
+          
+          echo "Verifying CLI build output..."
+          ls -la packages/cli/dist/
+          ls -la packages/cli/dist/bin/
+          
+          echo "Testing CLI commands..."
+          cd packages/cli
+          node dist/bin/cli.js --version
+          node dist/pr-notifier.js --help
+          node dist/quarantine.js --help
+          echo "✅ All CLI commands are working"
+
+      - name: Get base branch quarantine config
+        id: get-base-config
+        run: |
+          echo "Getting base branch quarantine configuration..."
+          
+          # Create temporary file for base config
+          BASE_CONFIG_PATH="/tmp/base-quarantine.yml"
+          
+          # Try to get the quarantine config from the base branch
+          if git show "${{ github.event.pull_request.base.sha }}:.flakeguard/quarantine.yml" > "$BASE_CONFIG_PATH" 2>/dev/null; then
+            echo "base_config_exists=true" >> $GITHUB_OUTPUT
+            echo "base_config_path=$BASE_CONFIG_PATH" >> $GITHUB_OUTPUT
+            echo "✅ Base branch quarantine config found"
+          else
+            echo "base_config_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️  No quarantine config in base branch (new file)"
+          fi
+
+      - name: Analyze quarantine changes and post comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd packages/cli
+          
+          echo "🔍 Analyzing quarantine changes for PR #${{ github.event.pull_request.number }}..."
+          
+          # Prepare command arguments
+          NOTIFY_CMD="node dist/pr-notifier.js notify"
+          NOTIFY_CMD="$NOTIFY_CMD --repo ${{ github.repository }}"
+          NOTIFY_CMD="$NOTIFY_CMD --pr-number ${{ github.event.pull_request.number }}"
+          NOTIFY_CMD="$NOTIFY_CMD --config ../../.flakeguard/quarantine.yml"
+          NOTIFY_CMD="$NOTIFY_CMD --github-token $GITHUB_TOKEN"
+          NOTIFY_CMD="$NOTIFY_CMD --repo-path ../.."
+          NOTIFY_CMD="$NOTIFY_CMD --update-existing"
+          
+          # Add base config if it exists
+          if [[ "${{ steps.get-base-config.outputs.base_config_exists }}" == "true" ]]; then
+            NOTIFY_CMD="$NOTIFY_CMD --previous-config ${{ steps.get-base-config.outputs.base_config_path }}"
+          fi
+          
+          # Run the notification
+          echo "Running: $NOTIFY_CMD"
+          eval $NOTIFY_CMD
+
+      - name: Validate quarantine configuration
+        run: |
+          cd packages/cli
+          
+          echo "🔍 Validating updated quarantine configuration..."
+          
+          # Check if quarantine config exists
+          if [[ ! -f "../../.flakeguard/quarantine.yml" ]]; then
+            echo "⚠️  No quarantine configuration found, skipping validation"
+            exit 0
+          fi
+          
+          # Validate the new configuration
+          if node dist/quarantine.js validate ../../.flakeguard/quarantine.yml --verbose; then
+            echo "✅ Quarantine configuration is valid"
+          else
+            echo "❌ Quarantine configuration validation failed"
+            exit 1
+          fi
+
+      - name: Check for expiring quarantines
+        run: |
+          cd packages/cli
+          
+          echo "⏰ Checking for expiring quarantines in PR..."
+          
+          # Check if quarantine config exists
+          if [[ ! -f "../../.flakeguard/quarantine.yml" ]]; then
+            echo "⚠️  No quarantine configuration found, skipping expiration check"
+            exit 0
+          fi
+          
+          # Check for expiring quarantines (warning only, don't fail)
+          node dist/quarantine.js check-expiration \
+            --config ../../.flakeguard/quarantine.yml \
+            --warning-days 7 || echo "⚠️  Some quarantines are expiring soon"
+
+      - name: Generate quarantine summary for PR description
+        id: generate-summary
+        run: |
+          cd packages/cli
+          
+          echo "📊 Generating quarantine summary..."
+          
+          # Check if quarantine config exists first
+          if [[ ! -f "../../.flakeguard/quarantine.yml" ]]; then
+            echo "⚠️  No quarantine configuration found, using empty summary"
+            SUMMARY_JSON='{"summary":{"totalQuarantined":0,"activeTests":0,"expiringSoon":0,"expired":0}}'
+          else
+            # Generate JSON summary for potential PR description update
+            if ! SUMMARY_JSON=$(node dist/quarantine.js list \
+              --config ../../.flakeguard/quarantine.yml \
+              --format json 2>/dev/null); then
+              echo "⚠️  Failed to generate quarantine summary, using defaults"
+              SUMMARY_JSON='{"summary":{"totalQuarantined":0,"activeTests":0,"expiringSoon":0,"expired":0}}'
+            fi
+          fi
+          
+          # Validate JSON before parsing
+          if ! echo "$SUMMARY_JSON" | jq empty 2>/dev/null; then
+            echo "⚠️  Invalid JSON output, using defaults"
+            SUMMARY_JSON='{"summary":{"totalQuarantined":0,"activeTests":0,"expiringSoon":0,"expired":0}}'
+          fi
+          
+          # Extract key metrics
+          TOTAL_QUARANTINED=$(echo "$SUMMARY_JSON" | jq -r '.summary.totalQuarantined // 0')
+          ACTIVE_TESTS=$(echo "$SUMMARY_JSON" | jq -r '.summary.activeTests // 0')
+          EXPIRING_SOON=$(echo "$SUMMARY_JSON" | jq -r '.summary.expiringSoon // 0')
+          EXPIRED=$(echo "$SUMMARY_JSON" | jq -r '.summary.expired // 0')
+          
+          echo "total_quarantined=$TOTAL_QUARANTINED" >> $GITHUB_OUTPUT
+          echo "active_tests=$ACTIVE_TESTS" >> $GITHUB_OUTPUT
+          echo "expiring_soon=$EXPIRING_SOON" >> $GITHUB_OUTPUT
+          echo "expired=$EXPIRED" >> $GITHUB_OUTPUT
+          
+          # Create summary badge info
+          if [[ $EXPIRED -gt 0 ]]; then
+            BADGE_COLOR="red"
+            BADGE_STATUS="$EXPIRED expired"
+          elif [[ $EXPIRING_SOON -gt 0 ]]; then
+            BADGE_COLOR="yellow"
+            BADGE_STATUS="$EXPIRING_SOON expiring"
+          else
+            BADGE_COLOR="green"
+            BADGE_STATUS="all active"
+          fi
+          
+          echo "badge_color=$BADGE_COLOR" >> $GITHUB_OUTPUT
+          echo "badge_status=$BADGE_STATUS" >> $GITHUB_OUTPUT
+          
+          echo "📊 Quarantine Summary:"
+          echo "  Total: $TOTAL_QUARANTINED"
+          echo "  Active: $ACTIVE_TESTS"
+          echo "  Expiring: $EXPIRING_SOON"
+          echo "  Expired: $EXPIRED"
+
+      - name: Add PR status check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const expired = parseInt('${{ steps.generate-summary.outputs.expired }}');
+            const expiring = parseInt('${{ steps.generate-summary.outputs.expiring_soon }}');
+            
+            let state, description;
+            if (expired > 0) {
+              state = 'failure';
+              description = `${expired} expired quarantine(s) need attention`;
+            } else if (expiring > 0) {
+              state = 'success';
+              description = `${expiring} quarantine(s) expiring soon`;
+            } else {
+              state = 'success';
+              description = 'All quarantines are active';
+            }
+            
+            try {
+              await github.rest.repos.createCommitStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: context.payload.pull_request.head.sha,
+                state: state,
+                target_url: `https://github.com/${{ github.repository }}/pull/${{ github.event.pull_request.number }}#issuecomment`,
+                description: description,
+                context: 'FlakeGuard / Quarantine Status'
+              });
+              console.log('✅ Commit status created successfully');
+            } catch (error) {
+              console.log('⚠️ Failed to create commit status:', error.message);
+              console.log('This is likely due to insufficient permissions. Status: ' + state + ', Description: ' + description);
+            }
+
+  # Optional: Auto-approve PRs that only add/remove quarantines (for trusted team members)
+  auto-approve-quarantine-only:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
+    needs: notify-quarantine-changes
+    
+    steps:
+      - name: Check if PR only modifies quarantine files
+        id: check-quarantine-only
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+            
+            const quarantineOnly = files.every(file => 
+              file.filename.startsWith('.flakeguard/') && 
+              file.filename.endsWith('.yml')
+            );
+            
+            console.log(`Files changed: ${files.map(f => f.filename).join(', ')}`);
+            console.log(`Quarantine only: ${quarantineOnly}`);
+            
+            return { quarantine_only: quarantineOnly };
+
+      - name: Auto-approve quarantine-only PR
+        if: steps.check-quarantine-only.outputs.result.quarantine_only == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number
+            });
+            
+            // Check if already approved
+            const alreadyApproved = reviews.some(review => 
+              review.state === 'APPROVED' && review.user.type === 'Bot'
+            );
+            
+            if (!alreadyApproved) {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                event: 'APPROVE',
+                body: '🤖 Auto-approved: This PR only modifies quarantine configuration.\n\n✅ All quarantine changes have been validated and owner notifications sent.'
+              });
+              
+              console.log('✅ PR auto-approved for quarantine-only changes');
+            }
+
+  # Post-merge cleanup and notifications
+  post-merge-notifications:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.merged == true
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+
+      - name: Install dependencies (without postinstall)
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
+
+      - name: Build packages in correct order
+        run: |
+          echo "Building packages using root script..."
+          pnpm run build:packages
+          echo "✅ All packages built successfully"
+          
+          echo "Verifying CLI build output..."
+          ls -la packages/cli/dist/
+          ls -la packages/cli/dist/bin/
+          
+          echo "Testing CLI commands..."
+          cd packages/cli
+          node dist/bin/cli.js --version
+          node dist/pr-notifier.js --help
+          node dist/quarantine.js --help
+          echo "✅ All CLI commands are working"
+
+      - name: Post merge summary comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd packages/cli
+          
+          # Generate post-merge summary with error handling
+          if SUMMARY_JSON=$(node dist/quarantine.js list \
+            --config ../../.flakeguard/quarantine.yml \
+            --format json 2>/dev/null); then
+            
+            # Validate JSON
+            if echo "$SUMMARY_JSON" | jq empty 2>/dev/null; then
+              TOTAL=$(echo "$SUMMARY_JSON" | jq -r '.summary.totalQuarantined // 0')
+              ACTIVE=$(echo "$SUMMARY_JSON" | jq -r '.summary.activeTests // 0')
+            else
+              echo "⚠️  Invalid JSON output, using defaults"
+              TOTAL=0
+              ACTIVE=0
+            fi
+          else
+            echo "⚠️  Failed to generate summary, using defaults"
+            TOTAL=0
+            ACTIVE=0
+          fi
+          
+          # Post final status comment
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "✅ **FlakeGuard quarantine changes have been merged!**
+
+          **Current Status:**
+          - 🔒 Total quarantined tests: **$TOTAL**
+          - ✅ Active tests: **$ACTIVE**
+          
+          All quarantine changes are now active and will be respected by the pipeline gate.
+          
+          > 🤖 Quarantine changes take effect immediately. The next CI run will use the updated configuration."
+
+      - name: Trigger quarantine status update
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Trigger the quarantine monitoring workflow to update README status
+          gh workflow run quarantine-pr.yml --ref main || echo "Failed to trigger status update"

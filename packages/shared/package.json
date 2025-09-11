@@ -39,7 +39,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "tsc --project ./tsconfig.json",
     "dev": "tsc --watch",
     "test": "vitest",
     "typecheck": "tsc --noEmit",

@@ -1,0 +1,26 @@
+Running tests from test suite...
+
+ FAIL  src/auth/auth.test.ts › Authentication Service › should validate JWT token
+   Expected: true
+   Received: false
+   
+   This test is known to be flaky due to timing issues
+   Stack trace:
+     at validateToken (auth.test.ts:42)
+     at Object.<anonymous> (auth.test.ts:55)
+
+ PASS  src/auth/auth.test.ts › Authentication Service › should hash password correctly
+   ✓ should hash password correctly (15ms)
+
+ FAIL  src/payment/payment.test.ts › Payment Processing › should handle payment timeout
+   Network timeout: Unable to connect to payment gateway
+   
+   Stack trace:
+     at PaymentService.processPayment (payment.test.ts:78)
+     at timeout (payment.test.ts:85)
+
+Test Suites: 2 failed, 1 passed, 3 total
+Tests:       2 failed, 1 passed, 3 total
+Snapshots:   0 total
+Time:        15.432 s
+Ran all test suites.

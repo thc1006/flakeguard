@@ -1,0 +1,127 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "junit",
+      "pattern": [
+        {
+          "regexp": "^\\s*✖\\s+(.*)\\s+›\\s+(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        {
+          "regexp": "^\\s*at\\s+(.*):(\\d+):(\\d+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "owner": "vitest",
+      "pattern": [
+        {
+          "regexp": "^\\s*FAIL\\s+(.*)\\s+>\\s+(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        {
+          "regexp": "^\\s*⎯+\\s*$",
+          "loop": true
+        },
+        {
+          "regexp": "^\\s*(.*):(\\d+):(\\d+)\\s*$",
+          "file": 1,
+          "line": 2,
+          "column": 3
+        }
+      ]
+    },
+    {
+      "owner": "jest",
+      "pattern": [
+        {
+          "regexp": "^\\s*●\\s+(.*)\\s+›\\s+(.*)$",
+          "message": 2
+        },
+        {
+          "regexp": "^\\s+at\\s+.*\\((.*):(\\d+):(\\d+)\\)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "owner": "typescript",
+      "pattern": [
+        {
+          "regexp": "^(.*)\\((\\d+),(\\d+)\\):\\s+(error|warning|info)\\s+(TS\\d+):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "code": 5,
+          "message": 6
+        }
+      ]
+    },
+    {
+      "owner": "eslint",
+      "pattern": [
+        {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(error|warning)\\s+(.*)\\s+([a-z-]+/[a-z-]+)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5,
+          "code": 6
+        }
+      ]
+    },
+    {
+      "owner": "generic-test-failure",
+      "pattern": [
+        {
+          "regexp": "^\\s*FAILED\\s+(.*)\\s+-\\s+(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        {
+          "regexp": "^\\s*File\\s+\"(.*)\"\\s*,\\s*line\\s+(\\d+).*$",
+          "file": 1,
+          "line": 2,
+          "loop": true
+        }
+      ]
+    },
+    {
+      "owner": "flakeguard-test-analysis",
+      "pattern": [
+        {
+          "regexp": "^\\[FLAKY\\]\\s+(.*)\\s+in\\s+(.*):(\\d+)\\s+-\\s+(.*)$",
+          "severity": "warning",
+          "file": 2,
+          "line": 3,
+          "message": 4
+        },
+        {
+          "regexp": "^\\[FAILED\\]\\s+(.*)\\s+in\\s+(.*):(\\d+)\\s+-\\s+(.*)$",
+          "severity": "error",
+          "file": 2,
+          "line": 3,
+          "message": 4
+        },
+        {
+          "regexp": "^\\[QUARANTINED\\]\\s+(.*)\\s+in\\s+(.*):(\\d+)\\s+-\\s+(.*)$",
+          "severity": "notice",
+          "file": 2,
+          "line": 3,
+          "message": 4
+        }
+      ]
+    }
+  ]
+}

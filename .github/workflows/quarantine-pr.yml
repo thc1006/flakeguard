@@ -1,0 +1,313 @@
+name: Quarantine PR Integration
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  handle-quarantine-request:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.title, '[QUARANTINE]') || contains(github.event.comment.body, '/quarantine')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build CLI package
+        run: pnpm --filter @flakeguard/cli build
+
+      - name: Parse quarantine request
+        id: parse-request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ github.event.issue.body || github.event.comment.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          echo "Parsing quarantine request..."
+          
+          # Extract test key, reason, and owner from issue body or comment
+          # Expected format:
+          # /quarantine test_key="auth::should validate JWT token::src/auth.test.ts" reason="Timing dependent test" owner_team="auth-team" ttl_days="14"
+          
+          if [[ "$ISSUE_BODY" =~ /quarantine[[:space:]]+test_key=\"([^\"]+)\"[[:space:]]+reason=\"([^\"]+)\"[[:space:]]+owner_team=\"([^\"]+)\" ]]; then
+            TEST_KEY="${BASH_REMATCH[1]}"
+            REASON="${BASH_REMATCH[2]}"
+            OWNER_TEAM="${BASH_REMATCH[3]}"
+            
+            # Extract optional parameters
+            TTL_DAYS="14"
+            PRIORITY="medium"
+            if [[ "$ISSUE_BODY" =~ ttl_days=\"([^\"]+)\" ]]; then
+              TTL_DAYS="${BASH_REMATCH[1]}"
+            fi
+            if [[ "$ISSUE_BODY" =~ priority=\"([^\"]+)\" ]]; then
+              PRIORITY="${BASH_REMATCH[1]}"
+            fi
+            
+            echo "test_key=$TEST_KEY" >> $GITHUB_OUTPUT
+            echo "reason=$REASON" >> $GITHUB_OUTPUT
+            echo "owner_team=$OWNER_TEAM" >> $GITHUB_OUTPUT
+            echo "ttl_days=$TTL_DAYS" >> $GITHUB_OUTPUT
+            echo "priority=$PRIORITY" >> $GITHUB_OUTPUT
+            echo "valid_request=true" >> $GITHUB_OUTPUT
+          else
+            echo "valid_request=false" >> $GITHUB_OUTPUT
+            echo "Invalid quarantine request format"
+          fi
+
+      - name: Add to quarantine
+        if: steps.parse-request.outputs.valid_request == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          QUARANTINED_BY: ${{ github.event.issue.user.login || github.event.comment.user.login }}@github.com
+        run: |
+          cd packages/cli
+          
+          # Add test to quarantine with PR creation
+          node dist/quarantine.js add \
+            "${{ steps.parse-request.outputs.test_key }}" \
+            "${{ steps.parse-request.outputs.reason }}" \
+            "${{ steps.parse-request.outputs.owner_team }}" \
+            --ttl-days ${{ steps.parse-request.outputs.ttl_days }} \
+            --priority ${{ steps.parse-request.outputs.priority }} \
+            --quarantined-by "$QUARANTINED_BY" \
+            --create-pr \
+            --pr-branch "quarantine-${{ github.event.issue.number || github.event.comment.id }}"
+
+      - name: Comment on issue
+        if: steps.parse-request.outputs.valid_request == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} --body "✅ Quarantine PR created for test: \`${{ steps.parse-request.outputs.test_key }}\`
+
+          **Details:**
+          - **Test:** ${{ steps.parse-request.outputs.test_key }}
+          - **Reason:** ${{ steps.parse-request.outputs.reason }}
+          - **Owner Team:** ${{ steps.parse-request.outputs.owner_team }}
+          - **TTL:** ${{ steps.parse-request.outputs.ttl_days }} days
+          - **Priority:** ${{ steps.parse-request.outputs.priority }}
+
+          The quarantine will take effect immediately once the PR is merged."
+
+      - name: Comment on invalid request
+        if: steps.parse-request.outputs.valid_request == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} --body "❌ Invalid quarantine request format.
+
+          **Expected format:**
+          \`\`\`
+          /quarantine test_key=\"suite::name::file\" reason=\"Description of why test is flaky\" owner_team=\"team-name\"
+          \`\`\`
+
+          **Optional parameters:**
+          - \`ttl_days=\"14\"\` (default: 14)
+          - \`priority=\"medium\"\` (low/medium/high/critical, default: medium)
+          - \`jira_ticket=\"TICKET-123\"\`
+
+          **Example:**
+          \`\`\`
+          /quarantine test_key=\"auth::should validate JWT token::src/auth.test.ts\" reason=\"Timing-dependent behavior in CI environment\" owner_team=\"auth-team\" ttl_days=\"7\" priority=\"high\"
+          \`\`\`"
+
+  handle-remove-quarantine:
+    runs-on: ubuntu-latest
+    if: contains(github.event.comment.body, '/remove-quarantine')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build CLI package
+        run: pnpm --filter @flakeguard/cli build
+
+      - name: Parse remove request
+        id: parse-remove
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          echo "Parsing remove quarantine request..."
+          
+          # Expected format: /remove-quarantine test_key="auth::should validate JWT token::src/auth.test.ts"
+          if [[ "$COMMENT_BODY" =~ /remove-quarantine[[:space:]]+test_key=\"([^\"]+)\" ]]; then
+            TEST_KEY="${BASH_REMATCH[1]}"
+            echo "test_key=$TEST_KEY" >> $GITHUB_OUTPUT
+            echo "valid_request=true" >> $GITHUB_OUTPUT
+          else
+            echo "valid_request=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Remove from quarantine
+        if: steps.parse-remove.outputs.valid_request == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REMOVED_BY: ${{ github.event.comment.user.login }}@github.com
+        run: |
+          cd packages/cli
+          
+          # Remove test from quarantine with PR creation
+          node dist/quarantine.js remove \
+            "${{ steps.parse-remove.outputs.test_key }}" \
+            --removed-by "$REMOVED_BY" \
+            --create-pr \
+            --pr-branch "remove-quarantine-${{ github.event.comment.id }}"
+
+      - name: Comment on remove success
+        if: steps.parse-remove.outputs.valid_request == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} --body "✅ Remove quarantine PR created for test: \`${{ steps.parse-remove.outputs.test_key }}\`
+
+          The test will no longer be quarantined once the PR is merged."
+
+  quarantine-expiration-check:
+    runs-on: ubuntu-latest
+    # Run daily at 9 AM UTC
+    schedule:
+      - cron: '0 9 * * *'
+    # Allow manual trigger
+    workflow_dispatch:
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build CLI package
+        run: pnpm --filter @flakeguard/cli build
+
+      - name: Check for expiring quarantines
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          cd packages/cli
+          
+          # Check for expiring quarantines and notify
+          node dist/quarantine.js check-expiration \
+            --notify \
+            --slack-webhook "$SLACK_WEBHOOK" || {
+            
+            # If there are expired quarantines, create an issue
+            echo "Creating issue for expired quarantines..."
+            
+            # Get detailed status
+            QUARANTINE_STATUS=$(node dist/quarantine.js list --format json)
+            
+            # Create issue with expired quarantines
+            gh issue create \
+              --title "🚨 Expired Test Quarantines Need Attention" \
+              --body "## Expired Test Quarantines
+
+            The following test quarantines have expired and need immediate attention:
+
+            $(echo "$QUARANTINE_STATUS" | jq -r '.filtered[] | select(.status == "expired") | "- **\(.testKey)** (expired \(-.daysUntilExpiration) days ago) - Team: \(.ownerTeam)"')
+
+            ## Action Required
+
+            For each expired test:
+            1. **Fix the flaky test** and remove from quarantine using: \`/remove-quarantine test_key=\"<test_key>\"\`
+            2. **OR extend the quarantine** if more time is needed (not recommended)
+
+            ## Tests Expiring Soon
+
+            $(echo "$QUARANTINE_STATUS" | jq -r '.filtered[] | select(.status == "expiring_soon") | "- **\(.testKey)** (\(.daysUntilExpiration) days left) - Team: \(.ownerTeam)"')
+
+            > This issue was auto-generated by FlakeGuard quarantine monitoring." \
+              --label "flakeguard,expired-quarantine,urgent"
+          }
+
+      - name: Update quarantine summary in README
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd packages/cli
+          
+          # Generate quarantine summary
+          SUMMARY=$(node dist/quarantine.js list --format json | jq -r '.summary')
+          TOTAL=$(echo "$SUMMARY" | jq -r '.totalQuarantined')
+          ACTIVE=$(echo "$SUMMARY" | jq -r '.activeTests')
+          EXPIRING=$(echo "$SUMMARY" | jq -r '.expiringSoon')
+          EXPIRED=$(echo "$SUMMARY" | jq -r '.expired')
+          
+          # Update README section if it exists
+          if grep -q "<!-- FLAKEGUARD-QUARANTINE-STATUS -->" ../../README.md; then
+            sed -i "/<!-- FLAKEGUARD-QUARANTINE-STATUS -->/,/<!-- \/FLAKEGUARD-QUARANTINE-STATUS -->/c\\
+            <!-- FLAKEGUARD-QUARANTINE-STATUS -->\\
+            ## 🔒 Quarantine Status\\
+            \\
+            | Status | Count |\\
+            |--------|-------|\\
+            | **Total Quarantined** | $TOTAL |\\
+            | **Active** | $ACTIVE |\\
+            | **Expiring Soon** | $EXPIRING |\\
+            | **Expired** | $EXPIRED |\\
+            \\
+            *Last updated: $(date -u '+%Y-%m-%d %H:%M UTC')*\\
+            <!-- /FLAKEGUARD-QUARANTINE-STATUS -->" ../../README.md
+            
+            # Commit and push if there are changes
+            if ! git diff --quiet ../../README.md; then
+              git config --local user.email "action@github.com"
+              git config --local user.name "FlakeGuard Bot"
+              git add ../../README.md
+              git commit -m "chore: update quarantine status in README
+
+              📊 Quarantine Summary:
+              - Total: $TOTAL
+              - Active: $ACTIVE  
+              - Expiring: $EXPIRING
+              - Expired: $EXPIRED
+
+              🤖 Generated by FlakeGuard quarantine monitoring"
+              git push
+            fi
+          fi

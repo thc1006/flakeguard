@@ -5,17 +5,35 @@
   "description": "FlakeGuard interactive setup wizard CLI",
   "license": "Apache-2.0",
   "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "bin": {
-    "flakeguard-init": "dist/bin/cli.js"
+    "flakeguard-init": "dist/bin/cli.js",
+    "flakeguard-gate": "dist/gate.js",
+    "flakeguard-rerun": "dist/rerun.js",
+    "flakeguard-quarantine": "dist/quarantine.js",
+    "flakeguard-pr-notifier": "dist/pr-notifier.js",
+    "flakeguard-ops-reporter": "dist/ops-reporter.js",
+    "flakeguard-summary": "dist/summary.js",
+    "flakeguard-auto-rerun": "dist/auto-rerun.js",
+    "flakeguard-quarantine-governor": "dist/quarantine-governor.js",
+    "flakeguard-fetch-artifact": "dist/fetch-artifact.js",
+    "flakeguard-bulk-download": "dist/bulk-artifact-download.js",
+    "flakeguard-branch-audit": "dist/branch-protection-auditor.js",
+    "flakeguard-telemetry": "dist/telemetry-analyzer.js"
   },
   "scripts": {
-    "build": "tsc",
-    "postbuild": "chmod +x dist/bin/cli.js",
+    "prepare": "npm run build",
+    "postinstall": "npm run build",
+    "build": "tsc && npm run postbuild",
+    "postbuild": "chmod +x dist/bin/cli.js || echo 'chmod skipped on Windows'",
     "dev": "tsc --watch",
     "start": "node dist/bin/cli.js",
     "test": "jest --passWithNoTests",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@types/jsonwebtoken": "^9.0.7",
@@ -25,7 +43,9 @@
     "cross-spawn": "^7.0.6",
     "cryptr": "^6.3.0",
     "dotenv": "^16.6.1",
+    "fast-xml-parser": "^4.4.1",
     "fs-extra": "^11.3.1",
+    "glob": "^10.3.10",
     "inquirer": "^9.3.7",
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
@@ -34,7 +54,8 @@
     "pg": "^8.16.3",
     "redis": "^4.7.1",
     "semver": "^7.7.2",
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/cross-spawn": "^6.0.6",
@@ -45,6 +66,7 @@
     "@types/pg": "^8.15.5",
     "@types/semver": "^7.7.0",
     "jest": "^29.7.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   },
   "engines": {

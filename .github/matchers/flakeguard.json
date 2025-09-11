@@ -1,0 +1,40 @@
+{
+  "problemMatcher": [
+    {
+      "owner": "flakeguard-analysis",
+      "severity": "warning",
+      "pattern": [
+        {
+          "regexp": "^\\[FLAKY\\]\\s+(.*)\\ +in\\s+(.*):(\\ +)\\s+-\\s+(.*)$",
+          "message": 1,
+          "file": 2,
+          "line": 3
+        }
+      ]
+    },
+    {
+      "owner": "flakeguard-failures",
+      "severity": "error",
+      "pattern": [
+        {
+          "regexp": "^\\[FAILED\\]\\s+(.*)\\ +in\\s+(.*):(\\ +)\\s+-\\s+(.*)$",
+          "message": 1,
+          "file": 2,
+          "line": 3
+        }
+      ]
+    },
+    {
+      "owner": "flakeguard-quarantine",
+      "severity": "notice",
+      "pattern": [
+        {
+          "regexp": "^\\[QUARANTINED\\]\\s+(.*)\\ +in\\s+(.*):(\\ +)\\s+-\\s+(.*)$",
+          "message": 1,
+          "file": 2,
+          "line": 3
+        }
+      ]
+    }
+  ]
+}

@@ -71,6 +71,7 @@ FROM deps AS shared-builder
 # Copy shared package source and root tsconfig
 COPY --chown=builder:builder packages/shared/src ./packages/shared/src
 COPY --chown=builder:builder packages/shared/tsconfig.json ./packages/shared/
+COPY --chown=builder:builder packages/shared/package.json ./packages/shared/
 COPY --chown=builder:builder tsconfig.json ./
 
 # Build shared package

@@ -47,5 +47,13 @@ docker-compose*.yml
 README*.md
 *.md
 
-# CLI package (dev only)
-packages/cli/
+# CLI package source files (build output only)
+packages/cli/dist
+packages/cli/node_modules
+
+# But keep important config files
+!tsconfig.json
+!**/tsconfig.json
+!**/package.json
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
