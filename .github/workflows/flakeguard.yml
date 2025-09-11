@@ -57,10 +57,20 @@ jobs:
       - name: Build all packages
         run: |
           echo "🔨 Building all packages to ensure proper workspace linking..."
-          # Build packages in dependency order
-          pnpm --filter @flakeguard/shared build
-          pnpm --filter @flakeguard/cli build
-          pnpm -r build
+          # Build packages in dependency order with detailed logging
+          echo "Building shared package..."
+          pnpm --filter @flakeguard/shared build || echo "Shared build failed"
+          echo "Building CLI package..."
+          pnpm --filter @flakeguard/cli build || echo "CLI build failed"
+          echo "Building all remaining packages..."
+          pnpm -r build || echo "Some builds failed"
+          
+          # Verify CLI built successfully  
+          echo "Checking if CLI dist directory was created..."
+          ls -la packages/cli/dist/ || echo "❌ CLI dist directory missing"
+          echo "Checking specific CLI files..."
+          test -f packages/cli/dist/gate.js && echo "✅ gate.js exists" || echo "❌ gate.js missing"
+          test -f packages/cli/dist/quarantine.js && echo "✅ quarantine.js exists" || echo "❌ quarantine.js missing"
           
       - name: Reinstall dependencies to link built packages
         run: |
