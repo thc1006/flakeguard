@@ -129,6 +129,10 @@ jobs:
           path: .flakeguard/out/report.json
           retention-days: 30
 
+      - name: Make demo scripts executable
+        if: always()
+        run: chmod +x scripts/demo-*.sh
+
       - name: Demo Problem Matcher with Synthetic Failures
         if: always()
         run: ./scripts/demo-problem-matcher.sh
